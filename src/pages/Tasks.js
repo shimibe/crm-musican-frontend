@@ -1,0 +1,461 @@
+import React, { useState, useEffect } from 'react';
+import api from '../utils/api';
+import { Plus, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+
+const Tasks = () => {
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category_id: '',
+    priority: 'medium',
+    status: 'open',
+    assigned_to: '',
+    customer_id: '',
+    due_date: '',
+  });
+
+  useEffect(() => {
+    loadData();
+  }, [filter]);
+
+  const loadData = async () => {
+    try {
+      const params = filter === 'my' ? { assigned_to: user?.id } : {};
+      
+      const [tasksRes, customersRes, categoriesRes, usersRes] = await Promise.all([
+        api.get('/tasks', { params }),
+        api.get('/customers?status=active&limit=100'),
+        api.get('/categories'),
+        api.get('/users'),
+      ]);
+
+      setTasks(tasksRes.data.tasks);
+      setCustomers(customersRes.data.customers);
+      setCategories(categoriesRes.data);
+      setUsers(usersRes.data);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = { ...formData };
+      if (!data.assigned_to) delete data.assigned_to;
+      if (!data.customer_id) delete data.customer_id;
+      if (!data.category_id) delete data.category_id;
+      if (!data.due_date) delete data.due_date;
+
+      if (editingTask) {
+        await api.put(`/tasks/${editingTask.id}`, data);
+      } else {
+        await api.post('/tasks', data);
+      }
+      setShowModal(false);
+      setEditingTask(null);
+      resetForm();
+      loadData();
+    } catch (error) {
+      console.error('Error saving task:', error);
+      alert('שגיאה בשמירת משימה');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) return;
+
+    try {
+      await api.delete(`/tasks/${id}`);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('שגיאה במחיקת משימה');
+    }
+  };
+
+  const handleToggleComplete = async (task) => {
+    try {
+      const newStatus = task.status === 'closed' ? 'open' : 'closed';
+      await api.put(`/tasks/${task.id}`, { status: newStatus });
+      loadData();
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      alert('שגיאה בעדכון סטטוס משימה');
+    }
+  };
+
+  const handleEdit = (task) => {
+    setEditingTask(task);
+    setFormData({
+      title: task.title,
+      description: task.description || '',
+      category_id: task.category_id || '',
+      priority: task.priority,
+      status: task.status,
+      assigned_to: task.assigned_to || '',
+      customer_id: task.customer_id || '',
+      due_date: task.due_date ? task.due_date.split('T')[0] : '',
+    });
+    setShowModal(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      category_id: '',
+      priority: 'medium',
+      status: 'open',
+      assigned_to: '',
+      customer_id: '',
+      due_date: '',
+    });
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'open': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'in_progress': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+
+  const getText = (value, type) => {
+    const texts = {
+      priority: { high: 'גבוהה', medium: 'בינונית', low: 'נמוכה' },
+      status: { open: 'פתוח', in_progress: 'בטיפול', closed: 'סגור' },
+    };
+    return texts[type]?.[value] || value;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          ניהול משימות
+        </h1>
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+        >
+          <Plus className="w-4 h-4" />
+          משימה חדשה
+        </button>
+      </div>
+
+      {/* Filter */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 rounded-md ${
+            filter === 'all'
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          כל המשימות
+        </button>
+        <button
+          onClick={() => setFilter('my')}
+          className={`px-4 py-2 rounded-md ${
+            filter === 'my'
+              ? 'bg-primary-600 text-white'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
+        >
+          המשימות שלי
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            טוען...
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            לא נמצאו משימות
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    כותרת
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    לקוח
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    קטגוריה
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    עדיפות
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    סטטוס
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    משויך ל
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    פעולות
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {tasks.map((task) => (
+                  <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                      {task.title}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {task.customer_name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {task.category_name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                        {getText(task.priority, 'priority')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(task.status)}`}>
+                        {getText(task.status, 'status')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {task.assigned_to_name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleToggleComplete(task)}
+                          className={`${
+                            task.status === 'closed'
+                              ? 'text-green-600 hover:text-green-700 dark:text-green-400'
+                              : 'text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400'
+                          }`}
+                          title={task.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
+                        >
+                          <CheckCircle className={`w-4 h-4 ${task.status === 'closed' ? 'fill-current' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(task)}
+                          className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task.id)}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingTask ? 'עריכת משימה' : 'משימה חדשה'}
+              </h2>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    כותרת *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    תיאור
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    לקוח
+                  </label>
+                  <select
+                    value={formData.customer_id}
+                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">בחר לקוח</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    קטגוריה
+                  </label>
+                  <select
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">בחר קטגוריה</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    עדיפות
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="low">נמוכה</option>
+                    <option value="medium">בינונית</option>
+                    <option value="high">גבוהה</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    סטטוס
+                  </label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="open">פתוח</option>
+                    <option value="in_progress">בטיפול</option>
+                    <option value="closed">סגור</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    משויך ל
+                  </label>
+                  <select
+                    value={formData.assigned_to}
+                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">בחר עובד</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    תאריך יעד
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                {editingTask && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newStatus = formData.status === 'closed' ? 'open' : 'closed';
+                      setFormData({ ...formData, status: newStatus });
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                      formData.status === 'closed'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {formData.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                >
+                  שמור
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingTask(null);
+                    resetForm();
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Tasks;
