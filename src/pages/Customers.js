@@ -37,8 +37,46 @@ const Customers = () => {
     }
   };
 
+  const checkDuplicate = () => {
+    // Check for duplicate by name
+    const nameExists = customers.some(c =>
+      c.name.toLowerCase().trim() === formData.name.toLowerCase().trim() &&
+      (!editingCustomer || c.id !== editingCustomer.id)
+    );
+
+    // Check for duplicate by phone (if phone is provided)
+    const phoneExists = formData.phone && customers.some(c =>
+      c.phone && c.phone.replace(/\s|-/g, '') === formData.phone.replace(/\s|-/g, '') &&
+      (!editingCustomer || c.id !== editingCustomer.id)
+    );
+
+    // Check for duplicate by email (if email is provided)
+    const emailExists = formData.email && customers.some(c =>
+      c.email && c.email.toLowerCase() === formData.email.toLowerCase() &&
+      (!editingCustomer || c.id !== editingCustomer.id)
+    );
+
+    return { nameExists, phoneExists, emailExists };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check for duplicates
+    const { nameExists, phoneExists, emailExists } = checkDuplicate();
+
+    if (nameExists || phoneExists || emailExists) {
+      let message = 'נמצא לקוח דומה במערכת:\n';
+      if (nameExists) message += '• שם זהה כבר קיים\n';
+      if (phoneExists) message += '• מספר טלפון זהה כבר קיים\n';
+      if (emailExists) message += '• כתובת אימייל זהה כבר קיימת\n';
+      message += '\nהאם להמשיך בכל זאת?';
+
+      if (!window.confirm(message)) {
+        return;
+      }
+    }
+
     try {
       if (editingCustomer) {
         await api.put(`/customers/${editingCustomer.id}`, formData);
@@ -51,7 +89,8 @@ const Customers = () => {
       loadCustomers();
     } catch (error) {
       console.error('Error saving customer:', error);
-      alert('שגיאה בשמירת לקוח');
+      const errorMessage = error.response?.data?.error || 'שגיאה בשמירת לקוח';
+      alert(errorMessage);
     }
   };
 
