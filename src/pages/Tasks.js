@@ -55,7 +55,12 @@ const Tasks = () => {
     e.preventDefault();
     try {
       const data = { ...formData };
-      if (!data.assigned_to) delete data.assigned_to;
+
+      // Handle "general" as null for assigned_to
+      if (!data.assigned_to || data.assigned_to === 'general') {
+        data.assigned_to = null;
+      }
+
       if (!data.customer_id) delete data.customer_id;
       if (!data.category_id) delete data.category_id;
       if (!data.due_date) delete data.due_date;
@@ -100,11 +105,22 @@ const Tasks = () => {
 
   const handleQuickUpdate = async (taskId, field, value) => {
     try {
-      await api.put(`/tasks/${taskId}`, { [field]: value });
+      // Handle special cases
+      let processedValue = value;
+
+      if (field === 'assigned_to') {
+        // If empty string or "general", send null
+        if (value === '' || value === 'general') {
+          processedValue = null;
+        }
+      }
+
+      await api.put(`/tasks/${taskId}`, { [field]: processedValue });
       loadData();
     } catch (error) {
       console.error('Error updating task:', error);
-      alert('שגיאה בעדכון משימה');
+      console.error('Error details:', error.response?.data);
+      alert(error.response?.data?.error || 'שגיאה בעדכון משימה');
     }
   };
 
