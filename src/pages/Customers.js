@@ -104,6 +104,16 @@ const Customers = () => {
     }
   };
 
+  const handleQuickCategoryUpdate = async (customerId, newCategory) => {
+    try {
+      await api.put(`/customers/${customerId}`, { category: newCategory });
+      loadCustomers();
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('שגיאה בעדכון קטגוריה');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('האם אתה בטוח שברצונך למחוק לקוח זה?')) return;
     
@@ -193,7 +203,7 @@ const Customers = () => {
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
-            🎸 מוזיקנים
+            מוזיקנים
           </button>
           <button
             onClick={() => setCategoryFilter('studio')}
@@ -203,7 +213,7 @@ const Customers = () => {
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
-            🎙️ אולפנים
+            אולפנים
           </button>
         </div>
       </div>
@@ -246,25 +256,45 @@ const Customers = () => {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {customers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
+                      onClick={() => handleEdit(customer)}
+                    >
                       {customer.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {customer.phone || '-'}
+                      {customer.phone ? (
+                        <a
+                          href={`sip:${customer.phone.replace(/\s|-/g, '')}`}
+                          className="text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          {customer.phone}
+                        </a>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {customer.email || '-'}
+                      {customer.email ? (
+                        <a
+                          href={`mailto:${customer.email}`}
+                          className="text-primary-600 dark:text-primary-400 hover:underline"
+                        >
+                          {customer.email}
+                        </a>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      <select
+                        value={customer.category}
+                        onChange={(e) => handleQuickCategoryUpdate(customer.id, e.target.value)}
+                        className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${
                           customer.category === 'studio'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                             : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                         }`}
                       >
-                        {customer.category === 'studio' ? '🎙️ אולפן' : '🎸 מוזיקן'}
-                      </span>
+                        <option value="musician">מוזיקן</option>
+                        <option value="studio">אולפן</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -354,8 +384,8 @@ const Customers = () => {
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
-                  <option value="musician">🎸 מוזיקן</option>
-                  <option value="studio">🎙️ אולפן</option>
+                  <option value="musician">מוזיקן</option>
+                  <option value="studio">אולפן</option>
                 </select>
               </div>
               <div>
@@ -434,7 +464,7 @@ const Customers = () => {
                     <div>
                       <span className="font-medium text-gray-700 dark:text-gray-300">קטגוריה:</span>{' '}
                       <span className="text-gray-900 dark:text-white">
-                        {duplicateCustomer.category === 'studio' ? '🎙️ אולפן' : '🎸 מוזיקן'}
+                        {duplicateCustomer.category === 'studio' ? 'אולפן' : 'מוזיקן'}
                       </span>
                     </div>
                     <div>
@@ -473,7 +503,7 @@ const Customers = () => {
                     <div>
                       <span className="font-medium text-gray-700 dark:text-gray-300">קטגוריה:</span>{' '}
                       <span className="text-gray-900 dark:text-white">
-                        {formData.category === 'studio' ? '🎙️ אולפן' : '🎸 מוזיקן'}
+                        {formData.category === 'studio' ? 'אולפן' : 'מוזיקן'}
                       </span>
                     </div>
                     <div>
