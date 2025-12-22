@@ -31,16 +31,26 @@ const Tasks = () => {
 
   const loadData = async () => {
     try {
-      const params = filter === 'my' ? { assigned_to: user?.id } : {};
-      
+      // Load all tasks - filtering will be done client-side
       const [tasksRes, customersRes, categoriesRes, usersRes] = await Promise.all([
-        api.get('/tasks', { params }),
+        api.get('/tasks'),
         api.get('/customers?status=active&limit=100'),
         api.get('/categories'),
         api.get('/users'),
       ]);
 
-      setTasks(tasksRes.data.tasks);
+      let filteredTasks = tasksRes.data.tasks;
+
+      // Filter "my tasks" to include: assigned to me, assigned to null, or assigned to "general"
+      if (filter === 'my') {
+        filteredTasks = filteredTasks.filter(task =>
+          task.assigned_to === user?.id ||
+          task.assigned_to === null ||
+          task.assigned_to === 'general'
+        );
+      }
+
+      setTasks(filteredTasks);
       setCustomers(customersRes.data.customers);
       setCategories(categoriesRes.data);
       setUsers(usersRes.data);
@@ -320,7 +330,11 @@ const Tasks = () => {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {getSortedTasks().map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={task.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleEdit(task)}
+                  >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                       {task.title}
                     </td>
@@ -330,7 +344,7 @@ const Tasks = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {task.category_name || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={task.priority}
                         onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
@@ -341,7 +355,7 @@ const Tasks = () => {
                         <option value="high">גבוהה</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={task.status}
                         onChange={(e) => handleQuickUpdate(task.id, 'status', e.target.value)}
@@ -352,7 +366,7 @@ const Tasks = () => {
                         <option value="closed">סגור</option>
                       </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={task.assigned_to || ''}
                         onChange={(e) => handleQuickUpdate(task.id, 'assigned_to', e.target.value || null)}
@@ -373,7 +387,7 @@ const Tasks = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
                       {formatDateTime(task.updated_at)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleToggleComplete(task)}
