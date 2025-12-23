@@ -13,6 +13,9 @@ const Tasks = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [hideCompleted, setHideCompleted] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [formData, setFormData] = useState({
     title: '',
@@ -142,10 +145,28 @@ const Tasks = () => {
     setSortConfig({ key, direction });
   };
 
-  const getSortedTasks = () => {
-    if (!sortConfig.key) return tasks;
+  const getFilteredAndSortedTasks = () => {
+    let filtered = [...tasks];
 
-    return [...tasks].sort((a, b) => {
+    // Filter by completed status
+    if (hideCompleted) {
+      filtered = filtered.filter(task => task.status !== 'closed');
+    }
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(task => task.category_id === categoryFilter);
+    }
+
+    // Filter by priority
+    if (priorityFilter !== 'all') {
+      filtered = filtered.filter(task => task.priority === priorityFilter);
+    }
+
+    // Sort
+    if (!sortConfig.key) return filtered;
+
+    return filtered.sort((a, b) => {
       let aVal = a[sortConfig.key];
       let bVal = b[sortConfig.key];
 
@@ -276,28 +297,71 @@ const Tasks = () => {
         </button>
       </div>
 
-      {/* Filter */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-md ${
-            filter === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          כל המשימות
-        </button>
-        <button
-          onClick={() => setFilter('my')}
-          className={`px-4 py-2 rounded-md ${
-            filter === 'my'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-          }`}
-        >
-          המשימות שלי
-        </button>
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+        {/* Assignment Filter */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-md ${
+              filter === 'all'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            כל המשימות
+          </button>
+          <button
+            onClick={() => setFilter('my')}
+            className={`px-4 py-2 rounded-md ${
+              filter === 'my'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            המשימות שלי
+          </button>
+        </div>
+
+        {/* Additional Filters */}
+        <div className="flex gap-4 items-center flex-wrap">
+          {/* Hide Completed */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hideCompleted}
+              onChange={(e) => setHideCompleted(e.target.checked)}
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">הסתר משימות שהושלמו</span>
+          </label>
+
+          {/* Category Filter */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="all">כל הקטגוריות</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Priority Filter */}
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="all">כל העדיפויות</option>
+            <option value="high">גבוהה</option>
+            <option value="medium">בינונית</option>
+            <option value="low">נמוכה</option>
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -329,7 +393,7 @@ const Tasks = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {getSortedTasks().map((task) => (
+                {getFilteredAndSortedTasks().map((task) => (
                   <tr
                     key={task.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
