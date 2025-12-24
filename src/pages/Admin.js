@@ -7,6 +7,7 @@ const Admin = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [interests, setInterests] = useState([]);
   const [apiTokens, setApiTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
@@ -32,6 +33,14 @@ const Admin = () => {
     color: '#3B82F6',
   });
 
+  // Interest modal states
+  const [showInterestModal, setShowInterestModal] = useState(false);
+  const [editingInterest, setEditingInterest] = useState(null);
+  const [interestForm, setInterestForm] = useState({
+    name: '',
+    description: '',
+  });
+
   // API Token modal states
   const [showTokenModal, setShowTokenModal] = useState(false);
   const [newToken, setNewToken] = useState(null);
@@ -53,6 +62,7 @@ const Admin = () => {
       const requests = [
         api.get('/users'),
         api.get('/categories'),
+        api.get('/interests'),
       ];
 
       if (activeTab === 'api-keys') {
@@ -62,9 +72,10 @@ const Admin = () => {
       const responses = await Promise.all(requests);
       setUsers(responses[0].data);
       setCategories(responses[1].data);
+      setInterests(responses[2].data.interests || []);
 
-      if (responses[2]) {
-        setApiTokens(responses[2].data);
+      if (responses[3]) {
+        setApiTokens(responses[3].data);
       }
     } catch (error) {
       console.error('Error loading admin data:', error);
@@ -217,6 +228,54 @@ const Admin = () => {
     }
   };
 
+  // Interest handlers
+  const handleAddInterest = () => {
+    setEditingInterest(null);
+    setInterestForm({
+      name: '',
+      description: '',
+    });
+    setShowInterestModal(true);
+  };
+
+  const handleEditInterest = (interest) => {
+    setEditingInterest(interest);
+    setInterestForm({
+      name: interest.name,
+      description: interest.description || '',
+    });
+    setShowInterestModal(true);
+  };
+
+  const handleSaveInterest = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingInterest) {
+        await api.put(`/interests/${editingInterest.id}`, interestForm);
+      } else {
+        await api.post('/interests', interestForm);
+      }
+      setShowInterestModal(false);
+      setEditingInterest(null);
+      loadData();
+    } catch (error) {
+      console.error('Error saving interest:', error);
+      alert('שגיאה בשמירת תחום עניין');
+    }
+  };
+
+  const handleDeleteInterest = async (id) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק תחום עניין זה?')) return;
+
+    try {
+      await api.delete(`/interests/${id}`);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting interest:', error);
+      alert('שגיאה במחיקת תחום עניין');
+    }
+  };
+
   // API Token handlers
   const handleCreateToken = () => {
     setNewToken(null);
@@ -327,6 +386,16 @@ const Admin = () => {
             }`}
           >
             קטגוריות
+          </button>
+          <button
+            onClick={() => setActiveTab('interests')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'interests'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            תחומי עניין
           </button>
           <button
             onClick={() => setActiveTab('api-keys')}
@@ -470,6 +539,61 @@ const Admin = () => {
                       </button>
                       <button
                         onClick={() => handleDeleteCategory(category.id)}
+                        className="text-red-600 hover:text-red-700 dark:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interests Tab */}
+      {activeTab === 'interests' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              תחומי עניין
+            </h2>
+            <button
+              onClick={handleAddInterest}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              תחום עניין חדש
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {interests.map((interest) => (
+                <div
+                  key={interest.id}
+                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {interest.name}
+                      </h3>
+                      {interest.description && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {interest.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEditInterest(interest)}
+                        className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteInterest(interest.id)}
                         className="text-red-600 hover:text-red-700 dark:text-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -748,6 +872,62 @@ const Admin = () => {
                   onClick={() => {
                     setShowCategoryModal(false);
                     setEditingCategory(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Interest Modal */}
+      {showInterestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingInterest ? 'עריכת תחום עניין' : 'תחום עניין חדש'}
+              </h2>
+            </div>
+            <form onSubmit={handleSaveInterest} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  שם תחום עניין *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={interestForm.name}
+                  onChange={(e) => setInterestForm({ ...interestForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  תיאור
+                </label>
+                <textarea
+                  value={interestForm.description}
+                  onChange={(e) => setInterestForm({ ...interestForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                >
+                  שמור
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInterestModal(false);
+                    setEditingInterest(null);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
                 >
