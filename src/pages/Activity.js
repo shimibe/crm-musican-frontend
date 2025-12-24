@@ -53,24 +53,27 @@ const ActivityLog = () => {
       try {
         const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
 
+        // Details can be nested in body
+        const data = details.body || details;
+
         // For tasks, look for title
-        if (log.table_name === 'tasks' && details.title) {
-          return details.title;
+        if (log.table_name === 'tasks' && data.title) {
+          return data.title;
         }
 
         // For customers, look for name
-        if (log.table_name === 'customers' && details.name) {
-          return details.name;
+        if (log.table_name === 'customers' && data.name) {
+          return data.name;
         }
 
         // For categories, look for name
-        if (log.table_name === 'categories' && details.name) {
-          return details.name;
+        if (log.table_name === 'categories' && data.name) {
+          return data.name;
         }
 
         // For users, look for full_name or username
         if (log.table_name === 'users') {
-          return details.full_name || details.username;
+          return data.full_name || data.username || details.username;
         }
       } catch (e) {
         // If parsing fails, continue
