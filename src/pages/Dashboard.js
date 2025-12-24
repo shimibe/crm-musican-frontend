@@ -34,7 +34,7 @@ const Dashboard = () => {
       
 
 			if (isAdmin) {
-        log("is admin");
+        console.log("is admin");
 				const statsRes = await api.get("/admin/stats");
         console.log({statsRes: statsRes});
         
