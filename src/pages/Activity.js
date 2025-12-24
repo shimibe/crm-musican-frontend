@@ -129,7 +129,14 @@ const ActivityLog = () => {
 										<Activity className="w-5 h-5 text-primary-600 dark:text-primary-400 mt-0.5" />
 										<div className="flex-1">
 											<div className="flex items-center gap-2 flex-wrap">
-												<span className="font-medium text-gray-900 dark:text-white">{log.full_name || log.username || "משתמש לא ידוע"}</span>
+												{log.via_api && log.api_token_name ? (
+													<>
+														<span className="font-medium text-gray-900 dark:text-white">{log.api_token_name}</span>
+														<span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">API</span>
+													</>
+												) : (
+													<span className="font-medium text-gray-900 dark:text-white">{log.full_name || log.username || "משתמש לא ידוע"}</span>
+												)}
 												<span className="text-gray-600 dark:text-gray-400">{getActionText(log)}</span>
 												{log.table_name && <span className="text-gray-600 dark:text-gray-400">{getTableText(log.table_name)}</span>}
 												{entityName && <span className="text-primary-600 dark:text-primary-400 font-medium">"{entityName}"</span>}
