@@ -30,7 +30,7 @@ const ActivityLog = () => {
 	const getActionText = (log) => {
 		let action = log.action;
 		if (action === "update" && log.details && log.details.status && Object.keys(log.details).length === 1) {
-			action = details.status === "open" ? "open" : details.status === "closed" ? "close" : "close";
+			action = log.details.status === "open" ? "open" : log.details.status === "closed" ? "close" : "close";
 		}
 
 		const actions = {
