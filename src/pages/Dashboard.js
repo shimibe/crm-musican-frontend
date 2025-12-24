@@ -17,17 +17,17 @@ const Dashboard = () => {
 
 	const loadDashboardData = async () => {
 		try {
-			console.log("loading Dashboard");
+		//	console.log("loading Dashboard");
 
 			const [tasksRes, activityRes] = await Promise.all([
 				api.get("/tasks", { params: { assigned_to: user?.id } }),
 				api.get("/activity/my?limit=5")
 			]);
 
-			console.log({
-				tasksRes: tasksRes,
-				activityRes: activityRes,
-			});
+//			console.log({
+//				tasksRes: tasksRes,
+//				activityRes: activityRes,
+//			});
 
 			// Filter to show only open and in_progress tasks, and limit to 5
 			const myActiveTasks = tasksRes.data.tasks
@@ -35,18 +35,18 @@ const Dashboard = () => {
 				.slice(0, 5);
 
 			setMyTasks(myActiveTasks);
-			console.log("mytesks - set!");
+//			console.log("mytesks - set!");
 
 			setRecentActivity(activityRes.data.logs);
-			console.log("myactivity - set!");
+//			console.log("myactivity - set!");
 
 			if (isAdmin) {
-				console.log("is admin");
+//				console.log("is admin");
 				const statsRes = await api.get("/admin/stats");
-				console.log({statsRes: statsRes});
+//				console.log({statsRes: statsRes});
 
 				setStats(statsRes.data);
-				console.log("stats - set!");
+//				console.log("stats - set!");
 			}
 		} catch (error) {
 			console.error("Error loading dashboard:", error);

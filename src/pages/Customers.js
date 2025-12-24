@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, UserPlus } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserPlus, Download } from 'lucide-react';
 
 const Customers = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [interestFilter, setInterestFilter] = useState('all');
+  const [availableInterests, setAvailableInterests] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -18,11 +20,13 @@ const Customers = () => {
     status: 'active',
     category: 'musician',
     notes: '',
+    interests: [],
   });
 
   useEffect(() => {
     loadCustomers();
-  }, [search, categoryFilter]);
+    loadInterests();
+  }, [search, categoryFilter, interestFilter]);
 
   const loadCustomers = async () => {
     try {
@@ -30,12 +34,24 @@ const Customers = () => {
       if (categoryFilter !== 'all') {
         params.category = categoryFilter;
       }
+      if (interestFilter !== 'all') {
+        params.interest = interestFilter;
+      }
       const response = await api.get('/customers', { params });
       setCustomers(response.data.customers);
     } catch (error) {
       console.error('Error loading customers:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInterests = async () => {
+    try {
+      const response = await api.get('/interests');
+      setAvailableInterests(response.data.interests || []);
+    } catch (error) {
+      console.error('Error loading interests:', error);
     }
   };
 
@@ -135,6 +151,7 @@ const Customers = () => {
       status: customer.status,
       category: customer.category || 'musician',
       notes: customer.notes || '',
+      interests: customer.interests || [],
     });
     setShowModal(true);
   };
@@ -147,7 +164,59 @@ const Customers = () => {
       status: 'active',
       category: 'musician',
       notes: '',
+      interests: [],
     });
+  };
+
+  const toggleInterest = (interestId) => {
+    setFormData(prev => ({
+      ...prev,
+      interests: prev.interests.includes(interestId)
+        ? prev.interests.filter(id => id !== interestId)
+        : [...prev.interests, interestId]
+    }));
+  };
+
+  const exportToCSV = () => {
+    // Prepare CSV headers
+    const headers = ['שם', 'טלפון', 'אימייל', 'קטגוריה', 'תחומי עניין', 'סטטוס', 'הערות'];
+
+    // Prepare CSV rows
+    const rows = customers.map(customer => {
+      const interests = customer.interests && customer.interests.length > 0
+        ? customer.interests.map(i => i.name || availableInterests.find(ai => ai.id === i)?.name || i).join('; ')
+        : '';
+
+      return [
+        customer.name,
+        customer.phone || '',
+        customer.email || '',
+        customer.category === 'studio' ? 'אולפן' : 'מוזיקן',
+        interests,
+        customer.status === 'active' ? 'פעיל' : 'לא פעיל',
+        customer.notes || ''
+      ];
+    });
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    // Add BOM for proper Hebrew encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // Create download link
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `customers_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleCloseModal = () => {
@@ -163,13 +232,23 @@ const Customers = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           ניהול לקוחות
         </h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" />
-          לקוח חדש
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={exportToCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            title="ייצוא לקובץ CSV"
+          >
+            <Download className="w-4 h-4" />
+            ייצוא CSV
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            <Plus className="w-4 h-4" />
+            לקוח חדש
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter */}
@@ -184,7 +263,7 @@ const Customers = () => {
             className="w-full pr-10 pl-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setCategoryFilter('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -216,6 +295,23 @@ const Customers = () => {
             אולפנים
           </button>
         </div>
+
+        {/* Interest Filter */}
+        <div className="flex gap-2 items-center">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</label>
+          <select
+            value={interestFilter}
+            onChange={(e) => setInterestFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="all">כל התחומים</option>
+            {availableInterests.map((interest) => (
+              <option key={interest.id} value={interest.id}>
+                {interest.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
@@ -244,6 +340,9 @@ const Customers = () => {
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     קטגוריה
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                    תחומי עניין
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     סטטוס
@@ -295,6 +394,20 @@ const Customers = () => {
                         <option value="musician">מוזיקן</option>
                         <option value="studio">אולפן</option>
                       </select>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
+                      {customer.interests && customer.interests.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {customer.interests.map((interest) => (
+                            <span
+                              key={interest.id || interest}
+                              className="px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full text-xs"
+                            >
+                              {interest.name || availableInterests.find(i => i.id === interest)?.name || interest}
+                            </span>
+                          ))}
+                        </div>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -412,6 +525,30 @@ const Customers = () => {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  תחומי עניין
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableInterests.map((interest) => (
+                    <label
+                      key={interest.id}
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.interests.includes(interest.id)}
+                        onChange={() => toggleInterest(interest.id)}
+                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{interest.name}</span>
+                    </label>
+                  ))}
+                  {availableInterests.length === 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400">אין תחומי עניין זמינים</p>
+                  )}
+                </div>
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -473,6 +610,18 @@ const Customers = () => {
                         {duplicateCustomer.status === 'active' ? 'פעיל' : 'לא פעיל'}
                       </span>
                     </div>
+                    {duplicateCustomer.interests && duplicateCustomer.interests.length > 0 && (
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {duplicateCustomer.interests.map((interest) => (
+                            <span key={interest.id || interest} className="px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full text-xs">
+                              {interest.name || availableInterests.find(i => i.id === interest)?.name || interest}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {duplicateCustomer.notes && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">הערות:</span>{' '}
@@ -512,6 +661,18 @@ const Customers = () => {
                         {formData.status === 'active' ? 'פעיל' : 'לא פעיל'}
                       </span>
                     </div>
+                    {formData.interests && formData.interests.length > 0 && (
+                      <div>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {formData.interests.map((interestId) => (
+                            <span key={interestId} className="px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 rounded-full text-xs">
+                              {availableInterests.find(i => i.id === interestId)?.name || interestId}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {formData.notes && (
                       <div>
                         <span className="font-medium text-gray-700 dark:text-gray-300">הערות:</span>{' '}
