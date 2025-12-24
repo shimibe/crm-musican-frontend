@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Search, Edit, Trash2, UserPlus, Download } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Customers = () => {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -233,14 +235,16 @@ const Customers = () => {
           ניהול לקוחות
         </h1>
         <div className="flex gap-2">
-          <button
-            onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-            title="ייצוא לקובץ CSV"
-          >
-            <Download className="w-4 h-4" />
-            ייצוא CSV
-          </button>
+          {user?.role === 'admin' && (
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              title="ייצוא לקובץ CSV"
+            >
+              <Download className="w-4 h-4" />
+              ייצוא CSV
+            </button>
+          )}
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"

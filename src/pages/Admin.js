@@ -49,6 +49,8 @@ const Admin = () => {
     permissions: {
       customers: [],
       tasks: [],
+      categories: [],
+      interests: [],
     },
   });
   const [copiedToken, setCopiedToken] = useState(false);
@@ -284,6 +286,8 @@ const Admin = () => {
       permissions: {
         customers: [],
         tasks: [],
+        categories: [],
+        interests: [],
       },
     });
     setCopiedToken(false);
@@ -1057,6 +1061,50 @@ const Admin = () => {
                               type="checkbox"
                               checked={tokenForm.permissions.tasks?.includes(perm)}
                               onChange={() => togglePermission('tasks', perm)}
+                              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                            <span className="mr-2 text-sm text-gray-700 dark:text-gray-300">
+                              {perm === 'read' ? 'קריאה' : perm === 'write' ? 'כתיבה' : 'מחיקה'}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                        <Key className="w-4 h-4 inline ml-2" />
+                        Categories
+                      </h4>
+                      <div className="space-y-2">
+                        {['read', 'write', 'delete'].map((perm) => (
+                          <label key={perm} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={tokenForm.permissions.categories?.includes(perm)}
+                              onChange={() => togglePermission('categories', perm)}
+                              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                            />
+                            <span className="mr-2 text-sm text-gray-700 dark:text-gray-300">
+                              {perm === 'read' ? 'קריאה' : perm === 'write' ? 'כתיבה' : 'מחיקה'}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-2">
+                        <Key className="w-4 h-4 inline ml-2" />
+                        Interests
+                      </h4>
+                      <div className="space-y-2">
+                        {['read', 'write', 'delete'].map((perm) => (
+                          <label key={perm} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={tokenForm.permissions.interests?.includes(perm)}
+                              onChange={() => togglePermission('interests', perm)}
                               className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                             />
                             <span className="mr-2 text-sm text-gray-700 dark:text-gray-300">
