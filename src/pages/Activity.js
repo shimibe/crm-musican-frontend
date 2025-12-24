@@ -47,6 +47,39 @@ const ActivityLog = () => {
     return tables[table] || table;
   };
 
+  const getEntityName = (log) => {
+    // Try to get entity name from details
+    if (log.details) {
+      try {
+        const details = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+
+        // For tasks, look for title
+        if (log.table_name === 'tasks' && details.title) {
+          return details.title;
+        }
+
+        // For customers, look for name
+        if (log.table_name === 'customers' && details.name) {
+          return details.name;
+        }
+
+        // For categories, look for name
+        if (log.table_name === 'categories' && details.name) {
+          return details.name;
+        }
+
+        // For users, look for full_name or username
+        if (log.table_name === 'users') {
+          return details.full_name || details.username;
+        }
+      } catch (e) {
+        // If parsing fails, continue
+      }
+    }
+
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -97,42 +130,45 @@ const ActivityLog = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {logs.map((log) => (
-              <div key={log.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <div className="flex items-start gap-3">
-                  <Activity className="w-5 h-5 text-primary-600 dark:text-primary-400 mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {log.full_name || log.username || 'משתמש לא ידוע'}
-                      </span>
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {getActionText(log.action)}
-                      </span>
-                      {log.table_name && (
-                        <span className="text-gray-600 dark:text-gray-400">
-                          {getTableText(log.table_name)}
+            {logs.map((log) => {
+              const entityName = getEntityName(log);
+              return (
+                <div key={log.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div className="flex items-start gap-3">
+                    <Activity className="w-5 h-5 text-primary-600 dark:text-primary-400 mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {log.full_name || log.username || 'משתמש לא ידוע'}
                         </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {new Date(log.created_at).toLocaleString('he-IL', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                    {log.ip_address && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        IP: {log.ip_address}
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {getActionText(log.action)}
+                        </span>
+                        {log.table_name && (
+                          <span className="text-gray-600 dark:text-gray-400">
+                            {getTableText(log.table_name)}
+                          </span>
+                        )}
+                        {entityName && (
+                          <span className="text-primary-600 dark:text-primary-400 font-medium">
+                            "{entityName}"
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {new Date(log.created_at).toLocaleString('he-IL', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
