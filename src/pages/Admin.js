@@ -43,6 +43,7 @@ const Admin = () => {
 
   // API Token modal states
   const [showTokenModal, setShowTokenModal] = useState(false);
+  const [editingToken, setEditingToken] = useState(null);
   const [newToken, setNewToken] = useState(null);
   const [tokenForm, setTokenForm] = useState({
     name: '',
@@ -280,6 +281,7 @@ const Admin = () => {
 
   // API Token handlers
   const handleCreateToken = () => {
+    setEditingToken(null);
     setNewToken(null);
     setTokenForm({
       name: '',
@@ -294,19 +296,46 @@ const Admin = () => {
     setShowTokenModal(true);
   };
 
+  const handleEditToken = (token) => {
+    setEditingToken(token);
+    setNewToken(null);
+    setTokenForm({
+      name: token.name,
+      permissions: token.permissions || {
+        customers: [],
+        tasks: [],
+        categories: [],
+        interests: [],
+      },
+    });
+    setCopiedToken(false);
+    setShowTokenModal(true);
+  };
+
   const handleSaveToken = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/admin/api-tokens', {
-        user_id: user.id,
-        name: tokenForm.name,
-        permissions: tokenForm.permissions,
-      });
-      setNewToken(response.data.token);
+      if (editingToken) {
+        // Update existing token permissions
+        await api.put(`/admin/api-tokens/${editingToken.id}`, {
+          name: tokenForm.name,
+          permissions: tokenForm.permissions,
+        });
+        setShowTokenModal(false);
+        setEditingToken(null);
+      } else {
+        // Create new token
+        const response = await api.post('/admin/api-tokens', {
+          user_id: user.id,
+          name: tokenForm.name,
+          permissions: tokenForm.permissions,
+        });
+        setNewToken(response.data.token);
+      }
       loadApiTokens();
     } catch (error) {
-      console.error('Error creating API token:', error);
-      alert('שגיאה ביצירת API token');
+      console.error('Error saving API token:', error);
+      alert('שגיאה בשמירת API token');
     }
   };
 
@@ -797,12 +826,20 @@ const Admin = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDeleteToken(token.id)}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditToken(token)}
+                          className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteToken(token.id)}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -949,7 +986,7 @@ const Admin = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {newToken ? 'API Key נוצר בהצלחה' : 'צור API Key חדש'}
+                {newToken ? 'API Key נוצר בהצלחה' : editingToken ? 'ערוך API Key' : 'צור API Key חדש'}
               </h2>
             </div>
 
@@ -1122,11 +1159,14 @@ const Admin = () => {
                     type="submit"
                     className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                   >
-                    צור API Key
+                    {editingToken ? 'עדכן הרשאות' : 'צור API Key'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowTokenModal(false)}
+                    onClick={() => {
+                      setShowTokenModal(false);
+                      setEditingToken(null);
+                    }}
                     className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
                   >
                     ביטול
