@@ -153,7 +153,7 @@ const Customers = () => {
       status: customer.status,
       category: customer.category || 'musician',
       notes: customer.notes || '',
-      interests: customer.interests || [],
+      interests: (customer.interests || []).map(i => typeof i === 'object' ? i.id : i),
     });
     setShowModal(true);
   };
