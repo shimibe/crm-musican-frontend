@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, UserPlus, Download } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserPlus, Download, Send } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import CampaignModal from '../components/customers/CampaignModal';
 
 const Customers = () => {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ const Customers = () => {
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateCustomer, setDuplicateCustomer] = useState(null);
+  const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -227,6 +230,47 @@ const Customers = () => {
     resetForm();
   };
 
+  const toggleCustomerSelection = (customer) => {
+    setSelectedCustomers(prev => {
+      const isSelected = prev.find(c => c.id === customer.id);
+      if (isSelected) {
+        return prev.filter(c => c.id !== customer.id);
+      } else {
+        return [...prev, customer];
+      }
+    });
+  };
+
+  const toggleAllCustomers = () => {
+    if (selectedCustomers.length === customers.length) {
+      setSelectedCustomers([]);
+    } else {
+      setSelectedCustomers([...customers]);
+    }
+  };
+
+  const selectByInterest = () => {
+    if (interestFilter === 'all') {
+      alert('אנא בחר תחום עניין מהרשימה');
+      return;
+    }
+    // Select all customers that match the current filter
+    setSelectedCustomers([...customers]);
+  };
+
+  const handleOpenCampaign = () => {
+    if (selectedCustomers.length === 0) {
+      alert('אנא בחר לפחות לקוח אחד');
+      return;
+    }
+    setShowCampaignModal(true);
+  };
+
+  const handleCloseCampaign = () => {
+    setShowCampaignModal(false);
+    setSelectedCustomers([]);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -235,6 +279,16 @@ const Customers = () => {
           ניהול לקוחות
         </h1>
         <div className="flex gap-2">
+          {selectedCustomers.length > 0 && (
+            <button
+              onClick={handleOpenCampaign}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              title="שלח קמפיין ללקוחות שנבחרו"
+            >
+              <Send className="w-4 h-4" />
+              שלח קמפיין ({selectedCustomers.length})
+            </button>
+          )}
           {user?.role === 'admin' && (
             <button
               onClick={exportToCSV}
@@ -301,20 +355,41 @@ const Customers = () => {
         </div>
 
         {/* Interest Filter */}
-        <div className="flex gap-2 items-center">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</label>
-          <select
-            value={interestFilter}
-            onChange={(e) => setInterestFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="all">כל התחומים</option>
-            {availableInterests.map((interest) => (
-              <option key={interest.id} value={interest.id}>
-                {interest.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex gap-2 items-center justify-between">
+          <div className="flex gap-2 items-center">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</label>
+            <select
+              value={interestFilter}
+              onChange={(e) => setInterestFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">כל התחומים</option>
+              {availableInterests.map((interest) => (
+                <option key={interest.id} value={interest.id}>
+                  {interest.name}
+                </option>
+              ))}
+            </select>
+            {interestFilter !== 'all' && (
+              <button
+                onClick={selectByInterest}
+                className="px-3 py-2 text-sm bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-800"
+              >
+                בחר הכל בתחום זה
+              </button>
+            )}
+          </div>
+          {selectedCustomers.length > 0 && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              נבחרו {selectedCustomers.length} לקוחות
+              <button
+                onClick={() => setSelectedCustomers([])}
+                className="mr-2 text-red-600 dark:text-red-400 hover:underline"
+              >
+                נקה בחירה
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -333,6 +408,15 @@ const Customers = () => {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
+                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-12">
+                    <input
+                      type="checkbox"
+                      checked={customers.length > 0 && selectedCustomers.length === customers.length}
+                      onChange={toggleAllCustomers}
+                      className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                      title="בחר הכל"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     שם
                   </th>
@@ -359,6 +443,15 @@ const Customers = () => {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {customers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td className="px-3 py-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedCustomers.some(c => c.id === customer.id)}
+                        onChange={() => toggleCustomerSelection(customer)}
+                        className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
                       onClick={() => handleEdit(customer)}
@@ -711,6 +804,13 @@ const Customers = () => {
           </div>
         </div>
       )}
+
+      {/* Campaign Modal */}
+      <CampaignModal
+        show={showCampaignModal}
+        onClose={handleCloseCampaign}
+        selectedCustomers={selectedCustomers}
+      />
     </div>
   );
 };
