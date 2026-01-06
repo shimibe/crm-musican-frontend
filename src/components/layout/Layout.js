@@ -4,11 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send
+  Moon, Sun, Menu, X, Shield, Activity, Send, ChevronDown, FileText
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const { user, logout, isAdmin, isManager } = useAuth();
   const { isDark, toggleDarkMode } = useDarkMode();
   const location = useLocation();
@@ -27,9 +28,10 @@ const Layout = ({ children }) => {
     { name: 'פעילות', href: '/activity', icon: Activity },
   ];
 
-  if (isAdmin) {
-    navigation.push({ name: 'ניהול', href: '/admin', icon: Shield });
-  }
+  const adminNavigation = isAdmin ? [
+    { name: 'ניהול משתמשים', href: '/admin', icon: Shield },
+    { name: 'תבניות קמפיינים', href: '/campaign-templates', icon: FileText },
+  ] : [];
 
   navigation.push({ name: 'הגדרות', href: '/settings', icon: Settings });
 
@@ -94,6 +96,49 @@ const Layout = ({ children }) => {
                 </Link>
               );
             })}
+
+            {/* Admin Menu */}
+            {isAdmin && (
+              <div>
+                <button
+                  onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
+                  <div className="flex items-center">
+                    <Shield className="w-5 h-5 ml-3" />
+                    ניהול
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${
+                      adminMenuOpen ? 'transform rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {adminMenuOpen && (
+                  <div className="mr-3 mt-1 space-y-1">
+                    {adminNavigation.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.href;
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.href}
+                          className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                            isActive
+                              ? 'bg-primary-100 dark:bg-primary-900 text-primary-900 dark:text-primary-100'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <Icon className="w-4 h-4 ml-3" />
+                          {item.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Footer */}

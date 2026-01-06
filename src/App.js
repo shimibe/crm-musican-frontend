@@ -11,6 +11,7 @@ import Activity from './pages/Activity';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import Campaigns from './pages/Campaigns';
+import CampaignTemplates from './pages/CampaignTemplates';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -109,6 +110,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <Campaigns />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/campaign-templates"
+        element={
+          <ProtectedRoute requireAdmin>
+            <CampaignTemplates />
           </ProtectedRoute>
         }
       />
