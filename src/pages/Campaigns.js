@@ -35,7 +35,7 @@ const Campaigns = () => {
   };
 
   const handleViewDetails = async (campaign) => {
-    // טען את הפירוט המלא של השליחה
+    // טען את הפירוט המלא של השליחה (אם ה-endpoint קיים)
     try {
       const response = await api.get(`/campaigns/${campaign.id}/details`);
       setSelectedCampaign({
@@ -43,7 +43,13 @@ const Campaigns = () => {
         customerDetails: response.data.customers || []
       });
     } catch (error) {
-      console.error('Error loading campaign details:', error);
+      // אם ה-endpoint עדיין לא קיים בבקאנד (404), פשוט נציג את המידע הבסיסי
+      if (error.response?.status === 404) {
+        console.log('Campaign details endpoint not yet implemented, showing basic info');
+      } else {
+        console.error('Error loading campaign details:', error);
+      }
+      // הצג את הקמפיין בלי פירוט הלקוחות
       setSelectedCampaign(campaign);
     }
     setShowDetailsModal(true);
