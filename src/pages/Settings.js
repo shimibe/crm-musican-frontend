@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { User, Key, Save } from 'lucide-react';
+import { User, Key, Save, Phone } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -10,6 +10,7 @@ const Settings = () => {
   const [profileData, setProfileData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
+    phone: user?.phone || '',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -26,6 +27,7 @@ const Settings = () => {
       await api.put(`/users/${user.id}`, {
         fullName: profileData.fullName,
         email: profileData.email,
+        phone: profileData.phone,
       });
       setMessage({ type: 'success', text: 'הפרופיל עודכן בהצלחה' });
     } catch (error) {
@@ -141,6 +143,26 @@ const Settings = () => {
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                מספר טלפון
+              </div>
+            </label>
+            <input
+              type="tel"
+              value={profileData.phone}
+              onChange={(e) =>
+                setProfileData({ ...profileData, phone: e.target.value })
+              }
+              placeholder="972501234567"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              לשליחת קמפיין ניסיון לוואטסאפ (פורמט: 972501234567)
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

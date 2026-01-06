@@ -20,6 +20,7 @@ const Admin = () => {
     password: '',
     full_name: '',
     email: '',
+    phone: '',
     role: 'employee',
     is_active: true,
   });
@@ -114,6 +115,7 @@ const Admin = () => {
       password: '',
       full_name: '',
       email: '',
+      phone: '',
       role: 'employee',
       is_active: true,
     });
@@ -127,6 +129,7 @@ const Admin = () => {
       password: '',
       full_name: user.full_name,
       email: user.email,
+      phone: user.phone || '',
       role: user.role,
       is_active: user.is_active,
     });
@@ -140,6 +143,7 @@ const Admin = () => {
         username: userForm.username,
         full_name: userForm.full_name,
         email: userForm.email,
+        phone: userForm.phone,
         role: userForm.role,
         is_active: userForm.is_active,
       };
@@ -158,6 +162,7 @@ const Admin = () => {
           password: userForm.password,
           fullName: userForm.full_name,
           email: userForm.email,
+          phone: userForm.phone,
           role: userForm.role,
         };
         console.log('Sending data to server:', registerData);
@@ -699,6 +704,21 @@ const Admin = () => {
                   onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  מספר טלפון
+                </label>
+                <input
+                  type="tel"
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                  placeholder="972501234567"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  לשליחת קמפיין ניסיון לוואטסאפ
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
