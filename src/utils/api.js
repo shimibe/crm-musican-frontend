@@ -22,9 +22,15 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // התחברות פגה תוקף או אין הרשאה
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
+      // הצג הודעה למשתמש
+      alert('ההתחברות פגה תוקף. אנא התחבר מחדש.');
+
+      // נקה את העמוד ונתב להתחברות
       window.location.href = '/login';
     }
     return Promise.reject(error);

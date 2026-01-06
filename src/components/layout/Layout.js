@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
-import { 
-  Home, Users, CheckSquare, Settings, LogOut, 
-  Moon, Sun, Menu, X, Shield, Activity 
+import {
+  Home, Users, CheckSquare, Settings, LogOut,
+  Moon, Sun, Menu, X, Shield, Activity, Send
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -22,6 +22,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'דשבורד', href: '/', icon: Home },
     { name: 'לקוחות', href: '/customers', icon: Users },
+    { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare },
     { name: 'פעילות', href: '/activity', icon: Activity },
   ];

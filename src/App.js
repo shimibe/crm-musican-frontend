@@ -10,6 +10,7 @@ import Tasks from './pages/Tasks';
 import Activity from './pages/Activity';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
+import Campaigns from './pages/Campaigns';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -100,6 +101,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAdmin>
             <Admin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/campaigns"
+        element={
+          <ProtectedRoute>
+            <Campaigns />
           </ProtectedRoute>
         }
       />

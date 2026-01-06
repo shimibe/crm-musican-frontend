@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Send, X, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Send, X, Plus, Trash2, ArrowUp, ArrowDown, TestTube } from 'lucide-react';
 import api from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CampaignModal = ({ show, onClose, selectedCustomers }) => {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState([]);
   const [formData, setFormData] = useState({
     emailTemplate: '',
+    emailSubject: '',
     whatsappTemplate: '',
     emailVariables: [{ name: '', value: '' }],
     whatsappVariables: [{ value: '' }], // רק ערכים, הסדר הוא המפתח
   });
   const [loading, setLoading] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState({ email: '', whatsapp: '' });
   const [showNewTemplate, setShowNewTemplate] = useState({ email: false, whatsapp: false });
 
@@ -20,6 +24,20 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
     }
   }, [show]);
 
+  // טען משתנים מקמפיין אחרון כשבוחרים תבנית אימייל
+  useEffect(() => {
+    if (formData.emailTemplate) {
+      loadLastCampaignVariables('email', formData.emailTemplate);
+    }
+  }, [formData.emailTemplate]);
+
+  // טען משתנים מקמפיין אחרון כשבוחרים תבנית וואטסאפ
+  useEffect(() => {
+    if (formData.whatsappTemplate) {
+      loadLastCampaignVariables('whatsapp', formData.whatsappTemplate);
+    }
+  }, [formData.whatsappTemplate]);
+
   const loadTemplates = async () => {
     try {
       const response = await api.get('/campaign-templates');
@@ -28,6 +46,40 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
       console.error('Error loading templates:', error);
       // If templates endpoint doesn't exist yet, continue without error
       setTemplates([]);
+    }
+  };
+
+  const loadLastCampaignVariables = async (type, templateName) => {
+    try {
+      const response = await api.get('/campaigns/last-variables', {
+        params: { type, template: templateName }
+      });
+
+      if (response.data.campaign) {
+        if (type === 'email') {
+          // טען subject ומשתנים לאימייל
+          const emailVars = response.data.campaign.email_variables;
+          setFormData(prev => ({
+            ...prev,
+            emailSubject: response.data.campaign.email_subject || '',
+            emailVariables: emailVars && typeof emailVars === 'object'
+              ? Object.entries(emailVars).map(([name, value]) => ({ name, value }))
+              : [{ name: '', value: '' }]
+          }));
+        } else {
+          // טען משתני וואטסאפ
+          const whatsappVars = response.data.campaign.whatsapp_variables;
+          setFormData(prev => ({
+            ...prev,
+            whatsappVariables: Array.isArray(whatsappVars) && whatsappVars.length > 0
+              ? whatsappVars.map(v => ({ value: v }))
+              : [{ value: '' }]
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading last campaign variables:', error);
+      // לא להציג שגיאה - זה לא קריטי
     }
   };
 
@@ -120,6 +172,11 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
       return;
     }
 
+    if (formData.emailTemplate && !formData.emailSubject.trim()) {
+      alert('נושא האימייל הוא שדה חובה');
+      return;
+    }
+
     if (selectedCustomers.length === 0) {
       alert('לא נבחרו לקוחות');
       return;
@@ -141,14 +198,28 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
       const campaignData = {
         customerIds: selectedCustomers.map(c => c.id),
         emailTemplate: formData.emailTemplate || null,
+        emailSubject: formData.emailSubject || null,
         whatsappTemplate: formData.whatsappTemplate || null,
         emailVariables: Object.keys(emailVariables).length > 0 ? emailVariables : null,
         whatsappVariables: whatsappVariables.length > 0 ? whatsappVariables : null,
       };
 
-      await api.post('/campaigns/send', campaignData);
+      const response = await api.post('/campaigns/send', campaignData);
 
-      alert(`הקמפיין נשלח בהצלחה ל-${selectedCustomers.length} לקוחות`);
+      // הצג את התוצאות האמיתיות מהשרת
+      const stats = response.data.stats;
+      if (stats) {
+        const messages = [];
+        if (stats.emailsSent > 0) messages.push(`${stats.emailsSent} אימיילים`);
+        if (stats.whatsappSent > 0) messages.push(`${stats.whatsappSent} הודעות וואטסאפ`);
+        if (stats.failed > 0) messages.push(`${stats.failed} נכשלו`);
+
+        const summary = messages.join(', ');
+        alert(`הקמפיין הושלם!\nנשלחו: ${summary}\nסה"כ לקוחות: ${stats.totalCustomers}`);
+      } else {
+        alert(`הקמפיין נשלח בהצלחה ל-${selectedCustomers.length} לקוחות`);
+      }
+
       onClose();
       resetForm();
     } catch (error) {
@@ -160,9 +231,51 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
     }
   };
 
+  const handleSendTest = async () => {
+    if (formData.emailTemplate && !formData.emailSubject.trim()) {
+      alert('נושא האימייל הוא שדה חובה');
+      return;
+    }
+
+    if (!formData.emailTemplate && !formData.whatsappTemplate) {
+      alert('יש לבחור לפחות תבנית אחת');
+      return;
+    }
+
+    setSendingTest(true);
+
+    try {
+      const emailVariables = formData.emailVariables
+        .filter(v => v.name.trim() !== '' && v.value.trim() !== '')
+        .reduce((acc, v) => ({ ...acc, [v.name]: v.value }), {});
+
+      const whatsappVariables = formData.whatsappVariables
+        .map(v => v.value.trim())
+        .filter(v => v !== '');
+
+      const testData = {
+        emailTemplate: formData.emailTemplate || null,
+        emailSubject: formData.emailSubject || null,
+        whatsappTemplate: formData.whatsappTemplate || null,
+        emailVariables: Object.keys(emailVariables).length > 0 ? emailVariables : null,
+        whatsappVariables: whatsappVariables.length > 0 ? whatsappVariables : null,
+      };
+
+      await api.post('/campaigns/send-test', testData);
+      alert('קמפיין ניסיון נשלח לכתובת שלך!');
+    } catch (error) {
+      console.error('Error sending test campaign:', error);
+      const errorMessage = error.response?.data?.error || 'שגיאה בשליחת קמפיין ניסיון';
+      alert(errorMessage);
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       emailTemplate: '',
+      emailSubject: '',
       whatsappTemplate: '',
       emailVariables: [{ name: '', value: '' }],
       whatsappVariables: [{ value: '' }],
@@ -278,6 +391,72 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
             )}
           </div>
 
+          {/* Email Subject */}
+          {formData.emailTemplate && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                נושא האימייל *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.emailSubject}
+                onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
+                placeholder="לדוגמה: הזמנה לוובינר - כלים חדשים למוזיקאים"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+          )}
+
+          {/* Email Variables */}
+          {formData.emailTemplate && (
+            <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  משתנים לאימייל (זוגות key-value)
+                </label>
+                <button
+                  type="button"
+                  onClick={addEmailVariable}
+                  className="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  הוסף משתנה
+                </button>
+              </div>
+              <div className="space-y-2">
+                {formData.emailVariables.map((variable, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={variable.name}
+                      onChange={(e) => updateEmailVariable(index, 'name', e.target.value)}
+                      placeholder="שם המשתנה (firstName)"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={variable.value}
+                      onChange={(e) => updateEmailVariable(index, 'value', e.target.value)}
+                      placeholder="ערך ({{customer.name}})"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeEmailVariable(index)}
+                      className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                טיפ: השתמש במשתנים כמו customer.name, customer.email
+              </p>
+            </div>
+          )}
+
           {/* WhatsApp Template */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -336,55 +515,6 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
               </div>
             )}
           </div>
-
-          {/* Email Variables */}
-          {formData.emailTemplate && (
-            <div className="border border-blue-200 dark:border-blue-800 rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  משתנים לאימייל (זוגות key-value)
-                </label>
-                <button
-                  type="button"
-                  onClick={addEmailVariable}
-                  className="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  הוסף משתנה
-                </button>
-              </div>
-              <div className="space-y-2">
-                {formData.emailVariables.map((variable, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input
-                      type="text"
-                      value={variable.name}
-                      onChange={(e) => updateEmailVariable(index, 'name', e.target.value)}
-                      placeholder="שם המשתנה (firstName)"
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                    />
-                    <input
-                      type="text"
-                      value={variable.value}
-                      onChange={(e) => updateEmailVariable(index, 'value', e.target.value)}
-                      placeholder="ערך ({{customer.name}})"
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeEmailVariable(index)}
-                      className="px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                טיפ: השתמש במשתנים כמו customer.name, customer.email
-              </p>
-            </div>
-          )}
 
           {/* WhatsApp Variables */}
           {formData.whatsappTemplate && (
@@ -455,7 +585,7 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
           <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || sendingTest}
               className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -467,10 +597,28 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
                 </>
               )}
             </button>
+            {user?.role === 'admin' && (
+              <button
+                type="button"
+                onClick={handleSendTest}
+                disabled={sendingTest || loading}
+                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title="שלח קמפיין ניסיון לכתובת שלך"
+              >
+                {sendingTest ? (
+                  <>שולח...</>
+                ) : (
+                  <>
+                    <TestTube className="w-4 h-4" />
+                    ניסיון
+                  </>
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={handleClose}
-              disabled={loading}
+              disabled={loading || sendingTest}
               className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-50"
             >
               ביטול

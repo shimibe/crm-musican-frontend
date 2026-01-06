@@ -58,6 +58,7 @@ ALTER TABLE campaigns ADD COLUMN whatsapp_variables JSONB;
 {
   "customerIds": ["uuid1", "uuid2"],
   "emailTemplate": "template-name",
+  "emailSubject": "הזמנה לוובינר - כלים חדשים למוזיקאים",
   "whatsappTemplate": "template-name",
   "emailVariables": {
     "firstName": "{{customer.name}}",
@@ -71,6 +72,8 @@ ALTER TABLE campaigns ADD COLUMN whatsapp_variables JSONB;
 }
 ```
 
+**⚠️ שינוי נוסף**: נוסף שדה `emailSubject` - **חובה** כשיש `emailTemplate`!
+
 #### שינוי בקוד:
 
 **לפני:**
@@ -80,7 +83,12 @@ const { customerIds, emailTemplate, whatsappTemplate, variables } = req.body;
 
 **אחרי:**
 ```javascript
-const { customerIds, emailTemplate, whatsappTemplate, emailVariables, whatsappVariables } = req.body;
+const { customerIds, emailTemplate, emailSubject, whatsappTemplate, emailVariables, whatsappVariables } = req.body;
+
+// Validation
+if (emailTemplate && !emailSubject) {
+  return res.status(400).json({ error: 'נושא האימייל הוא שדה חובה' });
+}
 ```
 
 ---
