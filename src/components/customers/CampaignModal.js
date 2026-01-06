@@ -17,6 +17,7 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
   const [sendingTest, setSendingTest] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState({ email: '', whatsapp: '' });
   const [showNewTemplate, setShowNewTemplate] = useState({ email: false, whatsapp: false });
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
     if (show) {
@@ -182,6 +183,12 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
       return;
     }
 
+    // הצג דיאלוג אישור
+    setShowConfirmation(true);
+  };
+
+  const confirmAndSend = async () => {
+    setShowConfirmation(false);
     setLoading(true);
 
     try {
@@ -626,6 +633,41 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
           </div>
         </form>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmation && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 rounded-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              אישור שליחת קמפיין
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              הקמפיין יישלח ל-<span className="font-semibold">{selectedCustomers.length}</span> אנשים
+              {formData.emailTemplate && formData.whatsappTemplate && ' (אימייל + וואטסאפ)'}
+              {formData.emailTemplate && !formData.whatsappTemplate && ' (אימייל בלבד)'}
+              {!formData.emailTemplate && formData.whatsappTemplate && ' (וואטסאפ בלבד)'}
+              .
+              <br />
+              האם להמשיך?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmAndSend}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                אישור ושליחה
+              </button>
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

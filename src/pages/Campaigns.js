@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Send, Eye, RefreshCw, AlertCircle, Calendar, User, Mail, MessageSquare } from 'lucide-react';
+import { Send, Eye, RefreshCw, AlertCircle, Calendar, User, Mail, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Campaigns = () => {
@@ -12,6 +12,12 @@ const Campaigns = () => {
   const [showResendModal, setShowResendModal] = useState(false);
   const [failedCustomers, setFailedCustomers] = useState([]);
   const [selectedFailedCustomers, setSelectedFailedCustomers] = useState([]);
+  const [editableVariables, setEditableVariables] = useState({
+    emailSubject: '',
+    emailVariables: {},
+    whatsappVariables: []
+  });
+  const [showConfirmResend, setShowConfirmResend] = useState(false);
 
   useEffect(() => {
     loadCampaigns();
@@ -28,8 +34,18 @@ const Campaigns = () => {
     }
   };
 
-  const handleViewDetails = (campaign) => {
-    setSelectedCampaign(campaign);
+  const handleViewDetails = async (campaign) => {
+    // טען את הפירוט המלא של השליחה
+    try {
+      const response = await api.get(`/campaigns/${campaign.id}/details`);
+      setSelectedCampaign({
+        ...campaign,
+        customerDetails: response.data.customers || []
+      });
+    } catch (error) {
+      console.error('Error loading campaign details:', error);
+      setSelectedCampaign(campaign);
+    }
     setShowDetailsModal(true);
   };
 
@@ -45,6 +61,14 @@ const Campaigns = () => {
       setFailedCustomers(response.data.customers || []);
       setSelectedFailedCustomers(response.data.customers || []);
       setSelectedCampaign(campaign);
+
+      // טען את המשתנים לעריכה
+      setEditableVariables({
+        emailSubject: campaign.email_subject || '',
+        emailVariables: campaign.email_variables || {},
+        whatsappVariables: campaign.whatsapp_variables || []
+      });
+
       setShowResendModal(true);
     } catch (error) {
       console.error('Error loading failed customers:', error);
@@ -52,8 +76,26 @@ const Campaigns = () => {
     }
   };
 
-  const confirmResend = async () => {
+  const confirmResend = () => {
     if (!selectedCampaign) return;
+
+    // ואלידציה
+    if (selectedCampaign.email_template && !editableVariables.emailSubject.trim()) {
+      alert('נושא האימייל הוא שדה חובה');
+      return;
+    }
+
+    if (failedCustomers.length > 0 && selectedFailedCustomers.length === 0) {
+      alert('לא נבחרו לקוחות');
+      return;
+    }
+
+    // הצג דיאלוג אישור
+    setShowConfirmResend(true);
+  };
+
+  const executeResend = async () => {
+    setShowConfirmResend(false);
 
     const customerIds = failedCustomers.length > 0
       ? selectedFailedCustomers.map(c => c.id)
@@ -63,10 +105,10 @@ const Campaigns = () => {
       const campaignData = {
         customerIds: customerIds,
         emailTemplate: selectedCampaign.email_template,
-        emailSubject: selectedCampaign.email_subject,
+        emailSubject: editableVariables.emailSubject,
         whatsappTemplate: selectedCampaign.whatsapp_template,
-        emailVariables: selectedCampaign.email_variables,
-        whatsappVariables: selectedCampaign.whatsapp_variables,
+        emailVariables: editableVariables.emailVariables,
+        whatsappVariables: editableVariables.whatsappVariables,
       };
 
       const response = await api.post('/campaigns/send', campaignData);
@@ -87,11 +129,39 @@ const Campaigns = () => {
       setShowResendModal(false);
       setFailedCustomers([]);
       setSelectedFailedCustomers([]);
+      setEditableVariables({
+        emailSubject: '',
+        emailVariables: {},
+        whatsappVariables: []
+      });
       loadCampaigns();
     } catch (error) {
       console.error('Error resending campaign:', error);
       alert('שגיאה בשליחת קמפיין מחדש');
     }
+  };
+
+  const moveWhatsAppVariable = (index, direction) => {
+    const newVariables = [...editableVariables.whatsappVariables];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    [newVariables[index], newVariables[newIndex]] = [newVariables[newIndex], newVariables[index]];
+    setEditableVariables({ ...editableVariables, whatsappVariables: newVariables });
+  };
+
+  const updateEmailVariable = (key, value) => {
+    setEditableVariables({
+      ...editableVariables,
+      emailVariables: {
+        ...editableVariables.emailVariables,
+        [key]: value
+      }
+    });
+  };
+
+  const updateWhatsAppVariable = (index, value) => {
+    const newVariables = [...editableVariables.whatsappVariables];
+    newVariables[index] = value;
+    setEditableVariables({ ...editableVariables, whatsappVariables: newVariables });
   };
 
   const toggleFailedCustomer = (customer) => {
@@ -357,6 +427,57 @@ const Campaigns = () => {
                   </div>
                 </div>
               </div>
+
+              {/* פירוט לקוחות */}
+              {selectedCampaign.customerDetails && selectedCampaign.customerDetails.length > 0 && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">פירוט משלוחים ללקוחות</h3>
+                  <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-right">שם</th>
+                          <th className="px-3 py-2 text-center">אימייל</th>
+                          <th className="px-3 py-2 text-center">וואטסאפ</th>
+                          <th className="px-3 py-2 text-right">סיבה</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {selectedCampaign.customerDetails.map((customer) => (
+                          <tr key={customer.customer_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-3 py-2 text-gray-900 dark:text-white">{customer.customer_name}</td>
+                            <td className="px-3 py-2 text-center">
+                              {customer.email_status === 'sent' && (
+                                <span className="text-green-600 dark:text-green-400">✓</span>
+                              )}
+                              {customer.email_status === 'failed' && (
+                                <span className="text-red-600 dark:text-red-400">✗</span>
+                              )}
+                              {!customer.email_status && (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              {customer.whatsapp_status === 'sent' && (
+                                <span className="text-green-600 dark:text-green-400">✓</span>
+                              )}
+                              {customer.whatsapp_status === 'failed' && (
+                                <span className="text-red-600 dark:text-red-400">✗</span>
+                              )}
+                              {!customer.whatsapp_status && (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-gray-600 dark:text-gray-400 text-xs">
+                              {customer.error_message || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 border-t border-gray-200 dark:border-gray-700">
               <button
@@ -409,6 +530,88 @@ const Campaigns = () => {
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     נבחרו {selectedFailedCustomers.length} מתוך {failedCustomers.length} לקוחות
                   </p>
+
+                  {/* עריכת משתנים */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">עריכת משתני הקמפיין</h3>
+
+                    {/* אימייל */}
+                    {selectedCampaign.email_template && (
+                      <div className="mb-4 space-y-3">
+                        <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400">אימייל</h4>
+
+                        {/* נושא */}
+                        <div>
+                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">נושא האימייל</label>
+                          <input
+                            type="text"
+                            value={editableVariables.emailSubject}
+                            onChange={(e) => setEditableVariables({ ...editableVariables, emailSubject: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="נושא האימייל"
+                          />
+                        </div>
+
+                        {/* משתנים */}
+                        {Object.keys(editableVariables.emailVariables).length > 0 && (
+                          <div className="space-y-2">
+                            <label className="block text-xs text-gray-600 dark:text-gray-400">משתנים</label>
+                            {Object.entries(editableVariables.emailVariables).map(([key, value]) => (
+                              <div key={key}>
+                                <label className="block text-xs text-gray-500 dark:text-gray-500 mb-1">{key}</label>
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={(e) => updateEmailVariable(key, e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* וואטסאפ */}
+                    {selectedCampaign.whatsapp_template && editableVariables.whatsappVariables.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400">וואטסאפ</h4>
+                        <div className="space-y-2">
+                          {editableVariables.whatsappVariables.map((value, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => moveWhatsAppVariable(index, 'up')}
+                                  disabled={index === 0}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  <ArrowUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveWhatsAppVariable(index, 'down')}
+                                  disabled={index === editableVariables.whatsappVariables.length - 1}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <div className="flex-1">
+                                <label className="block text-xs text-gray-500 dark:text-gray-500 mb-1">{`{{${index + 1}}}`}</label>
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={(e) => updateWhatsAppVariable(index, e.target.value)}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -431,6 +634,47 @@ const Campaigns = () => {
                   setFailedCustomers([]);
                   setSelectedFailedCustomers([]);
                 }}
+                className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog for Resend */}
+      {showConfirmResend && selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              אישור שליחת קמפיין מחדש
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              הקמפיין יישלח מחדש ל-
+              <span className="font-semibold">
+                {failedCustomers.length > 0
+                  ? selectedFailedCustomers.length
+                  : selectedCampaign.customer_count
+                }
+              </span> אנשים
+              {selectedCampaign.email_template && selectedCampaign.whatsapp_template && ' (אימייל + וואטסאפ)'}
+              {selectedCampaign.email_template && !selectedCampaign.whatsapp_template && ' (אימייל בלבד)'}
+              {!selectedCampaign.email_template && selectedCampaign.whatsapp_template && ' (וואטסאפ בלבד)'}
+              .
+              <br />
+              האם להמשיך?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={executeResend}
+                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 flex items-center justify-center gap-2"
+              >
+                <Send className="w-4 h-4" />
+                אישור ושליחה
+              </button>
+              <button
+                onClick={() => setShowConfirmResend(false)}
                 className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
               >
                 ביטול
