@@ -40,7 +40,7 @@ const Campaigns = () => {
       const response = await api.get(`/campaigns/${campaign.id}/details`);
       setSelectedCampaign({
         ...campaign,
-        customerDetails: response.data.customers || []
+        customerDetails: response.data.logs || []
       });
     } catch (error) {
       // אם ה-endpoint עדיין לא קיים בבקאנד (404), פשוט נציג את המידע הבסיסי
@@ -64,8 +64,8 @@ const Campaigns = () => {
     try {
       // טען את הלקוחות שהשליחה נכשלה אליהם
       const response = await api.get(`/campaigns/${campaign.id}/failed-customers`);
-      setFailedCustomers(response.data.customers || []);
-      setSelectedFailedCustomers(response.data.customers || []);
+      setFailedCustomers(response.data.logs || []);
+      setSelectedFailedCustomers(response.data.logs || []);
       setSelectedCampaign(campaign);
 
       // טען את המשתנים לעריכה
