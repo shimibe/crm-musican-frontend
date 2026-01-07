@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import CustomerModal from '../components/tasks/CustomerModal';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -17,6 +18,9 @@ const Tasks = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -253,6 +257,7 @@ const Tasks = () => {
       customer_id: '',
       due_date: '',
     });
+    setCustomerSearchTerm('');
   };
 
   const getPriorityColor = (priority) => {
@@ -279,6 +284,37 @@ const Tasks = () => {
       status: { open: 'פתוח', in_progress: 'בטיפול', closed: 'סגור' },
     };
     return texts[type]?.[value] || value;
+  };
+
+  const handleCustomerClick = async (customerId) => {
+    if (!customerId) return;
+
+    try {
+      const response = await api.get(`/customers/${customerId}`);
+      setSelectedCustomer(response.data);
+      setShowCustomerModal(true);
+    } catch (error) {
+      console.error('Error loading customer:', error);
+      alert('שגיאה בטעינת פרטי לקוח');
+    }
+  };
+
+  const getSortedCustomers = () => {
+    return [...customers].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      return nameA.localeCompare(nameB, 'he');
+    });
+  };
+
+  const getFilteredCustomers = () => {
+    const sorted = getSortedCustomers();
+    if (!customerSearchTerm) return sorted;
+
+    const searchLower = customerSearchTerm.toLowerCase();
+    return sorted.filter(customer =>
+      customer.name.toLowerCase().includes(searchLower)
+    );
   };
 
   return (
@@ -402,8 +438,22 @@ const Tasks = () => {
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                       {task.title}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {task.customer_name || '-'}
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                      onClick={(e) => {
+                        if (task.customer_id) {
+                          e.stopPropagation();
+                          handleCustomerClick(task.customer_id);
+                        }
+                      }}
+                    >
+                      {task.customer_name ? (
+                        <span className={task.customer_id ? "text-primary-600 dark:text-primary-400 hover:underline cursor-pointer" : ""}>
+                          {task.customer_name}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {task.category_name || '-'}
@@ -486,6 +536,13 @@ const Tasks = () => {
         )}
       </div>
 
+      {/* Customer Modal */}
+      <CustomerModal
+        show={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        customer={selectedCustomer}
+      />
+
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -524,18 +581,28 @@ const Tasks = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">בחר לקוח</option>
-                    {customers.map((customer) => (
-                      <option key={customer.id} value={customer.id}>
-                        {customer.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="חפש לקוח..."
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
+                    />
+                    <select
+                      value={formData.customer_id}
+                      onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      size="5"
+                    >
+                      <option value="">בחר לקוח</option>
+                      {getFilteredCustomers().map((customer) => (
+                        <option key={customer.id} value={customer.id}>
+                          {customer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
