@@ -8,7 +8,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [profileData, setProfileData] = useState({
-    fullName: user?.fullName || '',
+    fullName: user?.full_name || '',
     email: user?.email || '',
     phone: user?.phone || '',
   });
@@ -25,7 +25,7 @@ const Settings = () => {
 
     try {
       await api.put(`/users/${user.id}`, {
-        fullName: profileData.fullName,
+        full_name: profileData.fullName,
         email: profileData.email,
         phone: profileData.phone,
       });
