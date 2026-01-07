@@ -4,17 +4,7 @@ import api from '../utils/api';
 import { User, Key, Save, Phone } from 'lucide-react';
 
 const Settings = () => {
-  const { user } = useAuth();
-
-  // DEBUG: Print user data
-  console.log('=== Settings - User Debug ===');
-  console.log('Full user object:', user);
-  console.log('user.full_name:', user?.full_name);
-  console.log('user.fullName:', user?.fullName);
-  console.log('user.phone:', user?.phone);
-  console.log('user.email:', user?.email);
-  console.log('============================');
-
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [profileData, setProfileData] = useState({
@@ -40,35 +30,11 @@ const Settings = () => {
         phone: profileData.phone,
       });
 
-      console.log('=== Update Response ===');
-      console.log('Response data:', response.data);
-      console.log('=====================');
-
-      // Update localStorage with new user data - convert to camelCase format
-      const updatedUser = {
-        id: response.data.id,
-        username: response.data.username,
-        email: response.data.email,
-        fullName: response.data.full_name,
-        phone: response.data.phone,
-        role: response.data.role,
-      };
-
-      console.log('=== Updated User Object ===');
-      console.log('Updated user:', updatedUser);
-      console.log('==========================');
-
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-
-      // Force reload to update context
-      window.location.reload();
+      // Update user in context and localStorage
+      updateUser(response.data);
 
       setMessage({ type: 'success', text: 'הפרופיל עודכן בהצלחה' });
     } catch (error) {
-      console.error('=== Update Error ===');
-      console.error('Error:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('==================');
       setMessage({ type: 'error', text: 'שגיאה בעדכון פרופיל' });
     } finally {
       setLoading(false);

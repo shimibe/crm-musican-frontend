@@ -30,10 +30,6 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { username, password });
       const { token, user: userData } = response.data;
 
-      console.log('=== Login Response ===');
-      console.log('Raw user data from server:', userData);
-      console.log('=====================');
-
       // Convert snake_case to camelCase for consistency
       const normalizedUser = {
         id: userData.id,
@@ -43,10 +39,6 @@ export const AuthProvider = ({ children }) => {
         phone: userData.phone,
         role: userData.role,
       };
-
-      console.log('=== Normalized User ===');
-      console.log('Normalized user data:', normalizedUser);
-      console.log('======================');
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(normalizedUser));
@@ -67,10 +59,26 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (userData) => {
+    // Normalize user data to camelCase
+    const normalizedUser = {
+      id: userData.id,
+      username: userData.username,
+      email: userData.email,
+      fullName: userData.full_name || userData.fullName,
+      phone: userData.phone,
+      role: userData.role,
+    };
+
+    localStorage.setItem('user', JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
+  };
+
   const value = {
     user,
     login,
     logout,
+    updateUser,
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
