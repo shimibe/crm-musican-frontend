@@ -18,7 +18,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [profileData, setProfileData] = useState({
-    fullName: user?.full_name || '',
+    fullName: user?.fullName || '',
     email: user?.email || '',
     phone: user?.phone || '',
   });
@@ -34,13 +34,27 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      await api.put(`/users/${user.id}`, {
-        full_name: profileData.fullName,
+      const response = await api.put(`/users/${user.id}`, {
+        fullName: profileData.fullName,
         email: profileData.email,
         phone: profileData.phone,
       });
+
+      console.log('=== Update Response ===');
+      console.log('Response data:', response.data);
+      console.log('=====================');
+
+      // Update localStorage with new user data
+      if (response.data.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+
       setMessage({ type: 'success', text: 'הפרופיל עודכן בהצלחה' });
     } catch (error) {
+      console.error('=== Update Error ===');
+      console.error('Error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('==================');
       setMessage({ type: 'error', text: 'שגיאה בעדכון פרופיל' });
     } finally {
       setLoading(false);
