@@ -44,10 +44,24 @@ const Settings = () => {
       console.log('Response data:', response.data);
       console.log('=====================');
 
-      // Update localStorage with new user data
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
+      // Update localStorage with new user data - convert to camelCase format
+      const updatedUser = {
+        id: response.data.id,
+        username: response.data.username,
+        email: response.data.email,
+        fullName: response.data.full_name,
+        phone: response.data.phone,
+        role: response.data.role,
+      };
+
+      console.log('=== Updated User Object ===');
+      console.log('Updated user:', updatedUser);
+      console.log('==========================');
+
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      // Force reload to update context
+      window.location.reload();
 
       setMessage({ type: 'success', text: 'הפרופיל עודכן בהצלחה' });
     } catch (error) {
