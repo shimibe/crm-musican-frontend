@@ -5,6 +5,16 @@ import { User, Key, Save, Phone } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
+
+  // DEBUG: Print user data
+  console.log('=== Settings - User Debug ===');
+  console.log('Full user object:', user);
+  console.log('user.full_name:', user?.full_name);
+  console.log('user.fullName:', user?.fullName);
+  console.log('user.phone:', user?.phone);
+  console.log('user.email:', user?.email);
+  console.log('============================');
+
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [profileData, setProfileData] = useState({
