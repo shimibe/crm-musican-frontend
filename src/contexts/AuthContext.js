@@ -29,16 +29,34 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/auth/login', { username, password });
       const { token, user: userData } = response.data;
-      
+
+      console.log('=== Login Response ===');
+      console.log('Raw user data from server:', userData);
+      console.log('=====================');
+
+      // Convert snake_case to camelCase for consistency
+      const normalizedUser = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.full_name || userData.fullName,
+        phone: userData.phone,
+        role: userData.role,
+      };
+
+      console.log('=== Normalized User ===');
+      console.log('Normalized user data:', normalizedUser);
+      console.log('======================');
+
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      setUser(userData);
-      
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
+
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'שגיאת התחברות' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'שגיאת התחברות'
       };
     }
   };
