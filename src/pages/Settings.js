@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { User, Key, Save, Phone } from 'lucide-react';
+import { User, Key, Save, Phone, Clock } from 'lucide-react';
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -11,6 +11,11 @@ const Settings = () => {
     fullName: user?.fullName || '',
     email: user?.email || '',
     phone: user?.phone || '',
+  });
+  const [taskSettings, setTaskSettings] = useState({
+    useAutoPriority: user?.useAutoPriority || false,
+    taskPriorityLowToMedium: user?.taskPriorityLowToMedium || 1,
+    taskPriorityMediumToHigh: user?.taskPriorityMediumToHigh || 3,
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -70,6 +75,29 @@ const Settings = () => {
       });
     } catch (error) {
       setMessage({ type: 'error', text: 'שגיאה בשינוי סיסמה' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTaskSettingsSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const response = await api.put(`/users/${user.id}`, {
+        useAutoPriority: taskSettings.useAutoPriority,
+        taskPriorityLowToMedium: parseInt(taskSettings.taskPriorityLowToMedium),
+        taskPriorityMediumToHigh: parseInt(taskSettings.taskPriorityMediumToHigh),
+      });
+
+      // Update user in context and localStorage
+      updateUser(response.data);
+
+      setMessage({ type: 'success', text: 'הגדרות משימות עודכנו בהצלחה' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות משימות' });
     } finally {
       setLoading(false);
     }
@@ -192,6 +220,91 @@ const Settings = () => {
           >
             <Save className="w-4 h-4" />
             שמור שינויים
+          </button>
+        </form>
+      </div>
+
+      {/* Task Priority Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              הגדרות עדיפות משימות
+            </h2>
+          </div>
+        </div>
+        <form onSubmit={handleTaskSettingsSubmit} className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="useAutoPriority"
+              checked={taskSettings.useAutoPriority}
+              onChange={(e) =>
+                setTaskSettings({ ...taskSettings, useAutoPriority: e.target.checked })
+              }
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="useAutoPriority" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              הפעל עדיפות אוטומטית לפי זמן עדכון
+            </label>
+          </div>
+
+          {taskSettings.useAutoPriority && (
+            <>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  כאשר מופעל, עדיפות המשימות תחושב אוטומטית על בסיס זמן העדכון האחרון.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  מספר ימים לעדיפות בינונית
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={taskSettings.taskPriorityLowToMedium}
+                  onChange={(e) =>
+                    setTaskSettings({ ...taskSettings, taskPriorityLowToMedium: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  משימה שלא עודכנה במשך {taskSettings.taskPriorityLowToMedium} ימים תקבל עדיפות בינונית
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  מספר ימים לעדיפות גבוהה
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={taskSettings.taskPriorityMediumToHigh}
+                  onChange={(e) =>
+                    setTaskSettings({ ...taskSettings, taskPriorityMediumToHigh: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  משימה שלא עודכנה במשך {taskSettings.taskPriorityMediumToHigh} ימים תקבל עדיפות גבוהה
+                </p>
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            שמור הגדרות
           </button>
         </form>
       </div>

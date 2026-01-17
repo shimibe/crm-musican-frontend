@@ -164,7 +164,7 @@ const Tasks = () => {
 
     // Filter by priority
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(task => task.priority === priorityFilter);
+      filtered = filtered.filter(task => getDisplayPriority(task) === priorityFilter);
     }
 
     // Sort
@@ -173,6 +173,12 @@ const Tasks = () => {
     return filtered.sort((a, b) => {
       let aVal = a[sortConfig.key];
       let bVal = b[sortConfig.key];
+
+      // Special handling for priority when using auto priority
+      if (sortConfig.key === 'priority' && user?.useAutoPriority) {
+        aVal = getDisplayPriority(a);
+        bVal = getDisplayPriority(b);
+      }
 
       // Handle null/undefined
       if (aVal === null || aVal === undefined) return 1;
@@ -284,6 +290,31 @@ const Tasks = () => {
       status: { open: 'פתוח', in_progress: 'בטיפול', closed: 'סגור' },
     };
     return texts[type]?.[value] || value;
+  };
+
+  // Get automatic priority based on last update time
+  const getAutoPriority = (updatedAt) => {
+    if (!updatedAt) return 'low';
+
+    const now = new Date();
+    const updated = new Date(updatedAt);
+    const daysDiff = Math.floor((now - updated) / (1000 * 60 * 60 * 24));
+
+    // Get thresholds from user settings or use defaults
+    const lowToMediumDays = user?.taskPriorityLowToMedium || 1;
+    const mediumToHighDays = user?.taskPriorityMediumToHigh || 3;
+
+    if (daysDiff >= mediumToHighDays) return 'high';
+    if (daysDiff >= lowToMediumDays) return 'medium';
+    return 'low';
+  };
+
+  // Get display priority - uses automatic calculation if enabled
+  const getDisplayPriority = (task) => {
+    if (user?.useAutoPriority) {
+      return getAutoPriority(task.updated_at);
+    }
+    return task.priority;
   };
 
   const handleCustomerClick = async (customerId) => {
@@ -459,15 +490,21 @@ const Tasks = () => {
                       {task.category_name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={task.priority}
-                        onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
-                        className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
-                      >
-                        <option value="low">נמוכה</option>
-                        <option value="medium">בינונית</option>
-                        <option value="high">גבוהה</option>
-                      </select>
+                      {user?.useAutoPriority ? (
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
+                          {getText(getDisplayPriority(task), 'priority')}
+                        </span>
+                      ) : (
+                        <select
+                          value={task.priority}
+                          onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
+                          className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
+                        >
+                          <option value="low">נמוכה</option>
+                          <option value="medium">בינונית</option>
+                          <option value="high">גבוהה</option>
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <select
