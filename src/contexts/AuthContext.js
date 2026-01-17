@@ -38,6 +38,9 @@ export const AuthProvider = ({ children }) => {
         fullName: userData.full_name || userData.fullName,
         phone: userData.phone,
         role: userData.role,
+        useAutoPriority: userData.use_auto_priority || false,
+        taskPriorityLowToMedium: userData.task_priority_low_to_medium || 1,
+        taskPriorityMediumToHigh: userData.task_priority_medium_to_high || 3,
       };
 
       localStorage.setItem('token', token);
@@ -68,6 +71,9 @@ export const AuthProvider = ({ children }) => {
       fullName: userData.full_name || userData.fullName,
       phone: userData.phone,
       role: userData.role,
+      useAutoPriority: userData.use_auto_priority !== undefined ? userData.use_auto_priority : userData.useAutoPriority,
+      taskPriorityLowToMedium: userData.task_priority_low_to_medium !== undefined ? userData.task_priority_low_to_medium : userData.taskPriorityLowToMedium,
+      taskPriorityMediumToHigh: userData.task_priority_medium_to_high !== undefined ? userData.task_priority_medium_to_high : userData.taskPriorityMediumToHigh,
     };
 
     localStorage.setItem('user', JSON.stringify(normalizedUser));

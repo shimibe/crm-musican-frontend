@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import { User, Key, Save, Phone, Clock } from 'lucide-react';
@@ -22,6 +22,22 @@ const Settings = () => {
     newPassword: '',
     confirmPassword: '',
   });
+
+  // Update state when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+      setTaskSettings({
+        useAutoPriority: user.useAutoPriority || false,
+        taskPriorityLowToMedium: user.taskPriorityLowToMedium || 1,
+        taskPriorityMediumToHigh: user.taskPriorityMediumToHigh || 3,
+      });
+    }
+  }, [user]);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -87,16 +103,24 @@ const Settings = () => {
 
     try {
       const response = await api.put(`/users/${user.id}`, {
-        useAutoPriority: taskSettings.useAutoPriority,
-        taskPriorityLowToMedium: parseInt(taskSettings.taskPriorityLowToMedium),
-        taskPriorityMediumToHigh: parseInt(taskSettings.taskPriorityMediumToHigh),
+        use_auto_priority: taskSettings.useAutoPriority,
+        task_priority_low_to_medium: parseInt(taskSettings.taskPriorityLowToMedium),
+        task_priority_medium_to_high: parseInt(taskSettings.taskPriorityMediumToHigh),
       });
 
       // Update user in context and localStorage
       updateUser(response.data);
 
+      // Update local state with the new values
+      setTaskSettings({
+        useAutoPriority: response.data.use_auto_priority || false,
+        taskPriorityLowToMedium: response.data.task_priority_low_to_medium || 1,
+        taskPriorityMediumToHigh: response.data.task_priority_medium_to_high || 3,
+      });
+
       setMessage({ type: 'success', text: 'הגדרות משימות עודכנו בהצלחה' });
     } catch (error) {
+      console.error('Error updating task settings:', error);
       setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות משימות' });
     } finally {
       setLoading(false);
