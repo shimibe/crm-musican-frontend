@@ -102,21 +102,22 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await api.put(`/users/${user.id}`, {
-        use_auto_priority: taskSettings.useAutoPriority,
-        task_priority_low_to_medium: parseInt(taskSettings.taskPriorityLowToMedium),
-        task_priority_medium_to_high: parseInt(taskSettings.taskPriorityMediumToHigh),
-      });
+      // Save to localStorage (temporary solution until backend supports these fields)
+      const taskSettingsData = {
+        useAutoPriority: taskSettings.useAutoPriority,
+        taskPriorityLowToMedium: parseInt(taskSettings.taskPriorityLowToMedium),
+        taskPriorityMediumToHigh: parseInt(taskSettings.taskPriorityMediumToHigh),
+      };
 
-      // Update user in context and localStorage
-      updateUser(response.data);
+      localStorage.setItem('taskSettings', JSON.stringify(taskSettingsData));
 
-      // Update local state with the new values
-      setTaskSettings({
-        useAutoPriority: response.data.use_auto_priority || false,
-        taskPriorityLowToMedium: response.data.task_priority_low_to_medium || 1,
-        taskPriorityMediumToHigh: response.data.task_priority_medium_to_high || 3,
-      });
+      // Update user object in localStorage and context
+      const updatedUser = {
+        ...user,
+        ...taskSettingsData,
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      updateUser(updatedUser);
 
       setMessage({ type: 'success', text: 'הגדרות משימות עודכנו בהצלחה' });
     } catch (error) {
