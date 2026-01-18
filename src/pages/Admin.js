@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Users, Plus, Edit, Trash2, Shield, Key, Copy, Check } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Shield, Key, Copy, Check, Hash } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = () => {
@@ -56,6 +56,7 @@ const Admin = () => {
     },
   });
   const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedCategoryId, setCopiedCategoryId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -364,6 +365,12 @@ const Admin = () => {
     }
   };
 
+  const copyCategoryId = async (id) => {
+    await navigator.clipboard.writeText(id);
+    setCopiedCategoryId(id);
+    setTimeout(() => setCopiedCategoryId(null), 2000);
+  };
+
   const togglePermission = (resource, permission) => {
     setTokenForm(prev => {
       const current = prev.permissions[resource] || [];
@@ -551,35 +558,62 @@ const Admin = () => {
                   key={category.id}
                   className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: category.color || '#6B7280' }}
-                      />
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">
-                          {category.name}
-                        </h3>
-                        {category.description && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {category.description}
-                          </p>
-                        )}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color || '#6B7280' }}
+                        />
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-white">
+                            {category.name}
+                          </h3>
+                          {category.description && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {category.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditCategory(category)}
+                          className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-mono flex-1 truncate">
+                        ID: {category.id}
+                      </span>
                       <button
-                        onClick={() => handleEditCategory(category)}
-                        className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                        onClick={() => copyCategoryId(category.id)}
+                        className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${
+                          copiedCategoryId === category.id
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        }`}
                       >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        {copiedCategoryId === category.id ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            הועתק
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            העתק ID
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
