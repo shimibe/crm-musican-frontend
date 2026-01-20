@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, ChevronDown, FileText
+  Moon, Sun, Menu, X, Shield, Activity, Send, ChevronDown, Link2
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -26,11 +26,11 @@ const Layout = ({ children }) => {
     { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare },
     { name: 'פעילות', href: '/activity', icon: Activity },
+    { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
   ];
 
   const adminNavigation = isAdmin ? [
-    { name: 'ניהול משתמשים', href: '/admin', icon: Shield },
-    { name: 'תבניות קמפיינים', href: '/campaign-templates', icon: FileText },
+    { name: 'ניהול', href: '/admin', icon: Shield },
   ] : [];
 
   navigation.push({ name: 'הגדרות', href: '/settings', icon: Settings });

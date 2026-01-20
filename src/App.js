@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import Campaigns from './pages/Campaigns';
 import CampaignTemplates from './pages/CampaignTemplates';
+import Shortcuts from './pages/Shortcuts';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -118,6 +119,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAdmin>
             <CampaignTemplates />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shortcuts"
+        element={
+          <ProtectedRoute>
+            <Shortcuts />
           </ProtectedRoute>
         }
       />

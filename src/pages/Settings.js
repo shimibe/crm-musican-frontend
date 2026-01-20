@@ -13,9 +13,9 @@ const Settings = () => {
     phone: user?.phone || '',
   });
   const [taskSettings, setTaskSettings] = useState({
-    useAutoPriority: user?.useAutoPriority || false,
-    taskPriorityLowToMedium: user?.taskPriorityLowToMedium || 1,
-    taskPriorityMediumToHigh: user?.taskPriorityMediumToHigh || 3,
+    useAutoPriority: user?.useAutoPriority ?? false,
+    taskPriorityLowToMedium: user?.taskPriorityLowToMedium ?? 1,
+    taskPriorityMediumToHigh: user?.taskPriorityMediumToHigh ?? 3,
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -32,9 +32,9 @@ const Settings = () => {
         phone: user.phone || '',
       });
       setTaskSettings({
-        useAutoPriority: user.useAutoPriority || false,
-        taskPriorityLowToMedium: user.taskPriorityLowToMedium || 1,
-        taskPriorityMediumToHigh: user.taskPriorityMediumToHigh || 3,
+        useAutoPriority: user.useAutoPriority ?? false,
+        taskPriorityLowToMedium: user.taskPriorityLowToMedium ?? 1,
+        taskPriorityMediumToHigh: user.taskPriorityMediumToHigh ?? 3,
       });
     }
   }, [user]);
@@ -102,22 +102,15 @@ const Settings = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      // Save to localStorage (temporary solution until backend supports these fields)
-      const taskSettingsData = {
+      // Save to server
+      const response = await api.put(`/users/${user.id}`, {
         useAutoPriority: taskSettings.useAutoPriority,
         taskPriorityLowToMedium: parseInt(taskSettings.taskPriorityLowToMedium),
         taskPriorityMediumToHigh: parseInt(taskSettings.taskPriorityMediumToHigh),
-      };
+      });
 
-      localStorage.setItem('taskSettings', JSON.stringify(taskSettingsData));
-
-      // Update user object in localStorage and context
-      const updatedUser = {
-        ...user,
-        ...taskSettingsData,
-      };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      updateUser(updatedUser);
+      // Update user in context and localStorage
+      updateUser(response.data);
 
       setMessage({ type: 'success', text: 'הגדרות משימות עודכנו בהצלחה' });
     } catch (error) {

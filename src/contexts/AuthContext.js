@@ -18,17 +18,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    const taskSettings = localStorage.getItem('taskSettings');
 
     if (token && userData) {
-      let user = JSON.parse(userData);
-
-      // Merge task settings if they exist
-      if (taskSettings) {
-        const settings = JSON.parse(taskSettings);
-        user = { ...user, ...settings };
-      }
-
+      const user = JSON.parse(userData);
       setUser(user);
     }
     setLoading(false);
@@ -40,24 +32,17 @@ export const AuthProvider = ({ children }) => {
       const { token, user: userData } = response.data;
 
       // Convert snake_case to camelCase for consistency
-      let normalizedUser = {
+      const normalizedUser = {
         id: userData.id,
         username: userData.username,
         email: userData.email,
         fullName: userData.full_name || userData.fullName,
         phone: userData.phone,
         role: userData.role,
-        useAutoPriority: userData.use_auto_priority || false,
-        taskPriorityLowToMedium: userData.task_priority_low_to_medium || 1,
-        taskPriorityMediumToHigh: userData.task_priority_medium_to_high || 3,
+        useAutoPriority: userData.use_auto_priority ?? false,
+        taskPriorityLowToMedium: userData.task_priority_low_to_medium ?? 1,
+        taskPriorityMediumToHigh: userData.task_priority_medium_to_high ?? 3,
       };
-
-      // Merge with saved task settings from localStorage
-      const savedTaskSettings = localStorage.getItem('taskSettings');
-      if (savedTaskSettings) {
-        const settings = JSON.parse(savedTaskSettings);
-        normalizedUser = { ...normalizedUser, ...settings };
-      }
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(normalizedUser));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Users, Plus, Edit, Trash2, Shield, Key, Copy, Check, Hash } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Shield, Key, Copy, Check, Hash, FileText, Edit2, Mail, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = () => {
@@ -58,6 +58,15 @@ const Admin = () => {
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedCategoryId, setCopiedCategoryId] = useState(null);
 
+  // Campaign Templates states
+  const [templates, setTemplates] = useState([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    type: 'email',
+  });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -74,13 +83,21 @@ const Admin = () => {
         requests.push(api.get('/admin/api-tokens'));
       }
 
+      if (activeTab === 'templates') {
+        requests.push(api.get('/campaign-templates'));
+      }
+
       const responses = await Promise.all(requests);
       setUsers(responses[0].data);
       setCategories(responses[1].data);
       setInterests(responses[2].data.interests || []);
 
       if (responses[3]) {
-        setApiTokens(responses[3].data);
+        if (activeTab === 'api-keys') {
+          setApiTokens(responses[3].data);
+        } else if (activeTab === 'templates') {
+          setTemplates(responses[3].data);
+        }
       }
     } catch (error) {
       console.error('Error loading admin data:', error);
@@ -92,6 +109,8 @@ const Admin = () => {
   useEffect(() => {
     if (activeTab === 'api-keys') {
       loadApiTokens();
+    } else if (activeTab === 'templates') {
+      loadTemplates();
     }
   }, [activeTab]);
 
@@ -101,6 +120,15 @@ const Admin = () => {
       setApiTokens(response.data);
     } catch (error) {
       console.error('Error loading API tokens:', error);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const response = await api.get('/campaign-templates');
+      setTemplates(response.data);
+    } catch (error) {
+      console.error('Error loading campaign templates:', error);
     }
   };
 
@@ -388,6 +416,54 @@ const Admin = () => {
     });
   };
 
+  // Campaign Template handlers
+  const handleAddTemplate = () => {
+    setEditingTemplate(null);
+    setTemplateForm({
+      name: '',
+      type: 'email',
+    });
+    setShowTemplateModal(true);
+  };
+
+  const handleEditTemplate = (template) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      name: template.name,
+      type: template.type,
+    });
+    setShowTemplateModal(true);
+  };
+
+  const handleSaveTemplate = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingTemplate) {
+        await api.put(`/campaign-templates/${editingTemplate.id}`, templateForm);
+      } else {
+        await api.post('/campaign-templates', templateForm);
+      }
+      setShowTemplateModal(false);
+      setEditingTemplate(null);
+      loadTemplates();
+    } catch (error) {
+      console.error('Error saving template:', error);
+      alert('שגיאה בשמירת תבנית');
+    }
+  };
+
+  const handleDeleteTemplate = async (id) => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק תבנית זו?')) return;
+
+    try {
+      await api.delete(`/campaign-templates/${id}`);
+      loadTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('שגיאה במחיקת תבנית');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -441,6 +517,16 @@ const Admin = () => {
             }`}
           >
             תחומי עניין
+          </button>
+          <button
+            onClick={() => setActiveTab('templates')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'templates'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            תבניות קמפיינים
           </button>
           <button
             onClick={() => setActiveTab('api-keys')}
@@ -799,6 +885,74 @@ const Admin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Campaign Templates Tab */}
+      {activeTab === 'templates' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              תבניות קמפיינים
+            </h2>
+            <button
+              onClick={handleAddTemplate}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              תבנית חדשה
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary-300 dark:hover:border-primary-700 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {template.type === 'email' ? (
+                        <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      ) : template.type === 'sms' ? (
+                        <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      )}
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {template.name}
+                      </h3>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleEditTemplate(template)}
+                        className="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTemplate(template.id)}
+                        className="p-1 text-red-600 hover:text-red-700 dark:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                      {template.type === 'email' ? 'אימייל' : template.type === 'sms' ? 'SMS' : 'וואטסאפ'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {templates.length === 0 && (
+              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>אין תבניות קמפיינים עדיין</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1228,6 +1382,76 @@ const Admin = () => {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Campaign Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingTemplate ? 'עריכת תבנית' : 'תבנית חדשה'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setEditingTemplate(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveTemplate} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  שם התבנית *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={templateForm.name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="למשל: קמפיין פתיחה"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  סוג הקמפיין *
+                </label>
+                <select
+                  required
+                  value={templateForm.type}
+                  onChange={(e) => setTemplateForm({ ...templateForm, type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="email">אימייל</option>
+                  <option value="sms">SMS</option>
+                  <option value="whatsapp">וואטסאפ</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                >
+                  שמור
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTemplateModal(false);
+                    setEditingTemplate(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
