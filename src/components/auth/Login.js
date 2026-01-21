@@ -19,9 +19,23 @@ const Login = () => {
     const token = searchParams.get('token');
     const errorParam = searchParams.get('error');
 
+    console.log('🔍 Login useEffect - token:', !!token, 'error:', errorParam);
+
     if (token) {
-      loginWithToken(token);
-      navigate('/');
+      console.log('🔄 Attempting to login with token...');
+      loginWithToken(token)
+        .then((result) => {
+          console.log('✅ Login with token result:', result);
+          if (result.success) {
+            navigate('/');
+          } else {
+            setError(result.error || 'שגיאת התחברות');
+          }
+        })
+        .catch((err) => {
+          console.error('❌ Login with token error:', err);
+          setError('שגיאת התחברות');
+        });
     } else if (errorParam) {
       if (errorParam === 'user_not_found') {
         setError('משתמש לא נמצא במערכת. פנה למנהל להוספת המשתמש.');
