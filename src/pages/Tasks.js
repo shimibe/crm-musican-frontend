@@ -41,6 +41,7 @@ const Tasks = () => {
     priority: true,
     status: true,
     assignedTo: true,
+    createdAt: true,
     updatedAt: true,
   });
 
@@ -51,7 +52,8 @@ const Tasks = () => {
     { key: 'priority', label: 'עדיפות' },
     { key: 'status', label: 'סטטוס' },
     { key: 'assignedTo', label: 'מוקצה ל' },
-    { key: 'updatedAt', label: 'עודכן לאחרונה' },
+    { key: 'createdAt', label: 'נוצר ב' },
+    { key: 'updatedAt', label: 'עודכן ב' },
   ];
 
   const toggleColumn = (columnKey) => {
@@ -512,6 +514,7 @@ const Tasks = () => {
                   {visibleColumns.priority && <SortableHeader column="priority">עדיפות</SortableHeader>}
                   {visibleColumns.status && <SortableHeader column="status">סטטוס</SortableHeader>}
                   {visibleColumns.assignedTo && <SortableHeader column="assigned_to_name">משויך ל</SortableHeader>}
+                  {visibleColumns.createdAt && <SortableHeader column="created_at">נוצר ב</SortableHeader>}
                   {visibleColumns.updatedAt && <SortableHeader column="updated_at">עודכן ב</SortableHeader>}
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     פעולות
@@ -614,6 +617,11 @@ const Tasks = () => {
                             </option>
                           ))}
                         </select>
+                      </td>
+                    )}
+                    {visibleColumns.createdAt && (
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                        {formatDateTime(task.created_at)}
                       </td>
                     )}
                     {visibleColumns.updatedAt && (
