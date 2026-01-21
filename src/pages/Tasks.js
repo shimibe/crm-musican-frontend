@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerModal from '../components/tasks/CustomerModal';
+import ColumnToggle from '../components/common/ColumnToggle';
 
 const Tasks = () => {
   const { user } = useAuth();
@@ -31,6 +32,34 @@ const Tasks = () => {
     customer_id: '',
     due_date: '',
   });
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState({
+    title: true,
+    customer: true,
+    category: true,
+    priority: true,
+    status: true,
+    assignedTo: true,
+    updatedAt: true,
+  });
+
+  const columnDefinitions = [
+    { key: 'title', label: 'כותרת' },
+    { key: 'customer', label: 'לקוח' },
+    { key: 'category', label: 'קטגוריה' },
+    { key: 'priority', label: 'עדיפות' },
+    { key: 'status', label: 'סטטוס' },
+    { key: 'assignedTo', label: 'מוקצה ל' },
+    { key: 'updatedAt', label: 'עודכן לאחרונה' },
+  ];
+
+  const toggleColumn = (columnKey) => {
+    setVisibleColumns((prev) => ({
+      ...prev,
+      [columnKey]: !prev[columnKey],
+    }));
+  };
 
   // Calculate due date indicator
   const getDueDateIndicator = (dueDate) => {
@@ -379,13 +408,20 @@ const Tasks = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           ניהול משימות
         </h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" />
-          משימה חדשה
-        </button>
+        <div className="flex gap-2">
+          <ColumnToggle
+            columns={columnDefinitions}
+            visibleColumns={visibleColumns}
+            onToggle={toggleColumn}
+          />
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            <Plus className="w-4 h-4" />
+            משימה חדשה
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -470,14 +506,13 @@ const Tasks = () => {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <SortableHeader column="title">כותרת</SortableHeader>
-                  <SortableHeader column="customer_name">לקוח</SortableHeader>
-                  <SortableHeader column="category_name">קטגוריה</SortableHeader>
-                  <SortableHeader column="priority">עדיפות</SortableHeader>
-                  <SortableHeader column="status">סטטוס</SortableHeader>
-                  <SortableHeader column="assigned_to_name">משויך ל</SortableHeader>
-                  <SortableHeader column="created_at">נוצר ב</SortableHeader>
-                  <SortableHeader column="updated_at">עודכן ב</SortableHeader>
+                  {visibleColumns.title && <SortableHeader column="title">כותרת</SortableHeader>}
+                  {visibleColumns.customer && <SortableHeader column="customer_name">לקוח</SortableHeader>}
+                  {visibleColumns.category && <SortableHeader column="category_name">קטגוריה</SortableHeader>}
+                  {visibleColumns.priority && <SortableHeader column="priority">עדיפות</SortableHeader>}
+                  {visibleColumns.status && <SortableHeader column="status">סטטוס</SortableHeader>}
+                  {visibleColumns.assignedTo && <SortableHeader column="assigned_to_name">משויך ל</SortableHeader>}
+                  {visibleColumns.updatedAt && <SortableHeader column="updated_at">עודכן ב</SortableHeader>}
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     פעולות
                   </th>
@@ -490,91 +525,102 @@ const Tasks = () => {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                     onClick={() => handleEdit(task)}
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                      {(() => {
-                        const indicator = getDueDateIndicator(task.due_date);
-                        return indicator ? (
-                          <span>
-                            <span className={`${indicator.color} font-semibold`}>
-                              {indicator.emoji}({indicator.text})
+                    {visibleColumns.title && (
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                        {(() => {
+                          const indicator = getDueDateIndicator(task.due_date);
+                          return indicator ? (
+                            <span>
+                              <span className={`${indicator.color} font-semibold`}>
+                                {indicator.emoji}({indicator.text})
+                              </span>
+                              {' '}
+                              {task.title}
                             </span>
-                            {' '}
-                            {task.title}
+                          ) : (
+                            task.title
+                          );
+                        })()}
+                      </td>
+                    )}
+                    {visibleColumns.customer && (
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
+                        onClick={(e) => {
+                          if (task.customer_id) {
+                            e.stopPropagation();
+                            handleCustomerClick(task.customer_id);
+                          }
+                        }}
+                      >
+                        {task.customer_name ? (
+                          <span className={task.customer_id ? "text-primary-600 dark:text-primary-400 hover:underline cursor-pointer" : ""}>
+                            {task.customer_name}
                           </span>
                         ) : (
-                          task.title
-                        );
-                      })()}
-                    </td>
-                    <td
-                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
-                      onClick={(e) => {
-                        if (task.customer_id) {
-                          e.stopPropagation();
-                          handleCustomerClick(task.customer_id);
-                        }
-                      }}
-                    >
-                      {task.customer_name ? (
-                        <span className={task.customer_id ? "text-primary-600 dark:text-primary-400 hover:underline cursor-pointer" : ""}>
-                          {task.customer_name}
-                        </span>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {task.category_name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      {user?.useAutoPriority ? (
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
-                          {getText(getDisplayPriority(task), 'priority')}
-                        </span>
-                      ) : (
+                          '-'
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.category && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {task.category_name || '-'}
+                      </td>
+                    )}
+                    {visibleColumns.priority && (
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        {user?.useAutoPriority ? (
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
+                            {getText(getDisplayPriority(task), 'priority')}
+                          </span>
+                        ) : (
+                          <select
+                            value={task.priority}
+                            onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
+                            className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
+                          >
+                            <option value="low">נמוכה</option>
+                            <option value="medium">בינונית</option>
+                            <option value="high">גבוהה</option>
+                          </select>
+                        )}
+                      </td>
+                    )}
+                    {visibleColumns.status && (
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <select
-                          value={task.priority}
-                          onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
-                          className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
+                          value={task.status}
+                          onChange={(e) => handleQuickUpdate(task.id, 'status', e.target.value)}
+                          className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getStatusColor(task.status)}`}
                         >
-                          <option value="low">נמוכה</option>
-                          <option value="medium">בינונית</option>
-                          <option value="high">גבוהה</option>
+                          <option value="open">פתוח</option>
+                          <option value="in_progress">בטיפול</option>
+                          <option value="closed">סגור</option>
                         </select>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={task.status}
-                        onChange={(e) => handleQuickUpdate(task.id, 'status', e.target.value)}
-                        className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getStatusColor(task.status)}`}
-                      >
-                        <option value="open">פתוח</option>
-                        <option value="in_progress">בטיפול</option>
-                        <option value="closed">סגור</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        value={task.assigned_to || ''}
-                        onChange={(e) => handleQuickUpdate(task.id, 'assigned_to', e.target.value || null)}
-                        className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="">לא משויך</option>
-                        <option value="general">כללי (כולם)</option>
-                        {users.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.full_name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                      {formatDateTime(task.created_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                      {formatDateTime(task.updated_at)}
-                    </td>
+                      </td>
+                    )}
+                    {visibleColumns.assignedTo && (
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={task.assigned_to || ''}
+                          onChange={(e) => handleQuickUpdate(task.id, 'assigned_to', e.target.value || null)}
+                          className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">לא משויך</option>
+                          <option value="general">כללי (כולם)</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.full_name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
+                    {visibleColumns.updatedAt && (
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+                        {formatDateTime(task.updated_at)}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2">
                         <button
