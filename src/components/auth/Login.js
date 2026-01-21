@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import GoogleSignInButton from './GoogleSignInButton';
-import api from '../../api';
+import api from '../../utils/api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
