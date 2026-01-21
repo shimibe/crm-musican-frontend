@@ -1,14 +1,37 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import GoogleSignInButton from './GoogleSignInButton';
+import api from '../../api';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const { login, loginWithToken } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle Google OAuth callback with token
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const errorParam = searchParams.get('error');
+
+    if (token) {
+      loginWithToken(token);
+      navigate('/');
+    } else if (errorParam) {
+      if (errorParam === 'user_not_found') {
+        setError('משתמש לא נמצא במערכת. פנה למנהל להוספת המשתמש.');
+      } else if (errorParam === 'auth_failed') {
+        setError('שגיאה באימות Google. נסה שוב.');
+      } else if (errorParam === 'no_code') {
+        setError('לא התקבל קוד אימות מ-Google.');
+      }
+    }
+  }, [searchParams, loginWithToken, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,13 +39,27 @@ const Login = () => {
     setLoading(true);
 
     const result = await login(username, password);
-    
+
     setLoading(false);
 
     if (result.success) {
       navigate('/');
     } else {
       setError(result.error);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+
+    try {
+      const response = await api.get('/google-auth/url');
+      window.location.href = response.data.url;
+    } catch (error) {
+      console.error('Error getting Google auth URL:', error);
+      setError('שגיאה בהתחברות עם Google. נסה שוב.');
+      setGoogleLoading(false);
     }
   };
 
@@ -95,6 +132,21 @@ const Login = () => {
             </Link>
           </div>
         </form>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+              או
+            </span>
+          </div>
+        </div>
+
+        {/* Google Sign-In Button */}
+        <GoogleSignInButton onClick={handleGoogleSignIn} loading={googleLoading} />
       </div>
     </div>
   );

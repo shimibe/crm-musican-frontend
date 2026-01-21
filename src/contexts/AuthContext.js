@@ -57,6 +57,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithToken = async (token) => {
+    try {
+      // Store token
+      localStorage.setItem('token', token);
+
+      // Fetch user data with the token
+      const response = await api.get('/auth/me');
+      const userData = response.data;
+
+      // Normalize user data
+      const normalizedUser = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.full_name || userData.fullName,
+        phone: userData.phone,
+        role: userData.role,
+        useAutoPriority: userData.use_auto_priority ?? false,
+        taskPriorityLowToMedium: userData.task_priority_low_to_medium ?? 1,
+        taskPriorityMediumToHigh: userData.task_priority_medium_to_high ?? 3,
+      };
+
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
+      setUser(normalizedUser);
+
+      return { success: true };
+    } catch (error) {
+      localStorage.removeItem('token');
+      return {
+        success: false,
+        error: error.response?.data?.error || 'שגיאת התחברות'
+      };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -84,6 +119,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     login,
+    loginWithToken,
     logout,
     updateUser,
     loading,
