@@ -32,6 +32,30 @@ const Tasks = () => {
     due_date: '',
   });
 
+  // Calculate due date indicator
+  const getDueDateIndicator = (dueDate) => {
+    if (!dueDate) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const due = new Date(dueDate);
+    due.setHours(0, 0, 0, 0);
+
+    const diffTime = due - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return { emoji: '⭐', text: 'היום', color: 'text-yellow-600 dark:text-yellow-400' };
+    } else if (diffDays > 0 && diffDays <= 3) {
+      return { emoji: '🕐', text: `${diffDays}`, color: 'text-orange-600 dark:text-orange-400' };
+    } else if (diffDays > 3) {
+      return { emoji: '🕐', text: `${diffDays}`, color: 'text-blue-600 dark:text-blue-400' };
+    } else {
+      return { emoji: '🔴', text: `${diffDays}`, color: 'text-red-600 dark:text-red-400' };
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [filter]);
@@ -467,7 +491,20 @@ const Tasks = () => {
                     onClick={() => handleEdit(task)}
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                      {task.title}
+                      {(() => {
+                        const indicator = getDueDateIndicator(task.due_date);
+                        return indicator ? (
+                          <span>
+                            <span className={`${indicator.color} font-semibold`}>
+                              {indicator.emoji}({indicator.text})
+                            </span>
+                            {' '}
+                            {task.title}
+                          </span>
+                        ) : (
+                          task.title
+                        );
+                      })()}
                     </td>
                     <td
                       className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
