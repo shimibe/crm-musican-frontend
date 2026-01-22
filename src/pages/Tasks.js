@@ -33,16 +33,19 @@ const Tasks = () => {
     due_date: '',
   });
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState({
-    title: true,
-    customer: true,
-    category: true,
-    priority: true,
-    status: true,
-    assignedTo: true,
-    createdAt: true,
-    updatedAt: true,
+  // Column visibility state - load from user preferences
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const defaultColumns = {
+      title: true,
+      customer: true,
+      category: true,
+      priority: true,
+      status: true,
+      assignedTo: true,
+      createdAt: true,
+      updatedAt: true,
+    };
+    return user?.preferences?.tasks_visible_columns || defaultColumns;
   });
 
   const columnDefinitions = [
@@ -56,11 +59,23 @@ const Tasks = () => {
     { key: 'updatedAt', label: 'עודכן ב' },
   ];
 
-  const toggleColumn = (columnKey) => {
-    setVisibleColumns((prev) => ({
-      ...prev,
-      [columnKey]: !prev[columnKey],
-    }));
+  const toggleColumn = async (columnKey) => {
+    const newColumns = {
+      ...visibleColumns,
+      [columnKey]: !visibleColumns[columnKey],
+    };
+    setVisibleColumns(newColumns);
+
+    // Save to server
+    try {
+      const newPreferences = {
+        ...(user.preferences || {}),
+        tasks_visible_columns: newColumns,
+      };
+      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
+    } catch (error) {
+      console.error('Failed to save column preferences:', error);
+    }
   };
 
   // Calculate due date indicator

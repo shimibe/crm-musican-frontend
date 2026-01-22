@@ -29,14 +29,17 @@ const Customers = () => {
     interests: [],
   });
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState({
-    name: true,
-    phone: true,
-    email: true,
-    category: true,
-    interests: true,
-    status: true,
+  // Column visibility state - load from user preferences
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const defaultColumns = {
+      name: true,
+      phone: true,
+      email: true,
+      category: true,
+      interests: true,
+      status: true,
+    };
+    return user?.preferences?.customers_visible_columns || defaultColumns;
   });
 
   const columnDefinitions = [
@@ -48,11 +51,23 @@ const Customers = () => {
     { key: 'status', label: 'סטטוס' },
   ];
 
-  const toggleColumn = (columnKey) => {
-    setVisibleColumns((prev) => ({
-      ...prev,
-      [columnKey]: !prev[columnKey],
-    }));
+  const toggleColumn = async (columnKey) => {
+    const newColumns = {
+      ...visibleColumns,
+      [columnKey]: !visibleColumns[columnKey],
+    };
+    setVisibleColumns(newColumns);
+
+    // Save to server
+    try {
+      const newPreferences = {
+        ...(user.preferences || {}),
+        customers_visible_columns: newColumns,
+      };
+      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
+    } catch (error) {
+      console.error('Failed to save column preferences:', error);
+    }
   };
 
   useEffect(() => {
