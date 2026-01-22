@@ -6,7 +6,7 @@ import CampaignModal from '../components/customers/CampaignModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 
 const Customers = () => {
-  const { user } = useAuth();
+  const { user, updatePreferences } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,17 +58,20 @@ const Customers = () => {
     };
     setVisibleColumns(newColumns);
 
-    // Save to server
-    try {
-      const newPreferences = {
-        ...(user.preferences || {}),
-        customers_visible_columns: newColumns,
-      };
-      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
-    } catch (error) {
-      console.error('Failed to save column preferences:', error);
-    }
+    // Save to server and update context
+    const newPreferences = {
+      ...(user.preferences || {}),
+      customers_visible_columns: newColumns,
+    };
+    await updatePreferences(newPreferences);
   };
+
+  // Update visible columns when user preferences change
+  useEffect(() => {
+    if (user?.preferences?.customers_visible_columns) {
+      setVisibleColumns(user.preferences.customers_visible_columns);
+    }
+  }, [user?.preferences?.customers_visible_columns]);
 
   useEffect(() => {
     loadCustomers();

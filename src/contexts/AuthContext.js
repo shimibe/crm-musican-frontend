@@ -78,6 +78,7 @@ export const AuthProvider = ({ children }) => {
         useAutoPriority: userData.use_auto_priority ?? false,
         taskPriorityLowToMedium: userData.task_priority_low_to_medium ?? 1,
         taskPriorityMediumToHigh: userData.task_priority_medium_to_high ?? 3,
+        preferences: userData.preferences || {},
       };
 
       localStorage.setItem('user', JSON.stringify(normalizedUser));
@@ -118,12 +119,32 @@ export const AuthProvider = ({ children }) => {
     setUser(normalizedUser);
   };
 
+  const updatePreferences = async (newPreferences) => {
+    try {
+      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
+
+      // Update local user object
+      const updatedUser = {
+        ...user,
+        preferences: newPreferences,
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+      return { success: false, error };
+    }
+  };
+
   const value = {
     user,
     login,
     loginWithToken,
     logout,
     updateUser,
+    updatePreferences,
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',

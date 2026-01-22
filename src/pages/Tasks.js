@@ -6,7 +6,7 @@ import CustomerModal from '../components/tasks/CustomerModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 
 const Tasks = () => {
-  const { user } = useAuth();
+  const { user, updatePreferences } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -66,16 +66,12 @@ const Tasks = () => {
     };
     setVisibleColumns(newColumns);
 
-    // Save to server
-    try {
-      const newPreferences = {
-        ...(user.preferences || {}),
-        tasks_visible_columns: newColumns,
-      };
-      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
-    } catch (error) {
-      console.error('Failed to save column preferences:', error);
-    }
+    // Save to server and update context
+    const newPreferences = {
+      ...(user.preferences || {}),
+      tasks_visible_columns: newColumns,
+    };
+    await updatePreferences(newPreferences);
   };
 
   // Calculate due date indicator
@@ -101,6 +97,13 @@ const Tasks = () => {
       return { emoji: '🔴', text: `${diffDays}`, color: 'text-red-600 dark:text-red-400' };
     }
   };
+
+  // Update visible columns when user preferences change
+  useEffect(() => {
+    if (user?.preferences?.tasks_visible_columns) {
+      setVisibleColumns(user.preferences.tasks_visible_columns);
+    }
+  }, [user?.preferences?.tasks_visible_columns]);
 
   useEffect(() => {
     loadData();
