@@ -558,7 +558,7 @@ const Tasks = () => {
                             <span>
                               {task.agent_note && (
                                 <span className="text-blue-600 dark:text-blue-400 ml-1" title={`הערת נציג: ${task.agent_note}`}>
-                                  💬
+                                  🟡
                                 </span>
                               )}
                               {indicator ? (
@@ -738,7 +738,7 @@ const Tasks = () => {
                 </div>
                 <div className="col-span-2 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
                   <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
-                    💬 הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
+                    🟡 הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
                   </label>
                   <textarea
                     value={formData.agent_note}
