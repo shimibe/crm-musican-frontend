@@ -31,6 +31,7 @@ const Tasks = () => {
     assigned_to: '',
     customer_id: '',
     due_date: '',
+    agent_note: '',
   });
 
   // Column visibility state - load from user preferences
@@ -154,6 +155,7 @@ const Tasks = () => {
       if (!data.customer_id) delete data.customer_id;
       if (!data.category_id) delete data.category_id;
       if (!data.due_date) delete data.due_date;
+      if (!data.agent_note) delete data.agent_note;
 
       if (editingTask) {
         await api.put(`/tasks/${editingTask.id}`, data);
@@ -321,6 +323,7 @@ const Tasks = () => {
       assigned_to: task.assigned_to || '',
       customer_id: task.customer_id || '',
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
+      agent_note: task.agent_note || '',
     });
     setShowModal(true);
   };
@@ -335,6 +338,7 @@ const Tasks = () => {
       assigned_to: '',
       customer_id: '',
       due_date: '',
+      agent_note: '',
     });
     setCustomerSearchTerm('');
   };
@@ -550,16 +554,25 @@ const Tasks = () => {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                         {(() => {
                           const indicator = getDueDateIndicator(task.due_date);
-                          return indicator ? (
+                          return (
                             <span>
-                              <span className={`${indicator.color} font-semibold`}>
-                                {indicator.emoji}({indicator.text})
-                              </span>
-                              {' '}
-                              {task.title}
+                              {task.agent_note && (
+                                <span className="text-blue-600 dark:text-blue-400 ml-1" title={`הערת נציג: ${task.agent_note}`}>
+                                  💬
+                                </span>
+                              )}
+                              {indicator ? (
+                                <span>
+                                  <span className={`${indicator.color} font-semibold`}>
+                                    {indicator.emoji}({indicator.text})
+                                  </span>
+                                  {' '}
+                                  {task.title}
+                                </span>
+                              ) : (
+                                task.title
+                              )}
                             </span>
-                          ) : (
-                            task.title
                           );
                         })()}
                       </td>
@@ -821,6 +834,18 @@ const Tasks = () => {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
+                  </label>
+                  <textarea
+                    value={formData.agent_note}
+                    onChange={(e) => setFormData({ ...formData, agent_note: e.target.value })}
+                    rows={3}
+                    placeholder="הערה פנימית לנציגים..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
