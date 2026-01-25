@@ -736,6 +736,18 @@ const Tasks = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
+                <div className="col-span-2 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
+                  <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
+                    💬 הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
+                  </label>
+                  <textarea
+                    value={formData.agent_note}
+                    onChange={(e) => setFormData({ ...formData, agent_note: e.target.value })}
+                    rows={3}
+                    placeholder="הערה פנימית לנציגים..."
+                    className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
@@ -834,18 +846,6 @@ const Tasks = () => {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
-                  </label>
-                  <textarea
-                    value={formData.agent_note}
-                    onChange={(e) => setFormData({ ...formData, agent_note: e.target.value })}
-                    rows={3}
-                    placeholder="הערה פנימית לנציגים..."
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
