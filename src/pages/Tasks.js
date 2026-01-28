@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerModal from '../components/tasks/CustomerModal';
 import ColumnToggle from '../components/common/ColumnToggle';
+import ProgressModal from '../components/tasks/ProgressModal';
 
 const Tasks = () => {
   const { user, updatePreferences } = useAuth();
@@ -22,6 +23,9 @@ const Tasks = () => {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [selectedTaskForProgress, setSelectedTaskForProgress] = useState(null);
+  const [taskProgressCounts, setTaskProgressCounts] = useState({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -135,10 +139,32 @@ const Tasks = () => {
       setCustomers(customersRes.data.customers);
       setCategories(categoriesRes.data);
       setUsers(usersRes.data);
+
+      // Load progress counts for all tasks
+      loadProgressCounts(filteredTasks);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadProgressCounts = async (tasksList) => {
+    try {
+      const counts = {};
+      await Promise.all(
+        tasksList.map(async (task) => {
+          try {
+            const response = await api.get(`/tasks/${task.id}/progress`);
+            counts[task.id] = response.data.length;
+          } catch (error) {
+            counts[task.id] = 0;
+          }
+        })
+      );
+      setTaskProgressCounts(counts);
+    } catch (error) {
+      console.error('Error loading progress counts:', error);
     }
   };
 
@@ -554,12 +580,27 @@ const Tasks = () => {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                         {(() => {
                           const indicator = getDueDateIndicator(task.due_date);
+                          const progressCount = taskProgressCounts[task.id] || 0;
                           return (
                             <span>
                               {task.agent_note && (
                                 <span className="text-blue-600 dark:text-blue-400 ml-1" title={`הערת נציג: ${task.agent_note}`}>
-                                  🟡
+                                  💬
                                 </span>
+                              )}
+                              {progressCount > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTaskForProgress(task);
+                                    setShowProgressModal(true);
+                                  }}
+                                  className="text-green-600 dark:text-green-400 hover:text-green-700 ml-1 inline-flex items-center"
+                                  title={`${progressCount} עדכוני התקדמות`}
+                                >
+                                  <ClipboardList className="w-4 h-4" />
+                                  <span className="text-xs">({progressCount})</span>
+                                </button>
                               )}
                               {indicator ? (
                                 <span>
@@ -700,6 +741,17 @@ const Tasks = () => {
         show={showCustomerModal}
         onClose={() => setShowCustomerModal(false)}
         customer={selectedCustomer}
+      />
+
+      {/* Progress Modal */}
+      <ProgressModal
+        show={showProgressModal}
+        onClose={() => {
+          setShowProgressModal(false);
+          setSelectedTaskForProgress(null);
+          loadData(); // Reload to update progress counts
+        }}
+        task={selectedTaskForProgress}
       />
 
       {/* Modal */}
@@ -850,23 +902,36 @@ const Tasks = () => {
                   />
                 </div>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 flex-wrap">
                 {editingTask && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newStatus = formData.status === 'closed' ? 'open' : 'closed';
-                      setFormData({ ...formData, status: newStatus });
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md ${
-                      formData.status === 'closed'
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {formData.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newStatus = formData.status === 'closed' ? 'open' : 'closed';
+                        setFormData({ ...formData, status: newStatus });
+                      }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                        formData.status === 'closed'
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      {formData.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTaskForProgress(editingTask);
+                        setShowProgressModal(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                      התקדמות טיפול {taskProgressCounts[editingTask.id] > 0 && `(${taskProgressCounts[editingTask.id]})`}
+                    </button>
+                  </>
                 )}
                 <button
                   type="submit"
