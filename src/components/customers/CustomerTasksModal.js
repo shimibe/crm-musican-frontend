@@ -20,13 +20,11 @@ const CustomerTasksModal = ({ show, onClose, customer }) => {
     setLoading(true);
     try {
       const response = await api.get('/tasks');
-      console.log('All tasks:', response.data);
-      console.log('Customer ID:', customer.id);
-      const customerTasks = response.data.filter(task => {
-        console.log('Task customer_id:', task.customer_id, 'Match:', task.customer_id === customer.id);
-        return String(task.customer_id) === String(customer.id);
+      // התגובה היא אובייקט עם tasks בתוכו, לא מערך ישירות
+      const allTasks = response.data.tasks || response.data;
+      const customerTasks = allTasks.filter(task => {
+        return task.customer_id && String(task.customer_id) === String(customer.id);
       });
-      console.log('Filtered tasks:', customerTasks);
       setTasks(customerTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
