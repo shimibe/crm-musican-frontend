@@ -181,7 +181,7 @@ const Tasks = () => {
       if (!data.customer_id) delete data.customer_id;
       if (!data.category_id) delete data.category_id;
       if (!data.due_date) delete data.due_date;
-      if (!data.agent_note) delete data.agent_note;
+      // Keep agent_note even if empty to allow clearing it
 
       if (editingTask) {
         await api.put(`/tasks/${editingTask.id}`, data);
@@ -351,6 +351,8 @@ const Tasks = () => {
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
       agent_note: task.agent_note || '',
     });
+    // Set customer search term to customer name if exists
+    setCustomerSearchTerm(task.customer_name || '');
     setShowModal(true);
   };
 
@@ -577,14 +579,14 @@ const Tasks = () => {
                     onClick={() => handleEdit(task)}
                   >
                     {visibleColumns.title && (
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 text-sm">
                         {(() => {
                           const indicator = getDueDateIndicator(task.due_date);
                           const progressCount = taskProgressCounts[task.id] || 0;
                           return (
-                            <span>
+                            <div className="flex items-center gap-1">
                               {task.agent_note && (
-                                <span className="text-blue-600 dark:text-blue-400 ml-1" title={`הערת נציג: ${task.agent_note}`}>
+                                <span className="text-blue-600 dark:text-blue-400" title={`הערת נציג: ${task.agent_note}`}>
                                   🟡
                                 </span>
                               )}
@@ -595,25 +597,36 @@ const Tasks = () => {
                                     setSelectedTaskForProgress(task);
                                     setShowProgressModal(true);
                                   }}
-                                  className="text-green-600 dark:text-green-400 hover:text-green-700 ml-1 inline-flex items-center"
+                                  className="text-green-600 dark:text-green-400 hover:text-green-700 inline-flex items-center"
                                   title={`${progressCount} עדכוני התקדמות`}
                                 >
                                   <ClipboardList className="w-4 h-4" />
                                   <span className="text-xs">({progressCount})</span>
                                 </button>
                               )}
-                              {indicator ? (
-                                <span>
-                                  <span className={`${indicator.color} font-semibold`}>
-                                    {indicator.emoji}({indicator.text})
+                              <div className="flex-1 truncate">
+                                {indicator ? (
+                                  <span>
+                                    <span className={`${indicator.color} font-semibold`}>
+                                      {indicator.emoji}({indicator.text})
+                                    </span>
+                                    {' '}
+                                    <span className="font-bold text-gray-900 dark:text-white">
+                                      {task.title}
+                                    </span>
                                   </span>
-                                  {' '}
-                                  {task.title}
-                                </span>
-                              ) : (
-                                task.title
-                              )}
-                            </span>
+                                ) : (
+                                  <span className="font-bold text-gray-900 dark:text-white">
+                                    {task.title}
+                                  </span>
+                                )}
+                                {task.description && (
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {' '}{task.description}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           );
                         })()}
                       </td>
@@ -788,17 +801,33 @@ const Tasks = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
-                <div className="col-span-2 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
-                  <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
-                    🟡 הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
-                  </label>
-                  <textarea
-                    value={formData.agent_note}
-                    onChange={(e) => setFormData({ ...formData, agent_note: e.target.value })}
-                    rows={3}
-                    placeholder="הערה פנימית לנציגים..."
-                    className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                  />
+                <div className="col-span-2 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-blue-900 dark:text-blue-300 mb-1">
+                      💬 הערת נציג {editingTask?.agent_note_author && `(${editingTask.agent_note_author})`}
+                    </label>
+                    <textarea
+                      value={formData.agent_note}
+                      onChange={(e) => setFormData({ ...formData, agent_note: e.target.value })}
+                      rows={3}
+                      placeholder="הערה פנימית לנציגים..."
+                      className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    />
+                  </div>
+                  {editingTask && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTaskForProgress(editingTask);
+                        setShowProgressModal(true);
+                        setShowModal(false);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm"
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                      התקדמות טיפול {taskProgressCounts[editingTask.id] > 0 && `(${taskProgressCounts[editingTask.id]})`}
+                    </button>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -810,129 +839,110 @@ const Tasks = () => {
                       placeholder="חפש לקוח..."
                       value={customerSearchTerm}
                       onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white mb-2"
-                    />
-                    <select
-                      value={formData.customer_id}
-                      onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
+                      onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      size="5"
+                    />
+                    {customerSearchTerm && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {getFilteredCustomers().length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            לא נמצאו לקוחות
+                          </div>
+                        ) : (
+                          getFilteredCustomers().map((customer) => (
+                            <div
+                              key={customer.id}
+                              onClick={() => {
+                                setFormData({ ...formData, customer_id: customer.id });
+                                setCustomerSearchTerm(customer.name);
+                              }}
+                              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
+                            >
+                              {customer.name}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-span-2 grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      עדיפות
+                    </label>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
-                      <option value="">בחר לקוח</option>
-                      {getFilteredCustomers().map((customer) => (
-                        <option key={customer.id} value={customer.id}>
-                          {customer.name}
+                      <option value="low">נמוכה</option>
+                      <option value="medium">בינונית</option>
+                      <option value="high">גבוהה</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      סטטוס
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="open">פתוח</option>
+                      <option value="in_progress">בטיפול</option>
+                      <option value="closed">סגור</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      משויך ל
+                    </label>
+                    <select
+                      value={formData.assigned_to}
+                      onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">בחר עובד</option>
+                      <option value="general">כללי (כולם)</option>
+                      {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name}
                         </option>
                       ))}
                     </select>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    קטגוריה
-                  </label>
-                  <select
-                    value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">בחר קטגוריה</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    עדיפות
-                  </label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="low">נמוכה</option>
-                    <option value="medium">בינונית</option>
-                    <option value="high">גבוהה</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    סטטוס
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="open">פתוח</option>
-                    <option value="in_progress">בטיפול</option>
-                    <option value="closed">סגור</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    משויך ל
-                  </label>
-                  <select
-                    value={formData.assigned_to}
-                    onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">בחר עובד</option>
-                    <option value="general">כללי (כולם)</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    תאריך יעד
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      תאריך יעד
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex gap-3 pt-4 flex-wrap">
                 {editingTask && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newStatus = formData.status === 'closed' ? 'open' : 'closed';
-                        setFormData({ ...formData, status: newStatus });
-                      }}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-md ${
-                        formData.status === 'closed'
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      {formData.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTaskForProgress(editingTask);
-                        setShowProgressModal(true);
-                        setShowModal(false); // Close the edit modal
-                      }}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
-                    >
-                      <ClipboardList className="w-4 h-4" />
-                      התקדמות טיפול {taskProgressCounts[editingTask.id] > 0 && `(${taskProgressCounts[editingTask.id]})`}
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newStatus = formData.status === 'closed' ? 'open' : 'closed';
+                      setFormData({ ...formData, status: newStatus });
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md ${
+                      formData.status === 'closed'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {formData.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
+                  </button>
                 )}
                 <button
                   type="submit"

@@ -127,7 +127,7 @@ const ProgressModal = ({ show, onClose, task }) => {
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300">
-                💬 הערת נציג {task?.agent_note_author && !editingAgentNote && `(${task.agent_note_author})`}
+                🟡 הערת נציג {task?.agent_note_author && !editingAgentNote && `(${task.agent_note_author})`}
               </h3>
               {!editingAgentNote ? (
                 <button
