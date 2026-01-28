@@ -585,7 +585,7 @@ const Tasks = () => {
                             <span>
                               {task.agent_note && (
                                 <span className="text-blue-600 dark:text-blue-400 ml-1" title={`הערת נציג: ${task.agent_note}`}>
-                                  💬
+                                  🟡
                                 </span>
                               )}
                               {progressCount > 0 && (
@@ -925,6 +925,7 @@ const Tasks = () => {
                       onClick={() => {
                         setSelectedTaskForProgress(editingTask);
                         setShowProgressModal(true);
+                        setShowModal(false); // Close the edit modal
                       }}
                       className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
                     >
