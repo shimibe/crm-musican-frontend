@@ -15,10 +15,18 @@ const CustomerTasksModal = ({ show, onClose, customer }) => {
   }, [show, customer]);
 
   const loadTasks = async () => {
+    if (!customer?.id) return;
+
     setLoading(true);
     try {
       const response = await api.get('/tasks');
-      const customerTasks = response.data.filter(task => task.customer_id === customer.id);
+      console.log('All tasks:', response.data);
+      console.log('Customer ID:', customer.id);
+      const customerTasks = response.data.filter(task => {
+        console.log('Task customer_id:', task.customer_id, 'Match:', task.customer_id === customer.id);
+        return String(task.customer_id) === String(customer.id);
+      });
+      console.log('Filtered tasks:', customerTasks);
       setTasks(customerTasks);
     } catch (error) {
       console.error('Error loading tasks:', error);
