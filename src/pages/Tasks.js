@@ -833,35 +833,39 @@ const Tasks = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="חפש לקוח..."
-                      value={customerSearchTerm}
-                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                      onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        placeholder="חפש לקוח..."
+                        value={customerSearchTerm}
+                        onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                        onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
                     {customerSearchTerm && (
-                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {getFilteredCustomers().length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            לא נמצאו לקוחות
-                          </div>
-                        ) : (
-                          getFilteredCustomers().map((customer) => (
-                            <div
-                              key={customer.id}
-                              onClick={() => {
-                                setFormData({ ...formData, customer_id: customer.id });
-                                setCustomerSearchTerm(customer.name);
-                              }}
-                              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
-                            >
-                              {customer.name}
+                      <div className="relative flex-1">
+                        <div className="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {getFilteredCustomers().length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                              לא נמצאו לקוחות
                             </div>
-                          ))
-                        )}
+                          ) : (
+                            getFilteredCustomers().map((customer) => (
+                              <div
+                                key={customer.id}
+                                onClick={() => {
+                                  setFormData({ ...formData, customer_id: customer.id });
+                                  setCustomerSearchTerm(customer.name);
+                                }}
+                                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
+                              >
+                                {customer.name}
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
