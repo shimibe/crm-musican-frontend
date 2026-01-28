@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, UserPlus, Download, Send } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserPlus, Download, Send, ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import ColumnToggle from '../components/common/ColumnToggle';
+import CustomerTasksModal from '../components/customers/CustomerTasksModal';
 
 const Customers = () => {
   const { user, updatePreferences } = useAuth();
@@ -19,6 +20,8 @@ const Customers = () => {
   const [duplicateCustomer, setDuplicateCustomer] = useState(null);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [showTasksModal, setShowTasksModal] = useState(false);
+  const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -594,6 +597,17 @@ const Customers = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCustomerForTasks(customer);
+                            setShowTasksModal(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          title="משימות"
+                        >
+                          <ClipboardList className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleEdit(customer)}
                           className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
                         >
@@ -884,6 +898,16 @@ const Customers = () => {
         show={showCampaignModal}
         onClose={handleCloseCampaign}
         selectedCustomers={selectedCustomers}
+      />
+
+      {/* Customer Tasks Modal */}
+      <CustomerTasksModal
+        show={showTasksModal}
+        onClose={() => {
+          setShowTasksModal(false);
+          setSelectedCustomerForTasks(null);
+        }}
+        customer={selectedCustomerForTasks}
       />
     </div>
   );

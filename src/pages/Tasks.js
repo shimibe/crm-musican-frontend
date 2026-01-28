@@ -19,6 +19,8 @@ const Tasks = () => {
   const [hideCompleted, setHideCompleted] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [customerFilter, setCustomerFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -268,6 +270,21 @@ const Tasks = () => {
       filtered = filtered.filter(task => getDisplayPriority(task) === priorityFilter);
     }
 
+    // Filter by customer
+    if (customerFilter !== 'all') {
+      filtered = filtered.filter(task => task.customer_id === customerFilter);
+    }
+
+    // Filter by search term
+    if (searchTerm && searchTerm.trim() !== '') {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(task =>
+        (task.title && task.title.toLowerCase().includes(searchLower)) ||
+        (task.description && task.description.toLowerCase().includes(searchLower)) ||
+        (task.customer_name && task.customer_name.toLowerCase().includes(searchLower))
+      );
+    }
+
     // Sort
     if (!sortConfig.key) return filtered;
 
@@ -445,11 +462,11 @@ const Tasks = () => {
 
   const getFilteredCustomers = () => {
     const sorted = getSortedCustomers();
-    if (!customerSearchTerm) return sorted;
+    if (!customerSearchTerm || customerSearchTerm.trim() === '') return sorted;
 
-    const searchLower = customerSearchTerm.toLowerCase();
+    const searchLower = customerSearchTerm.toLowerCase().trim();
     return sorted.filter(customer =>
-      customer.name.toLowerCase().includes(searchLower)
+      customer.name && customer.name.toLowerCase().includes(searchLower)
     );
   };
 
@@ -540,6 +557,31 @@ const Tasks = () => {
             <option value="medium">בינונית</option>
             <option value="low">נמוכה</option>
           </select>
+
+          {/* Customer Filter */}
+          <select
+            value={customerFilter}
+            onChange={(e) => setCustomerFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="all">כל הלקוחות</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Search */}
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="חיפוש משימות..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+            />
+          </div>
         </div>
       </div>
 
@@ -622,7 +664,7 @@ const Tasks = () => {
                                 )}
                                 {task.description && (
                                   <span className="text-gray-500 dark:text-gray-400">
-                                    {' '}{task.description}
+                                    {' '}{task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description}
                                   </span>
                                 )}
                               </div>
@@ -870,7 +912,24 @@ const Tasks = () => {
                     )}
                   </div>
                 </div>
-                <div className="col-span-2 grid grid-cols-4 gap-4">
+                <div className="col-span-2 grid grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      קטגוריה
+                    </label>
+                    <select
+                      value={formData.category_id}
+                      onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">בחר קטגוריה</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       עדיפות
