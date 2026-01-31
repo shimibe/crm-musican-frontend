@@ -93,8 +93,9 @@ const CampaignTemplates = () => {
     }
   };
 
-  const emailTemplates = templates.filter(t => t.type === 'email');
-  const whatsappTemplates = templates.filter(t => t.type === 'whatsapp');
+  // וודא שtemplates הוא מערך לפני filter
+  const emailTemplates = Array.isArray(templates) ? templates.filter(t => t.type === 'email') : [];
+  const whatsappTemplates = Array.isArray(templates) ? templates.filter(t => t.type === 'whatsapp') : [];
 
   return (
     <div className="space-y-6">

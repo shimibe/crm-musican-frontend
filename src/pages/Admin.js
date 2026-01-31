@@ -126,9 +126,10 @@ const Admin = () => {
   const loadTemplates = async () => {
     try {
       const response = await api.get('/campaign-templates');
-      setTemplates(response.data);
+      setTemplates(response.data.templates || []);
     } catch (error) {
       console.error('Error loading campaign templates:', error);
+      setTemplates([]);
     }
   };
 
