@@ -19,10 +19,18 @@ const CampaignTemplates = () => {
   const loadTemplates = async () => {
     try {
       const response = await api.get('/campaign-templates');
-      setTemplates(response.data.templates || []);
+      console.log('Templates response:', response.data);
+
+      // וודא שזה מערך
+      const templatesData = Array.isArray(response.data)
+        ? response.data
+        : (Array.isArray(response.data.templates) ? response.data.templates : []);
+
+      setTemplates(templatesData);
     } catch (error) {
       console.error('Error loading templates:', error);
       alert('שגיאה בטעינת תבניות');
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
