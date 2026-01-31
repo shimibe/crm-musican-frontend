@@ -1,18 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    return saved === 'true';
+  });
   const { user, logout, isAdmin } = useAuth();
   const { isDark, toggleDarkMode } = useDarkMode();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   const handleLogout = () => {
     logout();
@@ -47,33 +55,44 @@ const Layout = ({ children }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 z-30 w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-30 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        } ${sidebarCollapsed ? 'w-20' : 'w-64'}`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              CRM Musican
-            </h1>
+            {!sidebarCollapsed && (
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                CRM Musican
+              </h1>
+            )}
             <button
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <X className="w-6 h-6" />
             </button>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`hidden lg:block text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ${sidebarCollapsed ? 'mx-auto' : ''}`}
+              title={sidebarCollapsed ? 'הרחב תפריט' : 'קפל תפריט'}
+            >
+              {sidebarCollapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+            </button>
           </div>
 
           {/* User info */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {user?.fullName}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {user?.role === 'admin' ? 'מנהל' : user?.role === 'manager' ? 'מנהל צוות' : 'עובד'}
-            </p>
-          </div>
+          {!sidebarCollapsed && (
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {user?.fullName}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {user?.role === 'admin' ? 'מנהל' : user?.role === 'manager' ? 'מנהל צוות' : 'עובד'}
+              </p>
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
@@ -84,15 +103,16 @@ const Layout = ({ children }) => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md ${
                     isActive
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-900 dark:text-primary-100'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                   onClick={() => setSidebarOpen(false)}
+                  title={sidebarCollapsed ? item.name : ''}
                 >
-                  <Icon className="w-5 h-5 ml-3" />
-                  {item.name}
+                  <Icon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
+                  {!sidebarCollapsed && item.name}
                 </Link>
               );
             })}
@@ -102,33 +122,35 @@ const Layout = ({ children }) => {
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
             <button
               onClick={toggleDarkMode}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700`}
+              title={sidebarCollapsed ? (isDark ? 'מצב בהיר' : 'מצב כהה') : ''}
             >
               {isDark ? (
                 <>
-                  <Sun className="w-5 h-5 ml-3" />
-                  מצב בהיר
+                  <Sun className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
+                  {!sidebarCollapsed && 'מצב בהיר'}
                 </>
               ) : (
                 <>
-                  <Moon className="w-5 h-5 ml-3" />
-                  מצב כהה
+                  <Moon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
+                  {!sidebarCollapsed && 'מצב כהה'}
                 </>
               )}
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-700 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-red-700 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20`}
+              title={sidebarCollapsed ? 'התנתק' : ''}
             >
-              <LogOut className="w-5 h-5 ml-3" />
-              התנתק
+              <LogOut className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
+              {!sidebarCollapsed && 'התנתק'}
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className="lg:mr-64">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'}`}>
         {/* Top bar */}
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
           <div className="flex items-center justify-between h-16 px-4">
