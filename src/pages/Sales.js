@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, DollarSign, Calendar, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import CustomerModal from '../components/tasks/CustomerModal';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -16,8 +15,9 @@ const Sales = () => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [editingCell, setEditingCell] = useState(null); // { saleId, field }
+  const [editingValue, setEditingValue] = useState('');
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
   const [formData, setFormData] = useState({
@@ -130,10 +130,6 @@ const Sales = () => {
   const handleEdit = (sale) => {
     setEditingSale(sale);
 
-    // Find customer if exists
-    const customer = customers.find(c => c.id === sale.customer_id);
-    setSelectedCustomer(customer || null);
-
     setFormData({
       customer_id: sale.customer_id || '',
       service_product: sale.service_product || '',
@@ -146,12 +142,67 @@ const Sales = () => {
       paid_in_payslip: sale.paid_in_payslip || false,
       user_id: sale.user_id || '',
     });
+    // Set customer search term to customer name if exists
+    setCustomerSearchTerm(sale.customer_name || '');
     setShowModal(true);
   };
 
-  const handleCustomerSelect = (customer) => {
-    setSelectedCustomer(customer);
-    setFormData({ ...formData, customer_id: customer.id });
+  const getSortedCustomers = () => {
+    return [...customers].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      return nameA.localeCompare(nameB, 'he');
+    });
+  };
+
+  const getFilteredCustomers = () => {
+    const sorted = getSortedCustomers();
+    if (!customerSearchTerm || customerSearchTerm.trim() === '') return sorted;
+
+    const searchLower = customerSearchTerm.toLowerCase().trim();
+    return sorted.filter(customer =>
+      customer.name && customer.name.toLowerCase().includes(searchLower)
+    );
+  };
+
+  const handleInlineEdit = (saleId, field, currentValue) => {
+    setEditingCell({ saleId, field });
+    setEditingValue(currentValue || '');
+  };
+
+  const handleInlineSave = async (saleId) => {
+    if (!editingCell) return;
+
+    try {
+      const updateData = {
+        [editingCell.field]: editingValue || null
+      };
+
+      await api.patch(`/sales/${saleId}`, updateData);
+      setEditingCell(null);
+      setEditingValue('');
+      loadSales();
+    } catch (error) {
+      console.error('Error updating sale:', error);
+      alert('שגיאה בעדכון');
+    }
+  };
+
+  const handleInlineToggle = async (saleId, field, currentValue) => {
+    try {
+      await api.patch(`/sales/${saleId}`, {
+        [field]: !currentValue
+      });
+      loadSales();
+    } catch (error) {
+      console.error('Error updating sale:', error);
+      alert('שגיאה בעדכון');
+    }
+  };
+
+  const handleInlineCancel = () => {
+    setEditingCell(null);
+    setEditingValue('');
   };
 
   const resetForm = () => {
@@ -167,7 +218,7 @@ const Sales = () => {
       paid_in_payslip: false,
       user_id: '',
     });
-    setSelectedCustomer(null);
+    setCustomerSearchTerm('');
     setEditingSale(null);
   };
 
@@ -381,27 +432,85 @@ const Sales = () => {
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(sale.payment_date)}
                       </td>
+                      {/* Invoice Number - Inline Edit */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {sale.invoice_number || '-'}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                        {sale.notes || '-'}
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-center text-sm">
-                        {sale.deducted_from_royalties ? (
-                          <span className="text-green-600 dark:text-green-400">✓</span>
+                        {editingCell?.saleId === sale.id && editingCell?.field === 'invoice_number' ? (
+                          <input
+                            type="text"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onBlur={() => handleInlineSave(sale.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleInlineSave(sale.id);
+                              if (e.key === 'Escape') handleInlineCancel();
+                            }}
+                            autoFocus
+                            className="w-full px-2 py-1 border border-primary-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          />
                         ) : (
-                          <span className="text-gray-300 dark:text-gray-600">-</span>
+                          <span
+                            onClick={() => handleInlineEdit(sale.id, 'invoice_number', sale.invoice_number)}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded block"
+                          >
+                            {sale.invoice_number || '-'}
+                          </span>
                         )}
                       </td>
+
+                      {/* Notes - Inline Edit */}
+                      <td className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                        {editingCell?.saleId === sale.id && editingCell?.field === 'notes' ? (
+                          <input
+                            type="text"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onBlur={() => handleInlineSave(sale.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleInlineSave(sale.id);
+                              if (e.key === 'Escape') handleInlineCancel();
+                            }}
+                            autoFocus
+                            className="w-full px-2 py-1 border border-primary-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => handleInlineEdit(sale.id, 'notes', sale.notes)}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded block truncate"
+                          >
+                            {sale.notes || '-'}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Deducted from Royalties - Checkbox */}
+                      <td className="px-3 py-4 whitespace-nowrap text-center text-sm">
+                        <input
+                          type="checkbox"
+                          checked={sale.deducted_from_royalties || false}
+                          onChange={() => handleInlineToggle(sale.id, 'deducted_from_royalties', sale.deducted_from_royalties)}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded cursor-pointer"
+                        />
+                      </td>
+
                       <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {formatCurrency(sale.commission_amount)}
                       </td>
+
+                      {/* Paid in Payslip - Checkbox (Admin/Manager only) */}
                       <td className="px-3 py-4 whitespace-nowrap text-center text-sm">
-                        {sale.paid_in_payslip ? (
-                          <span className="text-blue-600 dark:text-blue-400">✓</span>
+                        {(isAdmin || isManager) ? (
+                          <input
+                            type="checkbox"
+                            checked={sale.paid_in_payslip || false}
+                            onChange={() => handleInlineToggle(sale.id, 'paid_in_payslip', sale.paid_in_payslip)}
+                            className="w-4 h-4 text-primary-600 border-gray-300 rounded cursor-pointer"
+                          />
                         ) : (
-                          <span className="text-gray-300 dark:text-gray-600">-</span>
+                          sale.paid_in_payslip ? (
+                            <span className="text-blue-600 dark:text-blue-400">✓</span>
+                          ) : (
+                            <span className="text-gray-300 dark:text-gray-600">-</span>
+                          )
                         )}
                       </td>
                       {(isAdmin || isManager) && (
@@ -458,25 +567,38 @@ const Sales = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomerModal(true)}
-                    className="w-full px-3 py-2 text-right border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    {selectedCustomer ? selectedCustomer.name : 'בחר לקוח (אופציונלי)'}
-                  </button>
-                  {selectedCustomer && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedCustomer(null);
-                        setFormData({ ...formData, customer_id: '' });
-                      }}
-                      className="text-xs text-red-600 dark:text-red-400 mt-1 hover:underline"
-                    >
-                      נקה בחירה
-                    </button>
-                  )}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="חפש לקוח..."
+                      value={customerSearchTerm}
+                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                      onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                    {customerSearchTerm && (
+                      <div className="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto mt-1">
+                        {getFilteredCustomers().length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                            לא נמצאו לקוחות
+                          </div>
+                        ) : (
+                          getFilteredCustomers().map((customer) => (
+                            <div
+                              key={customer.id}
+                              onClick={() => {
+                                setFormData({ ...formData, customer_id: customer.id });
+                                setCustomerSearchTerm(customer.name);
+                              }}
+                              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
+                            >
+                              {customer.name}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {(isAdmin || isManager) && (
@@ -624,14 +746,6 @@ const Sales = () => {
             </form>
           </div>
         </div>
-      )}
-
-      {/* Customer Modal */}
-      {showCustomerModal && (
-        <CustomerModal
-          onClose={() => setShowCustomerModal(false)}
-          onSelect={handleCustomerSelect}
-        />
       )}
     </div>
   );
