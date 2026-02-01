@@ -47,6 +47,12 @@ export const AutoRefreshProvider = ({ children }) => {
       return;
     }
 
+    // Don't refresh if there are open modals
+    const hasOpenModal = document.querySelector('[role="dialog"], .fixed.inset-0.bg-gray-600');
+    if (hasOpenModal) {
+      return;
+    }
+
     setLastRefreshTime(Date.now());
     window.location.reload();
   }, [shouldRefreshPage, enabled, isUserActive]);
