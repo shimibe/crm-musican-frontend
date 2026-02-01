@@ -32,12 +32,13 @@ export const AutoRefreshProvider = ({ children }) => {
 
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
   const [nextRefreshTime, setNextRefreshTime] = useState(null);
+  const [wasInactive, setWasInactive] = useState(false);
 
   // Track user activity
   const isUserActive = useUserActivity(inactivityTimeout * 60 * 1000);
 
   // Pages that should auto-refresh (data pages, not settings)
-  const dataPages = ['/', '/customers', '/tasks', '/campaigns', '/activity', '/dashboard'];
+  const dataPages = ['/', '/customers', '/tasks', '/campaigns', '/activity', '/dashboard', '/sales'];
   const shouldRefreshPage = dataPages.includes(location.pathname);
 
   // Refresh callback
@@ -49,6 +50,19 @@ export const AutoRefreshProvider = ({ children }) => {
     setLastRefreshTime(Date.now());
     window.location.reload();
   }, [shouldRefreshPage, enabled, isUserActive]);
+
+  // Detect when user returns from inactivity and refresh immediately
+  useEffect(() => {
+    if (!enabled || !shouldRefreshPage) return;
+
+    if (wasInactive && isUserActive) {
+      // User just became active again - refresh immediately
+      setLastRefreshTime(Date.now());
+      window.location.reload();
+    }
+
+    setWasInactive(!isUserActive);
+  }, [isUserActive, enabled, shouldRefreshPage, wasInactive]);
 
   // Auto-refresh effect
   useEffect(() => {

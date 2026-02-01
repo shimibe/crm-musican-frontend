@@ -5,7 +5,7 @@ import { useDarkMode } from '../../contexts/DarkModeContext';
 import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -33,6 +33,7 @@ const Layout = ({ children }) => {
     { name: 'לקוחות', href: '/customers', icon: Users },
     { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare },
+    { name: 'מכירות', href: '/sales', icon: DollarSign },
     { name: 'פעילות', href: '/activity', icon: Activity },
     { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
   ];

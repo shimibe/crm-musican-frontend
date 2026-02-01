@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { User, Key, Save, Phone, Clock, RefreshCw } from 'lucide-react';
+import { User, Key, Save, Phone, Clock, RefreshCw, DollarSign } from 'lucide-react';
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -22,6 +22,7 @@ const Settings = () => {
     interval: user?.preferences?.autoRefreshInterval ?? 2,
     inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
   });
+  const [commissionRate, setCommissionRate] = useState(user?.preferences?.commissionRate ?? 5);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -46,6 +47,7 @@ const Settings = () => {
         interval: user?.preferences?.autoRefreshInterval ?? 2,
         inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
       });
+      setCommissionRate(user?.preferences?.commissionRate ?? 5);
     }
   }, [user]);
 
@@ -156,6 +158,33 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating auto-refresh settings:', error);
       setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות רענון אוטומטי' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCommissionRateSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const newPreferences = {
+        ...(user.preferences || {}),
+        commissionRate: parseFloat(commissionRate),
+      };
+
+      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
+
+      updateUser({
+        ...user,
+        preferences: newPreferences,
+      });
+
+      setMessage({ type: 'success', text: 'אחוז העמלה עודכן בהצלחה' });
+    } catch (error) {
+      console.error('Error updating commission rate:', error);
+      setMessage({ type: 'error', text: 'שגיאה בעדכון אחוז עמלה' });
     } finally {
       setLoading(false);
     }
@@ -355,6 +384,46 @@ const Settings = () => {
               </div>
             </>
           )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            שמור הגדרות
+          </button>
+        </form>
+      </div>
+
+      {/* Commission Rate Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              אחוז עמלה על מכירות
+            </h2>
+          </div>
+        </div>
+        <form onSubmit={handleCommissionRateSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              אחוז עמלה (%)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={commissionRate}
+              onChange={(e) => setCommissionRate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              אחוז העמלה המחושב אוטומטית על מכירות חדשות. ברירת מחדל: 5%
+            </p>
+          </div>
 
           <button
             type="submit"
