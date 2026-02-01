@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, DollarSign, Calendar, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import CustomerModal from '../components/tasks/CustomerModal';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -15,6 +16,8 @@ const Sales = () => {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
   const [formData, setFormData] = useState({
@@ -87,10 +90,20 @@ const Sales = () => {
         finalData.commission_amount = (parseFloat(formData.price_including_vat) * commissionRate / 100).toFixed(2);
       }
 
+      // Clean empty strings to null for UUID fields
+      const cleanedData = {
+        ...finalData,
+        customer_id: finalData.customer_id || null,
+        user_id: finalData.user_id || null,
+        payment_date: finalData.payment_date || null,
+        invoice_number: finalData.invoice_number || null,
+        notes: finalData.notes || null,
+      };
+
       if (editingSale) {
-        await api.patch(`/sales/${editingSale.id}`, finalData);
+        await api.patch(`/sales/${editingSale.id}`, cleanedData);
       } else {
-        await api.post('/sales', finalData);
+        await api.post('/sales', cleanedData);
       }
 
       setShowModal(false);
@@ -116,6 +129,11 @@ const Sales = () => {
 
   const handleEdit = (sale) => {
     setEditingSale(sale);
+
+    // Find customer if exists
+    const customer = customers.find(c => c.id === sale.customer_id);
+    setSelectedCustomer(customer || null);
+
     setFormData({
       customer_id: sale.customer_id || '',
       service_product: sale.service_product || '',
@@ -131,6 +149,11 @@ const Sales = () => {
     setShowModal(true);
   };
 
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomer(customer);
+    setFormData({ ...formData, customer_id: customer.id });
+  };
+
   const resetForm = () => {
     setFormData({
       customer_id: '',
@@ -144,6 +167,7 @@ const Sales = () => {
       paid_in_payslip: false,
       user_id: '',
     });
+    setSelectedCustomer(null);
     setEditingSale(null);
   };
 
@@ -434,16 +458,25 @@ const Sales = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomerModal(true)}
+                    className="w-full px-3 py-2 text-right border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
-                    <option value="">בחר לקוח (אופציונלי)</option>
-                    {customers.map(customer => (
-                      <option key={customer.id} value={customer.id}>{customer.name}</option>
-                    ))}
-                  </select>
+                    {selectedCustomer ? selectedCustomer.name : 'בחר לקוח (אופציונלי)'}
+                  </button>
+                  {selectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCustomer(null);
+                        setFormData({ ...formData, customer_id: '' });
+                      }}
+                      className="text-xs text-red-600 dark:text-red-400 mt-1 hover:underline"
+                    >
+                      נקה בחירה
+                    </button>
+                  )}
                 </div>
 
                 {(isAdmin || isManager) && (
@@ -591,6 +624,14 @@ const Sales = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Customer Modal */}
+      {showCustomerModal && (
+        <CustomerModal
+          onClose={() => setShowCustomerModal(false)}
+          onSelect={handleCustomerSelect}
+        />
       )}
     </div>
   );
