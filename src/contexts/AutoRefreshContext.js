@@ -23,11 +23,11 @@ export const AutoRefreshProvider = ({ children }) => {
   });
 
   const [refreshInterval, setRefreshInterval] = useState(() => {
-    return user?.preferences?.autoRefreshInterval ?? 5; // minutes
+    return user?.preferences?.autoRefreshInterval ?? 2; // minutes
   });
 
   const [inactivityTimeout, setInactivityTimeout] = useState(() => {
-    return user?.preferences?.autoRefreshInactivityTimeout ?? 10; // minutes
+    return user?.preferences?.autoRefreshInactivityTimeout ?? 20; // minutes
   });
 
   const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());

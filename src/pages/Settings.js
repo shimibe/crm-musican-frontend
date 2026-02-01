@@ -19,8 +19,8 @@ const Settings = () => {
   });
   const [autoRefreshSettings, setAutoRefreshSettings] = useState({
     enabled: user?.preferences?.autoRefreshEnabled ?? true,
-    interval: user?.preferences?.autoRefreshInterval ?? 5,
-    inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 10,
+    interval: user?.preferences?.autoRefreshInterval ?? 2,
+    inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -43,8 +43,8 @@ const Settings = () => {
       });
       setAutoRefreshSettings({
         enabled: user?.preferences?.autoRefreshEnabled ?? true,
-        interval: user?.preferences?.autoRefreshInterval ?? 5,
-        inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 10,
+        interval: user?.preferences?.autoRefreshInterval ?? 2,
+        inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
       });
     }
   }, [user]);

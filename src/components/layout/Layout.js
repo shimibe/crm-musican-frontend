@@ -46,9 +46,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Auto Refresh Indicator */}
-      <AutoRefreshIndicator />
-
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -85,6 +82,13 @@ const Layout = ({ children }) => {
               {sidebarCollapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             </button>
           </div>
+
+          {/* Auto Refresh Indicator */}
+          {!sidebarCollapsed && (
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <AutoRefreshIndicator />
+            </div>
+          )}
 
           {/* User info */}
           {!sidebarCollapsed && (

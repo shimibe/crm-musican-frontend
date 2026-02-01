@@ -37,7 +37,7 @@ const AutoRefreshIndicator = () => {
   const isRefreshActive = enabled && shouldRefreshPage && isUserActive;
 
   return (
-    <div className="fixed top-4 left-4 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 space-y-2 text-xs">
+    <div className="p-4 space-y-2 text-xs">
       {/* Current Time and Date */}
       <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
         <Clock className="w-4 h-4" />
