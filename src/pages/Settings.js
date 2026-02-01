@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { User, Key, Save, Phone, Clock } from 'lucide-react';
+import { User, Key, Save, Phone, Clock, RefreshCw } from 'lucide-react';
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -16,6 +16,11 @@ const Settings = () => {
     useAutoPriority: user?.useAutoPriority ?? false,
     taskPriorityLowToMedium: user?.taskPriorityLowToMedium ?? 1,
     taskPriorityMediumToHigh: user?.taskPriorityMediumToHigh ?? 3,
+  });
+  const [autoRefreshSettings, setAutoRefreshSettings] = useState({
+    enabled: user?.preferences?.autoRefreshEnabled ?? true,
+    interval: user?.preferences?.autoRefreshInterval ?? 5,
+    inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 10,
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -35,6 +40,11 @@ const Settings = () => {
         useAutoPriority: user.useAutoPriority ?? false,
         taskPriorityLowToMedium: user.taskPriorityLowToMedium ?? 1,
         taskPriorityMediumToHigh: user.taskPriorityMediumToHigh ?? 3,
+      });
+      setAutoRefreshSettings({
+        enabled: user?.preferences?.autoRefreshEnabled ?? true,
+        interval: user?.preferences?.autoRefreshInterval ?? 5,
+        inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 10,
       });
     }
   }, [user]);
@@ -116,6 +126,36 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating task settings:', error);
       setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות משימות' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutoRefreshSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const newPreferences = {
+        ...(user.preferences || {}),
+        autoRefreshEnabled: autoRefreshSettings.enabled,
+        autoRefreshInterval: parseInt(autoRefreshSettings.interval),
+        autoRefreshInactivityTimeout: parseInt(autoRefreshSettings.inactivityTimeout),
+      };
+
+      await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
+
+      // Update user in context
+      updateUser({
+        ...user,
+        preferences: newPreferences,
+      });
+
+      setMessage({ type: 'success', text: 'הגדרות רענון אוטומטי עודכנו בהצלחה' });
+    } catch (error) {
+      console.error('Error updating auto-refresh settings:', error);
+      setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות רענון אוטומטי' });
     } finally {
       setLoading(false);
     }
@@ -311,6 +351,91 @@ const Settings = () => {
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   משימה שלא עודכנה במשך {taskSettings.taskPriorityMediumToHigh} ימים תקבל עדיפות גבוהה
+                </p>
+              </div>
+            </>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            שמור הגדרות
+          </button>
+        </form>
+      </div>
+
+      {/* Auto Refresh Settings */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              הגדרות רענון אוטומטי
+            </h2>
+          </div>
+        </div>
+        <form onSubmit={handleAutoRefreshSubmit} className="p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="autoRefreshEnabled"
+              checked={autoRefreshSettings.enabled}
+              onChange={(e) =>
+                setAutoRefreshSettings({ ...autoRefreshSettings, enabled: e.target.checked })
+              }
+              className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+            />
+            <label htmlFor="autoRefreshEnabled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              הפעל רענון אוטומטי של דפי מידע
+            </label>
+          </div>
+
+          {autoRefreshSettings.enabled && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  רענן כל (דקות)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={autoRefreshSettings.interval}
+                  onChange={(e) =>
+                    setAutoRefreshSettings({ ...autoRefreshSettings, interval: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  הדף יתרענן אוטומטית כל {autoRefreshSettings.interval} דקות (רק בדפי מידע)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  השהה רענון לאחר חוסר פעילות (דקות)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  value={autoRefreshSettings.inactivityTimeout}
+                  onChange={(e) =>
+                    setAutoRefreshSettings({ ...autoRefreshSettings, inactivityTimeout: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  הרענון יופסק אם אין פעילות במשך {autoRefreshSettings.inactivityTimeout} דקות
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+                <p className="text-xs text-blue-800 dark:text-blue-300">
+                  <strong>הערה:</strong> רענון אוטומטי פעיל רק בדפי מידע (דשבורד, לקוחות, משימות וכו') ולא בדפי הגדרות או ניהול
                 </p>
               </div>
             </>

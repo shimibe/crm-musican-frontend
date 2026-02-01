@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
+import { AutoRefreshProvider } from './contexts/AutoRefreshContext';
 import Layout from './components/layout/Layout';
 import Login from './components/auth/Login';
 import ForgotPassword from './pages/ForgotPassword';
@@ -153,7 +154,9 @@ function App() {
     <BrowserRouter>
       <DarkModeProvider>
         <AuthProvider>
-          <AppContent />
+          <AutoRefreshProvider>
+            <AppContent />
+          </AutoRefreshProvider>
         </AuthProvider>
       </DarkModeProvider>
     </BrowserRouter>

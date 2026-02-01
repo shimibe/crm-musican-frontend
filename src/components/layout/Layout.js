@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
+import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
   Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft
@@ -45,6 +46,9 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Auto Refresh Indicator */}
+      <AutoRefreshIndicator />
+
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
