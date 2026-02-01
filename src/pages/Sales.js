@@ -60,18 +60,20 @@ const Sales = () => {
   const loadCustomers = async () => {
     try {
       const response = await api.get('/customers');
-      setCustomers(response.data);
+      setCustomers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error loading customers:', error);
+      setCustomers([]);
     }
   };
 
   const loadUsers = async () => {
     try {
       const response = await api.get('/users');
-      setUsers(response.data);
+      setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error loading users:', error);
+      setUsers([]);
     }
   };
 
