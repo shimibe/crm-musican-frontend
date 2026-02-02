@@ -120,7 +120,7 @@ const Tasks = () => {
     try {
       // Load all tasks - filtering will be done client-side
       const [tasksRes, customersRes, categoriesRes, usersRes] = await Promise.all([
-        api.get('/tasks'),
+        api.get('/tasks?limit=1000'),
         api.get('/customers?status=active&limit=100'),
         api.get('/categories'),
         api.get('/users'),
@@ -262,8 +262,21 @@ const Tasks = () => {
 
     // Filter by completed status
     if (hideCompleted) {
-      filtered = filtered.filter(task => task.status !== 'closed');
-      console.log('[DEBUG] After hideCompleted filter:', filtered.length);
+      const beforeFilter = filtered.length;
+      filtered = filtered.filter(task => {
+        const keep = task.status !== 'closed';
+        if (!keep && (task.id === 'ee30e956-921a-4572-acbd-ead9c4486998' || task.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e')) {
+          console.log('[DEBUG] FILTERED OUT TASK:', task.id, 'title:', task.title, 'status:', task.status);
+        }
+        return keep;
+      });
+      console.log('[DEBUG] After hideCompleted filter:', filtered.length, '(filtered out:', beforeFilter - filtered.length, ')');
+
+      // Log the missing tasks
+      const missingTask1 = tasks.find(t => t.id === 'ee30e956-921a-4572-acbd-ead9c4486998');
+      const missingTask2 = tasks.find(t => t.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e');
+      console.log('[DEBUG] Missing task 1:', missingTask1 ? `${missingTask1.title} - status: ${missingTask1.status}` : 'NOT FOUND IN TASKS');
+      console.log('[DEBUG] Missing task 2:', missingTask2 ? `${missingTask2.title} - status: ${missingTask2.status}` : 'NOT FOUND IN TASKS');
     }
 
     // Filter by category
