@@ -509,7 +509,7 @@ const Sales = () => {
                       </td>
                       <td className="px-3 py-4 text-sm">
                         <button
-                          onClick={() => handleEditSale(sale)}
+                          onClick={() => handleEdit(sale)}
                           className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer text-right w-full"
                         >
                           {sale.service_product}
