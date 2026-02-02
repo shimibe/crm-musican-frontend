@@ -281,20 +281,44 @@ const Tasks = () => {
 
     // Filter by category
     if (categoryFilter !== 'all') {
+      const beforeCat = filtered.length;
       filtered = filtered.filter(task => task.category_id === categoryFilter);
-      console.log('[DEBUG] After category filter:', filtered.length, 'categoryFilter:', categoryFilter);
+      console.log('[DEBUG] After category filter:', filtered.length, 'categoryFilter:', categoryFilter, '(filtered out:', beforeCat - filtered.length, ')');
+
+      // Check if our tasks were filtered
+      const task1InFiltered = filtered.find(t => t.id === 'ee30e956-921a-4572-acbd-ead9c4486998');
+      const task2InFiltered = filtered.find(t => t.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e');
+      if (!task1InFiltered || !task2InFiltered) {
+        const t1 = tasks.find(t => t.id === 'ee30e956-921a-4572-acbd-ead9c4486998');
+        const t2 = tasks.find(t => t.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e');
+        console.log('[DEBUG] CATEGORY FILTER removed our tasks! Task1 category:', t1?.category_id, 'Task2 category:', t2?.category_id);
+      }
     }
 
     // Filter by priority
     if (priorityFilter !== 'all') {
+      const beforePri = filtered.length;
       filtered = filtered.filter(task => getDisplayPriority(task) === priorityFilter);
-      console.log('[DEBUG] After priority filter:', filtered.length, 'priorityFilter:', priorityFilter);
+      console.log('[DEBUG] After priority filter:', filtered.length, 'priorityFilter:', priorityFilter, '(filtered out:', beforePri - filtered.length, ')');
+
+      const task1InFiltered = filtered.find(t => t.id === 'ee30e956-921a-4572-acbd-ead9c4486998');
+      const task2InFiltered = filtered.find(t => t.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e');
+      if (!task1InFiltered || !task2InFiltered) {
+        console.log('[DEBUG] PRIORITY FILTER removed our tasks!');
+      }
     }
 
     // Filter by customer
     if (customerFilter !== 'all') {
+      const beforeCust = filtered.length;
       filtered = filtered.filter(task => task.customer_id === customerFilter);
-      console.log('[DEBUG] After customer filter:', filtered.length, 'customerFilter:', customerFilter);
+      console.log('[DEBUG] After customer filter:', filtered.length, 'customerFilter:', customerFilter, '(filtered out:', beforeCust - filtered.length, ')');
+
+      const task1InFiltered = filtered.find(t => t.id === 'ee30e956-921a-4572-acbd-ead9c4486998');
+      const task2InFiltered = filtered.find(t => t.id === '1f0da0c9-269a-4780-b4bb-994ccfeb6d6e');
+      if (!task1InFiltered || !task2InFiltered) {
+        console.log('[DEBUG] CUSTOMER FILTER removed our tasks!');
+      }
     }
 
     // Filter by search term
