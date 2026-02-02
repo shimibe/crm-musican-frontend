@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, DollarSign, Calendar, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Sales = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [sales, setSales] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -12,9 +14,20 @@ const Sales = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingSale, setEditingSale] = useState(null);
   const [totals, setTotals] = useState({ totalSales: 0, totalCommission: 0, totalCommissionPayable: 0 });
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [pendingInvoiceCount, setPendingInvoiceCount] = useState(0);
+
+  // Initialize filters from localStorage or use current month as default
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('salesFilterMonth');
+    return saved !== null ? saved : (new Date().getMonth() + 1).toString();
+  });
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const saved = localStorage.getItem('salesFilterYear');
+    return saved || new Date().getFullYear().toString();
+  });
+  const [selectedUserId, setSelectedUserId] = useState(() => {
+    return localStorage.getItem('salesFilterUserId') || '';
+  });
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [editingCell, setEditingCell] = useState(null); // { saleId, field }
   const [editingValue, setEditingValue] = useState('');
@@ -34,9 +47,17 @@ const Sales = () => {
     user_id: '',
   });
 
+  // Save filter preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('salesFilterMonth', selectedMonth);
+    localStorage.setItem('salesFilterYear', selectedYear);
+    localStorage.setItem('salesFilterUserId', selectedUserId);
+  }, [selectedMonth, selectedYear, selectedUserId]);
+
   useEffect(() => {
     loadSales();
     loadCustomers();
+    loadPendingInvoiceCount();
     if (isAdmin || isManager) {
       loadUsers();
     }
@@ -69,6 +90,23 @@ const Sales = () => {
     } catch (error) {
       console.error('Error loading customers:', error);
       setCustomers([]);
+    }
+  };
+
+  const loadPendingInvoiceCount = async () => {
+    try {
+      // Load all sales without filters to count pending invoices
+      const response = await api.get('/sales');
+      const allSales = response.data.sales || [];
+
+      // Count sales that don't have invoice_number and don't have deducted_from_royalties checked
+      const pendingCount = allSales.filter(sale =>
+        !sale.invoice_number && !sale.deducted_from_royalties
+      ).length;
+
+      setPendingInvoiceCount(pendingCount);
+    } catch (error) {
+      console.error('Error loading pending invoice count:', error);
     }
   };
 
@@ -113,6 +151,7 @@ const Sales = () => {
       setShowModal(false);
       resetForm();
       loadSales();
+      loadPendingInvoiceCount();
     } catch (error) {
       console.error('Error saving sale:', error);
       alert('שגיאה בשמירת מכירה');
@@ -125,6 +164,7 @@ const Sales = () => {
     try {
       await api.delete(`/sales/${id}`);
       loadSales();
+      loadPendingInvoiceCount();
     } catch (error) {
       console.error('Error deleting sale:', error);
       alert('שגיאה במחיקת מכירה');
@@ -186,6 +226,7 @@ const Sales = () => {
       setEditingCell(null);
       setEditingValue('');
       loadSales();
+      loadPendingInvoiceCount();
     } catch (error) {
       console.error('Error updating sale:', error);
       alert('שגיאה בעדכון');
@@ -198,6 +239,7 @@ const Sales = () => {
         [field]: !currentValue
       });
       loadSales();
+      loadPendingInvoiceCount();
     } catch (error) {
       console.error('Error updating sale:', error);
       alert('שגיאה בעדכון');
@@ -209,7 +251,14 @@ const Sales = () => {
     setEditingValue('');
   };
 
+  const handleCustomerClick = (customerId) => {
+    if (customerId) {
+      navigate(`/customers?id=${customerId}`);
+    }
+  };
+
   const resetForm = () => {
+    const defaultUserId = user?.preferences?.defaultSalesUserId || '';
     setFormData({
       customer_id: '',
       customer_name_override: '',
@@ -221,7 +270,7 @@ const Sales = () => {
       deducted_from_royalties: false,
       commission_amount: '',
       paid_in_payslip: false,
-      user_id: '',
+      user_id: defaultUserId,
     });
     setCustomerSearchTerm('');
     setEditingSale(null);
@@ -361,6 +410,18 @@ const Sales = () => {
         </div>
       </div>
 
+      {/* Pending Invoice Warning */}
+      {pendingInvoiceCount > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+            <span className="text-xl">⚠️</span>
+            <span className="font-medium">
+              שים לב: {pendingInvoiceCount} חיובים טרם שולמו
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Sales Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -419,14 +480,40 @@ const Sales = () => {
                 </tr>
               ) : (
                 sales.map((sale) => {
-                  const isPayable = (sale.invoice_number || sale.deducted_from_royalties) && !sale.paid_in_payslip;
+                  // Determine row background color based on sale status
+                  const isPaid = sale.paid_in_payslip;
+                  const hasInvoiceOrDeduction = sale.invoice_number || sale.deducted_from_royalties;
+                  const isPayable = hasInvoiceOrDeduction && !isPaid;
+                  const isPending = !hasInvoiceOrDeduction && !isPaid;
+
+                  let rowClass = '';
+                  if (isPending) {
+                    rowClass = 'bg-yellow-50 dark:bg-yellow-900/10';
+                  } else if (isPayable) {
+                    rowClass = 'bg-green-50 dark:bg-green-900/10';
+                  }
+
                   return (
-                    <tr key={sale.id} className={isPayable ? 'bg-green-50 dark:bg-green-900/10' : ''}>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {sale.customer_name || '-'}
+                    <tr key={sale.id} className={rowClass}>
+                      <td className="px-3 py-4 whitespace-nowrap text-sm">
+                        {sale.customer_id ? (
+                          <button
+                            onClick={() => handleCustomerClick(sale.customer_id)}
+                            className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                          >
+                            {sale.customer_name}
+                          </button>
+                        ) : (
+                          <span className="text-gray-900 dark:text-white">{sale.customer_name || '-'}</span>
+                        )}
                       </td>
-                      <td className="px-3 py-4 text-sm text-gray-900 dark:text-white">
-                        {sale.service_product}
+                      <td className="px-3 py-4 text-sm">
+                        <button
+                          onClick={() => handleEditSale(sale)}
+                          className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer text-right w-full"
+                        >
+                          {sale.service_product}
+                        </button>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {formatCurrency(sale.price_including_vat)}

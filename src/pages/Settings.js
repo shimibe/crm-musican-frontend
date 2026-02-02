@@ -23,6 +23,8 @@ const Settings = () => {
     inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
   });
   const [commissionRate, setCommissionRate] = useState(user?.preferences?.commissionRate ?? 5);
+  const [defaultSalesUserId, setDefaultSalesUserId] = useState(user?.preferences?.defaultSalesUserId ?? '');
+  const [users, setUsers] = useState([]);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -48,8 +50,25 @@ const Settings = () => {
         inactivityTimeout: user?.preferences?.autoRefreshInactivityTimeout ?? 20,
       });
       setCommissionRate(user?.preferences?.commissionRate ?? 5);
+      setDefaultSalesUserId(user?.preferences?.defaultSalesUserId ?? '');
     }
   }, [user]);
+
+  // Load users list for default sales employee dropdown
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await api.get('/users');
+        setUsers(response.data || []);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      }
+    };
+
+    if (user?.role === 'admin' || user?.role === 'manager') {
+      loadUsers();
+    }
+  }, [user?.role]);
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -172,6 +191,7 @@ const Settings = () => {
       const newPreferences = {
         ...(user.preferences || {}),
         commissionRate: parseFloat(commissionRate),
+        defaultSalesUserId: defaultSalesUserId || null,
       };
 
       await api.patch(`/users/${user.id}/preferences`, { preferences: newPreferences });
@@ -181,10 +201,10 @@ const Settings = () => {
         preferences: newPreferences,
       });
 
-      setMessage({ type: 'success', text: 'אחוז העמלה עודכן בהצלחה' });
+      setMessage({ type: 'success', text: 'הגדרות עמלה עודכנו בהצלחה' });
     } catch (error) {
-      console.error('Error updating commission rate:', error);
-      setMessage({ type: 'error', text: 'שגיאה בעדכון אחוז עמלה' });
+      console.error('Error updating commission settings:', error);
+      setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות עמלה' });
     } finally {
       setLoading(false);
     }
@@ -424,6 +444,27 @@ const Settings = () => {
               אחוז העמלה המחושב אוטומטית על מכירות חדשות. ברירת מחדל: 5%
             </p>
           </div>
+
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                עובד ברירת מחדל לבונוסים
+              </label>
+              <select
+                value={defaultSalesUserId}
+                onChange={(e) => setDefaultSalesUserId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">ללא ברירת מחדל</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.full_name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                העובד שיבחר אוטומטית בפתיחת מכירה חדשה וב-API אם לא יישלח עובד
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"
