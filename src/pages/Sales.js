@@ -524,7 +524,10 @@ const Sales = () => {
                         </button>
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {formatCurrency(sale.price_including_vat)}
+                        <span className="flex items-center gap-1">
+                          {isPending && <span>⚠️</span>}
+                          {formatCurrency(sale.price_including_vat)}
+                        </span>
                       </td>
                       {/* Created At - Inline Edit for Admin/Manager */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
