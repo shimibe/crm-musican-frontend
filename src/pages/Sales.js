@@ -22,6 +22,7 @@ const Sales = () => {
   const isManager = user?.role === 'manager';
   const [formData, setFormData] = useState({
     customer_id: '',
+    customer_name_override: '',
     service_product: '',
     price_including_vat: '',
     payment_date: '',
@@ -62,8 +63,9 @@ const Sales = () => {
 
   const loadCustomers = async () => {
     try {
-      const response = await api.get('/customers');
-      setCustomers(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get('/customers?status=active&limit=1000');
+      const customerData = response.data.customers || response.data;
+      setCustomers(Array.isArray(customerData) ? customerData : []);
     } catch (error) {
       console.error('Error loading customers:', error);
       setCustomers([]);
@@ -91,9 +93,11 @@ const Sales = () => {
       }
 
       // Clean empty strings to null for UUID fields
+      // If customerSearchTerm has value but no customer_id, use it as override
       const cleanedData = {
         ...finalData,
         customer_id: finalData.customer_id || null,
+        customer_name_override: (!finalData.customer_id && customerSearchTerm) ? customerSearchTerm : null,
         user_id: finalData.user_id || null,
         payment_date: finalData.payment_date || null,
         invoice_number: finalData.invoice_number || null,
@@ -208,6 +212,7 @@ const Sales = () => {
   const resetForm = () => {
     setFormData({
       customer_id: '',
+      customer_name_override: '',
       service_product: '',
       price_including_vat: '',
       payment_date: '',
