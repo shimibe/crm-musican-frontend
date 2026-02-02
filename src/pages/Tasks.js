@@ -183,6 +183,7 @@ const Tasks = () => {
       if (!data.customer_id) delete data.customer_id;
       if (!data.category_id) delete data.category_id;
       if (!data.due_date) delete data.due_date;
+      if (!data.priority) delete data.priority; // Don't send empty priority
       // Keep agent_note even if empty to allow clearing it
 
       if (editingTask) {
