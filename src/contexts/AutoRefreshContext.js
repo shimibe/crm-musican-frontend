@@ -48,7 +48,7 @@ export const AutoRefreshProvider = ({ children }) => {
     }
 
     // Don't refresh if there are open modals
-    const hasOpenModal = document.querySelector('[role="dialog"], .fixed.inset-0.bg-gray-600');
+    const hasOpenModal = document.querySelector('[role="dialog"], .fixed.inset-0.bg-gray-600, .fixed.inset-0.z-50');
     if (hasOpenModal) {
       return;
     }
@@ -62,9 +62,13 @@ export const AutoRefreshProvider = ({ children }) => {
     if (!enabled || !shouldRefreshPage) return;
 
     if (wasInactive && isUserActive) {
-      // User just became active again - refresh immediately
-      setLastRefreshTime(Date.now());
-      window.location.reload();
+      // Check if there are open modals before refreshing
+      const hasOpenModal = document.querySelector('[role="dialog"], .fixed.inset-0.bg-gray-600, .fixed.inset-0.z-50');
+      if (!hasOpenModal) {
+        // User just became active again - refresh immediately
+        setLastRefreshTime(Date.now());
+        window.location.reload();
+      }
     }
 
     setWasInactive(!isUserActive);
