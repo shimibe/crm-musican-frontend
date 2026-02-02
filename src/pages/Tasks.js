@@ -127,6 +127,7 @@ const Tasks = () => {
       ]);
 
       let filteredTasks = tasksRes.data.tasks;
+      console.log('[DEBUG] Total tasks loaded:', filteredTasks.length);
 
       // Filter "my tasks" to include: assigned to me, assigned to null, or assigned to "general"
       if (filter === 'my') {
@@ -135,9 +136,11 @@ const Tasks = () => {
           task.assigned_to === null ||
           task.assigned_to === 'general'
         );
+        console.log('[DEBUG] After "my" filter:', filteredTasks.length);
       }
 
       setTasks(filteredTasks);
+      console.log('[DEBUG] Tasks set to state:', filteredTasks.length);
       setCustomers(customersRes.data.customers);
       setCategories(categoriesRes.data);
       setUsers(usersRes.data);
@@ -255,25 +258,30 @@ const Tasks = () => {
 
   const getFilteredAndSortedTasks = () => {
     let filtered = [...tasks];
+    console.log('[DEBUG] getFilteredAndSortedTasks - starting with:', filtered.length);
 
     // Filter by completed status
     if (hideCompleted) {
       filtered = filtered.filter(task => task.status !== 'closed');
+      console.log('[DEBUG] After hideCompleted filter:', filtered.length);
     }
 
     // Filter by category
     if (categoryFilter !== 'all') {
       filtered = filtered.filter(task => task.category_id === categoryFilter);
+      console.log('[DEBUG] After category filter:', filtered.length, 'categoryFilter:', categoryFilter);
     }
 
     // Filter by priority
     if (priorityFilter !== 'all') {
       filtered = filtered.filter(task => getDisplayPriority(task) === priorityFilter);
+      console.log('[DEBUG] After priority filter:', filtered.length, 'priorityFilter:', priorityFilter);
     }
 
     // Filter by customer
     if (customerFilter !== 'all') {
       filtered = filtered.filter(task => task.customer_id === customerFilter);
+      console.log('[DEBUG] After customer filter:', filtered.length, 'customerFilter:', customerFilter);
     }
 
     // Filter by search term
