@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, DollarSign, Calendar, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import CustomerModal from '../components/tasks/CustomerModal';
 
 const Sales = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [sales, setSales] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
@@ -31,6 +30,8 @@ const Sales = () => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [editingCell, setEditingCell] = useState(null); // { saleId, field }
   const [editingValue, setEditingValue] = useState('');
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
   const [formData, setFormData] = useState({
@@ -251,9 +252,16 @@ const Sales = () => {
     setEditingValue('');
   };
 
-  const handleCustomerClick = (customerId) => {
-    if (customerId) {
-      navigate(`/customers?id=${customerId}`);
+  const handleCustomerClick = async (customerId) => {
+    if (!customerId) return;
+
+    try {
+      const response = await api.get(`/customers/${customerId}`);
+      setSelectedCustomer(response.data);
+      setShowCustomerModal(true);
+    } catch (error) {
+      console.error('Error loading customer:', error);
+      alert('שגיאה בטעינת פרטי לקוח');
     }
   };
 
@@ -518,8 +526,36 @@ const Sales = () => {
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {formatCurrency(sale.price_including_vat)}
                       </td>
+                      {/* Created At - Inline Edit for Admin/Manager */}
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(sale.created_at)}
+                        {(isAdmin || isManager) && editingCell?.saleId === sale.id && editingCell?.field === 'created_at' ? (
+                          <input
+                            type="date"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onBlur={() => handleInlineSave(sale.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleInlineSave(sale.id);
+                              if (e.key === 'Escape') handleInlineCancel();
+                            }}
+                            autoFocus
+                            className="w-full px-2 py-1 border border-primary-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          />
+                        ) : (
+                          <span
+                            onClick={() => {
+                              if (isAdmin || isManager) {
+                                setEditingCell({ saleId: sale.id, field: 'created_at' });
+                                // Convert timestamp to date format YYYY-MM-DD
+                                const dateValue = sale.created_at ? new Date(sale.created_at).toISOString().split('T')[0] : '';
+                                setEditingValue(dateValue);
+                              }
+                            }}
+                            className={(isAdmin || isManager) ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}
+                          >
+                            {formatDate(sale.created_at)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(sale.payment_date)}
@@ -839,6 +875,13 @@ const Sales = () => {
           </div>
         </div>
       )}
+
+      {/* Customer Modal */}
+      <CustomerModal
+        show={showCustomerModal}
+        onClose={() => setShowCustomerModal(false)}
+        customer={selectedCustomer}
+      />
     </div>
   );
 };
