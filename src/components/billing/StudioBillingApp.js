@@ -319,7 +319,10 @@ const StudioBillingApp = () => {
   };
 
   const getTotalUnpaid = () => {
-    return getUnpaidInvoices().reduce((sum, invoice) => sum + parseFloat(invoice.total), 0);
+    return getUnpaidInvoices().reduce((sum, invoice) => {
+      const total = parseFloat(invoice.total) || 0;
+      return sum + total;
+    }, 0);
   };
 
   const generateInvoice = async () => {
