@@ -1,26 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Square, Copy, Plus, Trash2, CheckCircle, X } from 'lucide-react';
+import { Play, Pause, Square, Copy, Plus, Trash2, CheckCircle, X, RotateCcw } from 'lucide-react';
 import * as billingApi from '../../services/studioBillingApi';
+import api from '../../utils/api';
 
 const StudioBillingApp = () => {
-  const [clientName, setClientName] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [percentDiscount, setPercentDiscount] = useState('');
-  const [shekelDiscount, setShekelDiscount] = useState('');
-  const [additionalItems, setAdditionalItems] = useState([]);
-  const [hourlyRate, setHourlyRate] = useState(250);
+  const [clientName, setClientName] = useState(localStorage.getItem('studioBilling_clientName') || '');
+  const [startTime, setStartTime] = useState(localStorage.getItem('studioBilling_startTime') || '');
+  const [endTime, setEndTime] = useState(localStorage.getItem('studioBilling_endTime') || '');
+  const [date, setDate] = useState(localStorage.getItem('studioBilling_date') || new Date().toISOString().split('T')[0]);
+  const [percentDiscount, setPercentDiscount] = useState(localStorage.getItem('studioBilling_percentDiscount') || '');
+  const [shekelDiscount, setShekelDiscount] = useState(localStorage.getItem('studioBilling_shekelDiscount') || '');
+  const [additionalItems, setAdditionalItems] = useState(JSON.parse(localStorage.getItem('studioBilling_additionalItems') || '[]'));
+  const [hourlyRate, setHourlyRate] = useState(parseFloat(localStorage.getItem('studioBilling_hourlyRate')) || 250);
 
   // Timer states
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [timerStart, setTimerStart] = useState(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(localStorage.getItem('studioBilling_isTimerRunning') === 'true');
+  const [timerStart, setTimerStart] = useState(parseInt(localStorage.getItem('studioBilling_timerStart')) || null);
+  const [elapsedTime, setElapsedTime] = useState(parseInt(localStorage.getItem('studioBilling_elapsedTime')) || 0);
 
   // Client history with invoices
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientInvoices, setClientInvoices] = useState([]);
+  const [crmCustomers, setCrmCustomers] = useState([]);
 
   // Generated invoice
   const [generatedInvoice, setGeneratedInvoice] = useState('');
@@ -47,6 +49,7 @@ const StudioBillingApp = () => {
   // Load clients on mount
   useEffect(() => {
     loadClients();
+    loadCRMCustomers();
   }, []);
 
   // Load invoices when client is selected
@@ -84,6 +87,65 @@ const StudioBillingApp = () => {
     }
   };
 
+  const loadCRMCustomers = async () => {
+    try {
+      const response = await api.get('/customers');
+      setCrmCustomers(response.data.customers || []);
+
+      // Load default hourly rate from settings
+      try {
+        const settingsResponse = await api.get('/admin/settings');
+        const defaultRate = settingsResponse.data?.studio_hourly_rate || 250;
+        const savedRate = localStorage.getItem('studioBilling_hourlyRate');
+        if (!savedRate) {
+          setHourlyRate(defaultRate);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      }
+    } catch (error) {
+      console.error('Failed to load CRM customers:', error);
+    }
+  };
+
+  const resetForm = () => {
+    if (!window.confirm('האם אתה בטוח שברצונך לאפס את כל הנתונים?')) {
+      return;
+    }
+
+    // Reset all states to initial values
+    setClientName('');
+    setStartTime('');
+    setEndTime('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setPercentDiscount('');
+    setShekelDiscount('');
+    setHourlyRate(250);
+    setAdditionalItems([]);
+    setIsTimerRunning(false);
+    setTimerStart(null);
+    setElapsedTime(0);
+    setSelectedClient(null);
+    setGeneratedInvoice('');
+    setPaymentLink('');
+    setCurrentInvoiceId(null);
+
+    // Clear localStorage
+    localStorage.removeItem('studioBilling_clientName');
+    localStorage.removeItem('studioBilling_startTime');
+    localStorage.removeItem('studioBilling_endTime');
+    localStorage.removeItem('studioBilling_date');
+    localStorage.removeItem('studioBilling_percentDiscount');
+    localStorage.removeItem('studioBilling_shekelDiscount');
+    localStorage.removeItem('studioBilling_hourlyRate');
+    localStorage.removeItem('studioBilling_additionalItems');
+    localStorage.removeItem('studioBilling_isTimerRunning');
+    localStorage.removeItem('studioBilling_timerStart');
+    localStorage.removeItem('studioBilling_elapsedTime');
+
+    alert('הנתונים אופסו בהצלחה! 🔄');
+  };
+
   // Timer effect
   useEffect(() => {
     let interval = null;
@@ -96,6 +158,21 @@ const StudioBillingApp = () => {
     }
     return () => clearInterval(interval);
   }, [isTimerRunning, timerStart]);
+
+  // Save form data to localStorage
+  useEffect(() => {
+    localStorage.setItem('studioBilling_clientName', clientName);
+    localStorage.setItem('studioBilling_startTime', startTime);
+    localStorage.setItem('studioBilling_endTime', endTime);
+    localStorage.setItem('studioBilling_date', date);
+    localStorage.setItem('studioBilling_percentDiscount', percentDiscount);
+    localStorage.setItem('studioBilling_shekelDiscount', shekelDiscount);
+    localStorage.setItem('studioBilling_hourlyRate', hourlyRate.toString());
+    localStorage.setItem('studioBilling_additionalItems', JSON.stringify(additionalItems));
+    localStorage.setItem('studioBilling_isTimerRunning', isTimerRunning.toString());
+    if (timerStart) localStorage.setItem('studioBilling_timerStart', timerStart.toString());
+    localStorage.setItem('studioBilling_elapsedTime', elapsedTime.toString());
+  }, [clientName, startTime, endTime, date, percentDiscount, shekelDiscount, hourlyRate, additionalItems, isTimerRunning, timerStart, elapsedTime]);
 
   const formatTime = (time) => {
     const hours = Math.floor(time / 3600000);
@@ -452,41 +529,32 @@ const StudioBillingApp = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white min-h-screen" dir="rtl">
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+    <div className="max-w-6xl mx-auto p-6 bg-white dark:bg-gray-800 min-h-screen" dir="rtl">
+      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800 dark:text-gray-100">
         🎙️ מערכת חיוב אולפן הקלטות
       </h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Panel - Input Form */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4 text-blue-800">פרטי הסשן</h2>
+          <div className="bg-blue-50 dark:bg-gray-700 p-6 rounded-lg">
+            <h2 className="text-xl font-bold mb-4 text-blue-800 dark:text-blue-300">פרטי הסשן</h2>
 
             {/* Client Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">שם הלקוח</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="flex-1 p-2 border rounded-md"
-                  placeholder="הכנס שם לקוח"
-                />
-                <select
-                  onChange={(e) => loadClient(e.target.value)}
-                  className="p-2 border rounded-md bg-white"
-                  value=""
-                >
-                  <option value="">בחר לקוח קיים</option>
-                  {clients.map(client => (
-                    <option key={client.id} value={client.name}>{client.name}</option>
-                  ))}
-                </select>
-              </div>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">שם הלקוח</label>
+              <select
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">בחר לקוח</option>
+                {crmCustomers.map(customer => (
+                  <option key={customer.id} value={customer.name}>{customer.name}</option>
+                ))}
+              </select>
               {selectedClient && (
-                <div className="mt-2 text-sm text-blue-600">
+                <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
                   חוב לא שולם: ₪{selectedClient.total_unpaid || 0} |
                   חשבונות: {selectedClient.unpaid_invoices || 0} לא שולמו, {(selectedClient.total_invoices || 0) - (selectedClient.unpaid_invoices || 0)} שולמו
                 </div>
@@ -494,10 +562,10 @@ const StudioBillingApp = () => {
             </div>
 
             {/* Timer Section */}
-            <div className="mb-4 p-4 bg-white rounded-md border">
+            <div className="mb-4 p-4 bg-white dark:bg-gray-600 rounded-md border dark:border-gray-500">
               <div className="flex items-center justify-between mb-3">
-                <span className="font-medium">טיימר</span>
-                <div className="text-2xl font-mono">
+                <span className="font-medium dark:text-gray-200">טיימר</span>
+                <div className="text-2xl font-mono dark:text-gray-200">
                   {formatTime(elapsedTime)}
                 </div>
               </div>
@@ -528,69 +596,69 @@ const StudioBillingApp = () => {
             {/* Time inputs */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium mb-2">שעת התחלה</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">שעת התחלה</label>
                 <input
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">שעת סיום</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">שעת סיום</label>
                 <input
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">תאריך</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">תאריך</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">תעריף שעתי (₪)</label>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">תעריף שעתי (₪)</label>
               <input
                 type="number"
                 value={hourlyRate}
                 onChange={(e) => updateHourlyRate(e.target.value)}
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 min="0"
               />
             </div>
           </div>
 
           {/* Discounts */}
-          <div className="bg-yellow-50 p-6 rounded-lg">
-            <h3 className="text-lg font-bold mb-4 text-yellow-800">הנחות (רק על זמן אולפן)</h3>
+          <div className="bg-yellow-50 dark:bg-gray-700 p-6 rounded-lg">
+            <h3 className="text-lg font-bold mb-4 text-yellow-800 dark:text-yellow-300">הנחות (רק על זמן אולפן)</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">הנחה באחוזים (%)</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">הנחה באחוזים (%)</label>
                 <input
                   type="number"
                   value={percentDiscount}
                   onChange={(e) => setPercentDiscount(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   min="0"
                   max="100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">הנחה בשקלים (₪)</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">הנחה בשקלים (₪)</label>
                 <input
                   type="number"
                   value={shekelDiscount}
                   onChange={(e) => setShekelDiscount(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   min="0"
                 />
               </div>
@@ -598,9 +666,9 @@ const StudioBillingApp = () => {
           </div>
 
           {/* Additional Items */}
-          <div className="bg-green-50 p-6 rounded-lg">
+          <div className="bg-green-50 dark:bg-gray-700 p-6 rounded-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-green-800">תוספות</h3>
+              <h3 className="text-lg font-bold text-green-800 dark:text-green-300">תוספות</h3>
               <button
                 onClick={addAdditionalItem}
                 className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer"
@@ -615,14 +683,14 @@ const StudioBillingApp = () => {
                   value={item.description}
                   onChange={(e) => updateAdditionalItem(index, 'description', e.target.value)}
                   placeholder="תיאור"
-                  className="flex-1 p-2 border rounded-md"
+                  className="flex-1 p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
                 <input
                   type="number"
                   value={item.price}
                   onChange={(e) => updateAdditionalItem(index, 'price', e.target.value)}
                   placeholder="מחיר"
-                  className="w-24 p-2 border rounded-md"
+                  className="w-24 p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   min="0"
                 />
                 <button
@@ -643,6 +711,13 @@ const StudioBillingApp = () => {
           </button>
 
           <button
+            onClick={resetForm}
+            className="w-full p-4 bg-gray-600 text-white font-bold rounded-lg text-lg hover:bg-gray-700 mb-4 cursor-pointer flex items-center justify-center gap-2"
+          >
+            <RotateCcw size={20} /> איפוס נתונים
+          </button>
+
+          <button
             onClick={openDebtorsModal}
             className="w-full p-4 bg-purple-600 text-white font-bold rounded-lg text-lg hover:bg-purple-700 cursor-pointer"
           >
@@ -653,18 +728,18 @@ const StudioBillingApp = () => {
         {/* Right Panel */}
         <div className="space-y-6">
           {/* Preview */}
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h3 className="text-lg font-bold mb-4 text-gray-800">תצוגה מקדימה</h3>
-            <div className="space-y-2 text-sm">
+          <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
+            <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">תצוגה מקדימה</h3>
+            <div className="space-y-2 text-sm dark:text-gray-300">
               <div><strong>משך הסשן:</strong> {formatHours(calculateDuration())} שעות</div>
               <div><strong>מחיר בסיס:</strong> ₪{(calculateDuration() * hourlyRate).toFixed(2)}</div>
               <div><strong>אחרי הנחות:</strong> ₪{(calculateDuration() * hourlyRate * (1 - (parseFloat(percentDiscount) || 0) / 100) - (parseFloat(shekelDiscount) || 0)).toFixed(2)}</div>
               <div><strong>תוספות:</strong> ₪{additionalItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)}</div>
-              <div className="text-lg font-bold text-blue-600">
+              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                 <strong>סך הכל היום:</strong> ₪{calculateTotal().toFixed(2)}
               </div>
               {selectedClient && getTotalUnpaid() > 0 && (
-                <div className="text-lg font-bold text-red-600">
+                <div className="text-lg font-bold text-red-600 dark:text-red-400">
                   <strong>כולל חובות:</strong> ₪{(calculateTotal() + getTotalUnpaid()).toFixed(2)}
                 </div>
               )}
@@ -673,9 +748,9 @@ const StudioBillingApp = () => {
 
           {/* Generated Invoice */}
           {generatedInvoice && (
-            <div className="bg-white p-6 rounded-lg border-2 border-blue-200">
+            <div className="bg-white dark:bg-gray-700 p-6 rounded-lg border-2 border-blue-200 dark:border-blue-700">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-blue-800">חשבון מוכן</h3>
+                <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300">חשבון מוכן</h3>
                 <div className="flex gap-2">
                   <button
                     onClick={() => markInvoicePaid(currentInvoiceId)}
@@ -691,7 +766,7 @@ const StudioBillingApp = () => {
                   </button>
                 </div>
               </div>
-              <div className="whitespace-pre-line text-sm bg-gray-50 p-4 rounded-md border font-mono">
+              <div className="whitespace-pre-line text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-md border dark:border-gray-600 font-mono dark:text-gray-200">
                 {generatedInvoice}
               </div>
             </div>
@@ -699,9 +774,9 @@ const StudioBillingApp = () => {
 
           {/* Payment Link */}
           {paymentLink && (
-            <div className="bg-green-50 p-6 rounded-lg border-2 border-green-200">
+            <div className="bg-green-50 dark:bg-gray-700 p-6 rounded-lg border-2 border-green-200 dark:border-green-700">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-green-800">קישור תשלום</h3>
+                <h3 className="text-lg font-bold text-green-800 dark:text-green-300">קישור תשלום</h3>
                 <button
                   onClick={() => {navigator.clipboard.writeText(paymentLink); alert('קישור תשלום הועתק ללוח! 🔗');}}
                   className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer"
@@ -709,7 +784,7 @@ const StudioBillingApp = () => {
                   <Copy size={16} /> העתק קישור
                 </button>
               </div>
-              <div className="text-sm bg-white p-4 rounded-md border break-all">
+              <div className="text-sm bg-white dark:bg-gray-800 p-4 rounded-md border dark:border-gray-600 break-all dark:text-gray-200">
                 {paymentLink}
               </div>
             </div>
@@ -717,17 +792,17 @@ const StudioBillingApp = () => {
 
           {/* Client History */}
           {selectedClient && clientInvoices.length > 0 && (
-            <div className="bg-purple-50 p-6 rounded-lg">
-              <h3 className="text-lg font-bold mb-4 text-purple-800">היסטוריית {selectedClient.name}</h3>
+            <div className="bg-purple-50 dark:bg-gray-700 p-6 rounded-lg">
+              <h3 className="text-lg font-bold mb-4 text-purple-800 dark:text-purple-300">היסטוריית {selectedClient.name}</h3>
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {clientInvoices.map((invoice) => (
-                  <div key={invoice.id} className={`flex justify-between items-center text-sm p-3 rounded ${invoice.paid ? 'bg-green-100' : 'bg-red-100'}`}>
+                  <div key={invoice.id} className={`flex justify-between items-center text-sm p-3 rounded ${invoice.paid ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                     <div className="flex-1">
-                      <div className="font-medium">{formatDateToHebrew(invoice.invoice_date)}</div>
-                      <div className="text-xs text-gray-600">{invoice.start_time}-{invoice.end_time} ({formatHours(invoice.duration)}ש)</div>
+                      <div className="font-medium dark:text-gray-200">{formatDateToHebrew(invoice.invoice_date)}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">{invoice.start_time}-{invoice.end_time} ({formatHours(invoice.duration)}ש)</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold">₪{parseFloat(invoice.total).toFixed(0)}</span>
+                      <span className="font-bold dark:text-gray-200">₪{parseFloat(invoice.total).toFixed(0)}</span>
                       <div className="flex gap-1">
                         {!invoice.paid && (
                           <button
@@ -760,10 +835,10 @@ const StudioBillingApp = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between font-bold">
+              <div className="mt-4 pt-4 border-t dark:border-gray-600">
+                <div className="flex justify-between font-bold dark:text-gray-200">
                   <span>לא שולם:</span>
-                  <span className="text-red-600">₪{getTotalUnpaid().toFixed(2)}</span>
+                  <span className="text-red-600 dark:text-red-400">₪{getTotalUnpaid().toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -774,29 +849,29 @@ const StudioBillingApp = () => {
       {/* Debtors Modal */}
       {showDebtorsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white p-8 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">👥 רשימת חייבים</h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">👥 רשימת חייבים</h2>
               <button
                 onClick={() => setShowDebtorsModal(false)}
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
               >
                 <X size={24} />
               </button>
             </div>
 
             {debtors.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 🎉 אין חובות פתוחים!
               </div>
             ) : (
               <>
-                <div className="mb-6 p-4 bg-purple-100 rounded-lg">
+                <div className="mb-6 p-4 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-800">
+                    <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
                       ₪{debtors.reduce((sum, d) => sum + parseFloat(d.total_unpaid), 0).toFixed(2)}
                     </div>
-                    <div className="text-sm text-purple-600">
+                    <div className="text-sm text-purple-600 dark:text-purple-300">
                       סה"כ חובות | {debtors.length} חייבים
                     </div>
                   </div>
@@ -804,16 +879,16 @@ const StudioBillingApp = () => {
 
                 <div className="space-y-4">
                   {debtors.map(debtor => (
-                    <div key={debtor.client_id} className="border rounded-lg p-4 bg-gray-50">
+                    <div key={debtor.client_id} className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <div className="font-bold text-lg">{debtor.client_name}</div>
-                          <div className="text-sm text-gray-600">
+                          <div className="font-bold text-lg dark:text-gray-200">{debtor.client_name}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
                             {debtor.unpaid_count} חשבונות לא שולמו
                           </div>
                         </div>
                         <div className="text-left">
-                          <div className="text-2xl font-bold text-red-600">
+                          <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                             ₪{parseFloat(debtor.total_unpaid).toFixed(2)}
                           </div>
                         </div>
@@ -842,12 +917,12 @@ const StudioBillingApp = () => {
       {/* Edit Invoice Modal */}
       {showEditModal && editingInvoice && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white p-8 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">✏️ עריכת חשבון</h2>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">✏️ עריכת חשבון</h2>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
               >
                 <X size={24} />
               </button>
@@ -857,44 +932,44 @@ const StudioBillingApp = () => {
               {/* Time inputs */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">שעת התחלה</label>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">שעת התחלה</label>
                   <input
                     type="time"
                     value={editStartTime}
                     onChange={(e) => setEditStartTime(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">שעת סיום</label>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">שעת סיום</label>
                   <input
                     type="time"
                     value={editEndTime}
                     onChange={(e) => setEditEndTime(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   />
                 </div>
               </div>
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium mb-2">תאריך</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">תאריך</label>
                 <input
                   type="date"
                   value={editDate}
                   onChange={(e) => setEditDate(e.target.value)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                 />
               </div>
 
               {/* Hourly Rate */}
               <div>
-                <label className="block text-sm font-medium mb-2">תעריף שעתי (₪)</label>
+                <label className="block text-sm font-medium mb-2 dark:text-gray-200">תעריף שעתי (₪)</label>
                 <input
                   type="number"
                   value={editHourlyRate}
                   onChange={(e) => setEditHourlyRate(parseFloat(e.target.value) || 250)}
-                  className="w-full p-2 border rounded-md"
+                  className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                   min="0"
                 />
               </div>
@@ -902,23 +977,23 @@ const StudioBillingApp = () => {
               {/* Discounts */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">הנחה באחוזים (%)</label>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">הנחה באחוזים (%)</label>
                   <input
                     type="number"
                     value={editPercentDiscount}
                     onChange={(e) => setEditPercentDiscount(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                     min="0"
                     max="100"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">הנחה בשקלים (₪)</label>
+                  <label className="block text-sm font-medium mb-2 dark:text-gray-200">הנחה בשקלים (₪)</label>
                   <input
                     type="number"
                     value={editShekelDiscount}
                     onChange={(e) => setEditShekelDiscount(e.target.value)}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                     min="0"
                   />
                 </div>
@@ -927,7 +1002,7 @@ const StudioBillingApp = () => {
               {/* Additional Items */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium">תוספות</label>
+                  <label className="block text-sm font-medium dark:text-gray-200">תוספות</label>
                   <button
                     onClick={addEditAdditionalItem}
                     className="px-3 py-1 bg-green-500 text-white rounded text-sm cursor-pointer"
@@ -942,14 +1017,14 @@ const StudioBillingApp = () => {
                       value={item.description}
                       onChange={(e) => updateEditAdditionalItem(index, 'description', e.target.value)}
                       placeholder="תיאור"
-                      className="flex-1 p-2 border rounded-md"
+                      className="flex-1 p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                     />
                     <input
                       type="number"
                       value={item.price}
                       onChange={(e) => updateEditAdditionalItem(index, 'price', e.target.value)}
                       placeholder="מחיר"
-                      className="w-24 p-2 border rounded-md"
+                      className="w-24 p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                       min="0"
                     />
                     <button
@@ -963,9 +1038,9 @@ const StudioBillingApp = () => {
               </div>
 
               {/* Preview */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">תצוגה מקדימה:</h4>
-                <div className="text-sm space-y-1">
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h4 className="font-medium mb-2 dark:text-gray-200">תצוגה מקדימה:</h4>
+                <div className="text-sm space-y-1 dark:text-gray-300">
                   <div>משך: {formatHours(calculateEditDuration())} שעות</div>
                   <div>מחיר אחרי הנחות: ₪{(calculateEditDuration() * editHourlyRate * (1 - (parseFloat(editPercentDiscount) || 0) / 100) - (parseFloat(editShekelDiscount) || 0)).toFixed(2)}</div>
                   <div>תוספות: ₪{editAdditionalItems.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0).toFixed(2)}</div>

@@ -67,9 +67,20 @@ const Admin = () => {
     type: 'email',
   });
 
+  // Settings states
+  const [settings, setSettings] = useState({
+    studio_hourly_rate: 250
+  });
+
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      loadSettings();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -85,6 +96,10 @@ const Admin = () => {
 
       if (activeTab === 'templates') {
         requests.push(api.get('/campaign-templates'));
+      }
+
+      if (activeTab === 'settings') {
+        await loadSettings();
       }
 
       const responses = await Promise.all(requests);
@@ -130,6 +145,25 @@ const Admin = () => {
     } catch (error) {
       console.error('Error loading campaign templates:', error);
       setTemplates([]);
+    }
+  };
+
+  const loadSettings = async () => {
+    try {
+      const response = await api.get('/admin/settings');
+      setSettings(response.data || { studio_hourly_rate: 250 });
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      await api.post('/admin/settings', settings);
+      alert('ההגדרות נשמרו בהצלחה!');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      alert('שגיאה בשמירת ההגדרות');
     }
   };
 
@@ -538,6 +572,16 @@ const Admin = () => {
             }`}
           >
             API Keys
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'settings'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            הגדרות
           </button>
         </nav>
       </div>
@@ -1054,6 +1098,44 @@ const Admin = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">הגדרות מערכת</h2>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">הגדרות חיוב אולפן</h3>
+              <div className="max-w-md">
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  תעריף שעתי ברירת מחדל (₪)
+                </label>
+                <input
+                  type="number"
+                  value={settings.studio_hourly_rate}
+                  onChange={(e) => setSettings({ ...settings, studio_hourly_rate: parseFloat(e.target.value) || 250 })}
+                  className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  min="0"
+                  step="10"
+                />
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  תעריף זה ישמש כברירת מחדל בעמוד חיוב האולפן
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <button
+                onClick={saveSettings}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
+              >
+                שמור הגדרות
+              </button>
+            </div>
           </div>
         </div>
       )}

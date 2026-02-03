@@ -23,6 +23,39 @@ const Layout = ({ children }) => {
     localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
   }, [sidebarCollapsed]);
 
+  // Studio timer indicator state
+  const [studioTimerActive, setStudioTimerActive] = useState(false);
+  const [studioElapsedTime, setStudioElapsedTime] = useState(0);
+
+  // Check for active studio timer
+  useEffect(() => {
+    const checkStudioTimer = () => {
+      const isRunning = localStorage.getItem('studioBilling_isTimerRunning') === 'true';
+      const timerStart = parseInt(localStorage.getItem('studioBilling_timerStart'));
+
+      if (isRunning && timerStart) {
+        setStudioTimerActive(true);
+        setStudioElapsedTime(Date.now() - timerStart);
+      } else {
+        setStudioTimerActive(false);
+        setStudioElapsedTime(0);
+      }
+    };
+
+    // Check immediately
+    checkStudioTimer();
+
+    // Check every second
+    const interval = setInterval(checkStudioTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatStudioTime = (time) => {
+    const hours = Math.floor(time / 3600000);
+    const minutes = Math.floor((time % 3600000) / 60000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -89,6 +122,18 @@ const Layout = ({ children }) => {
           {!sidebarCollapsed && (
             <div className="border-b border-gray-200 dark:border-gray-700">
               <AutoRefreshIndicator />
+            </div>
+          )}
+
+          {/* Studio Timer Indicator - Admin Only */}
+          {isAdmin && studioTimerActive && !sidebarCollapsed && (
+            <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-green-600 dark:text-green-400">🟢</span>
+                <span className="font-medium text-green-700 dark:text-green-300">
+                  סשן אולפן פעיל: {formatStudioTime(studioElapsedTime)}
+                </span>
+              </div>
             </div>
           )}
 
