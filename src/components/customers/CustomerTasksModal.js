@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X } from 'lucide-react';
 import api from '../../utils/api';
 
 const CustomerTasksModal = ({ show, onClose, customer }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showTaskModal, setShowTaskModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     if (show && customer) {
       loadTasks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, customer]);
 
   const loadTasks = async () => {

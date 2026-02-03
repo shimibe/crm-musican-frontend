@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Users, Plus, Edit, Trash2, Shield, Key, Copy, Check, Hash, FileText, Edit2, Mail, MessageSquare, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Admin = () => {

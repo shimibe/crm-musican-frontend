@@ -17,6 +17,7 @@ import Campaigns from './pages/Campaigns';
 import CampaignTemplates from './pages/CampaignTemplates';
 import Shortcuts from './pages/Shortcuts';
 import Sales from './pages/Sales';
+import StudioBilling from './pages/StudioBilling';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -147,6 +148,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <Sales />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/studio-billing"
+        element={
+          <ProtectedRoute requireAdmin>
+            <StudioBilling />
           </ProtectedRoute>
         }
       />

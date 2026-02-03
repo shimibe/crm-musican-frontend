@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, UserPlus, Download, Send, ClipboardList } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import ColumnToggle from '../components/common/ColumnToggle';

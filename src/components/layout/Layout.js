@@ -5,7 +5,7 @@ import { useDarkMode } from '../../contexts/DarkModeContext';
 import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -38,8 +38,9 @@ const Layout = ({ children }) => {
     { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
   ];
 
-  // Add admin link if user is admin
+  // Add admin links if user is admin
   if (isAdmin) {
+    navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic });
     navigation.push({ name: 'ניהול', href: '/admin', icon: Shield });
   }
 

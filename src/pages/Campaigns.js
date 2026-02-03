@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Send, Eye, RefreshCw, AlertCircle, Calendar, User, Mail, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Send, Eye, RefreshCw, AlertCircle, Calendar, Mail, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
 
 const Campaigns = () => {
-  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
