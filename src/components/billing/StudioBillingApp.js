@@ -238,7 +238,8 @@ const StudioBillingApp = () => {
   };
 
   const formatHours = (hours) => {
-    return hours % 1 === 0 ? hours.toString() : hours.toFixed(1);
+    const num = parseFloat(hours) || 0;
+    return num % 1 === 0 ? num.toString() : num.toFixed(1);
   };
 
   const updateHourlyRate = (value) => {
