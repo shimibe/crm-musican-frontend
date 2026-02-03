@@ -4,10 +4,10 @@ import { Navigate } from 'react-router-dom';
 import StudioBillingApp from '../components/billing/StudioBillingApp';
 
 const StudioBilling = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
 
   // Only admins can access this page
-  if (!isAdmin()) {
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
