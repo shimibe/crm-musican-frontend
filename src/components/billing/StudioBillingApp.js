@@ -23,6 +23,8 @@ const StudioBillingApp = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [clientInvoices, setClientInvoices] = useState([]);
   const [crmCustomers, setCrmCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Generated invoice
   const [generatedInvoice, setGeneratedInvoice] = useState('');
@@ -51,6 +53,17 @@ const StudioBillingApp = () => {
     loadClients();
     loadCRMCustomers();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCustomerDropdown && !event.target.closest('.relative')) {
+        setShowCustomerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCustomerDropdown]);
 
   // Load invoices when client is selected
   useEffect(() => {
@@ -89,7 +102,7 @@ const StudioBillingApp = () => {
 
   const loadCRMCustomers = async () => {
     try {
-      const response = await api.get('/customers');
+      const response = await api.get('/customers?status=active&limit=1000');
       // Handle both response.data.customers and response.data formats
       const customersData = response.data.customers || response.data || [];
       setCrmCustomers(Array.isArray(customersData) ? customersData : []);
@@ -110,6 +123,37 @@ const StudioBillingApp = () => {
     }
   };
 
+  const getSortedCustomers = () => {
+    return [...crmCustomers].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      return nameA.localeCompare(nameB, 'he');
+    });
+  };
+
+  const getFilteredCustomers = () => {
+    const sorted = getSortedCustomers();
+    if (!customerSearchTerm || customerSearchTerm.trim() === '') return sorted;
+
+    const searchLower = customerSearchTerm.toLowerCase().trim();
+    return sorted.filter(customer =>
+      customer.name.toLowerCase().includes(searchLower) ||
+      (customer.phone && customer.phone.includes(searchLower))
+    );
+  };
+
+  const selectCustomer = (customer) => {
+    setClientName(customer.name);
+    setCustomerSearchTerm(customer.name);
+    setShowCustomerDropdown(false);
+
+    // Load this customer's billing invoices if they exist
+    const billingClient = clients.find(c => c.name.toLowerCase() === customer.name.toLowerCase());
+    if (billingClient) {
+      setSelectedClient(billingClient);
+    }
+  };
+
   const resetForm = () => {
     if (!window.confirm('האם אתה בטוח שברצונך לאפס את כל הנתונים?')) {
       return;
@@ -117,6 +161,8 @@ const StudioBillingApp = () => {
 
     // Reset all states to initial values
     setClientName('');
+    setCustomerSearchTerm('');
+    setShowCustomerDropdown(false);
     setStartTime('');
     setEndTime('');
     setDate(new Date().toISOString().split('T')[0]);
@@ -544,17 +590,44 @@ const StudioBillingApp = () => {
 
             {/* Client Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 dark:text-gray-200">שם הלקוח</label>
-              <select
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="">בחר לקוח</option>
-                {crmCustomers.map(customer => (
-                  <option key={customer.id} value={customer.name}>{customer.name}</option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-2 dark:text-gray-200">לקוח</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="חפש לקוח..."
+                  value={customerSearchTerm}
+                  onChange={(e) => {
+                    setCustomerSearchTerm(e.target.value);
+                    setShowCustomerDropdown(true);
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                {showCustomerDropdown && customerSearchTerm && (
+                  <div className="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto mt-1">
+                    {getFilteredCustomers().length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        לא נמצאו לקוחות
+                      </div>
+                    ) : (
+                      getFilteredCustomers().map((customer) => (
+                        <div
+                          key={customer.id}
+                          onClick={() => selectCustomer(customer)}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
+                        >
+                          {customer.name}
+                          {customer.phone && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              {customer.phone}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
               {selectedClient && (
                 <div className="mt-2 text-sm text-blue-600 dark:text-blue-400">
                   חוב לא שולם: ₪{selectedClient.total_unpaid || 0} |
