@@ -90,7 +90,9 @@ const StudioBillingApp = () => {
   const loadCRMCustomers = async () => {
     try {
       const response = await api.get('/customers');
-      setCrmCustomers(response.data.customers || []);
+      // Handle both response.data.customers and response.data formats
+      const customersData = response.data.customers || response.data || [];
+      setCrmCustomers(Array.isArray(customersData) ? customersData : []);
 
       // Load default hourly rate from settings
       try {
