@@ -637,10 +637,19 @@ const StudioBillingApp = () => {
             </div>
 
             {/* Timer Section */}
-            <div className="mb-4 p-4 bg-white dark:bg-gray-600 rounded-md border dark:border-gray-500">
+            <div className={`mb-4 p-4 rounded-md border transition-all duration-300 ${
+              isTimerRunning
+                ? 'bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700 animate-pulse'
+                : 'bg-white dark:bg-gray-600 border-gray-300 dark:border-gray-500'
+            }`}>
               <div className="flex items-center justify-between mb-3">
-                <span className="font-medium dark:text-gray-200">טיימר</span>
-                <div className="text-2xl font-mono dark:text-gray-200">
+                <div className="flex items-center gap-2">
+                  {isTimerRunning && <span className="text-green-500 text-xl">●</span>}
+                  <span className="font-medium dark:text-gray-200">טיימר</span>
+                </div>
+                <div className={`text-2xl font-mono ${
+                  isTimerRunning ? 'text-green-700 dark:text-green-300 font-bold' : 'dark:text-gray-200'
+                }`}>
                   {formatTime(elapsedTime)}
                 </div>
               </div>
