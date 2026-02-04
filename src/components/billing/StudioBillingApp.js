@@ -580,6 +580,57 @@ const StudioBillingApp = () => {
     setShowDebtorsModal(true);
   };
 
+  const generateDebtorInvoice = async (clientName) => {
+    try {
+      // Load client's unpaid invoices
+      const client = clients.find(c => c.name === clientName);
+      if (!client) return;
+
+      const unpaidInvoices = await billingApi.getInvoices({
+        client_id: client.id,
+        paid: false
+      });
+
+      const invoiceText = generateInvoiceText(unpaidInvoices);
+      const paymentUrl = generatePaymentLink(unpaidInvoices);
+
+      setGeneratedInvoice(invoiceText);
+      setPaymentLink(paymentUrl);
+      setShowDebtorsModal(false);
+    } catch (error) {
+      console.error('Failed to generate debtor invoice:', error);
+      alert('שגיאה ביצירת חשבון');
+    }
+  };
+
+  const markAllDebtorInvoicesPaid = async (clientId) => {
+    if (!window.confirm('האם אתה בטוח שברצונך לסמן את כל החשבונות כשולמו?')) {
+      return;
+    }
+
+    try {
+      // Get all unpaid invoices for this client
+      const unpaidInvoices = await billingApi.getInvoices({
+        client_id: clientId,
+        paid: false
+      });
+
+      // Mark each as paid
+      for (const invoice of unpaidInvoices) {
+        await billingApi.markInvoicePaid(invoice.id, true);
+      }
+
+      // Reload data
+      await loadDebtors();
+      await loadClients();
+
+      alert(`${unpaidInvoices.length} חשבונות סומנו כשולמו ✅`);
+    } catch (error) {
+      console.error('Failed to mark invoices as paid:', error);
+      alert('שגיאה בעדכון חשבונות');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6 bg-white dark:bg-gray-800 min-h-screen" dir="rtl">
       <h1 className="text-3xl font-bold text-center mb-8 text-gray-800 dark:text-gray-100">
@@ -894,7 +945,7 @@ const StudioBillingApp = () => {
                       <div className="flex gap-1">
                         {!invoice.paid && (
                           <button
-                            onClick={() => markInvoicePaid(invoice.id)}
+                            onClick={() => markInvoicePaid(invoice.id, true)}
                             className="p-1 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer"
                             title="סמן כשולם"
                           >
@@ -902,7 +953,13 @@ const StudioBillingApp = () => {
                           </button>
                         )}
                         {invoice.paid && (
-                          <CheckCircle size={16} className="text-green-600" />
+                          <button
+                            onClick={() => markInvoicePaid(invoice.id, false)}
+                            className="p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 cursor-pointer"
+                            title="סמן כלא שולם"
+                          >
+                            <CheckCircle size={14} />
+                          </button>
                         )}
                         <button
                           onClick={() => startEditInvoice(invoice)}
@@ -983,6 +1040,30 @@ const StudioBillingApp = () => {
                       </div>
 
                       <div className="mt-3 flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => generateDebtorInvoice(debtor.client_name)}
+                          className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 cursor-pointer"
+                        >
+                          📋 העתק חשבון
+                        </button>
+                        <button
+                          onClick={async () => {
+                            await generateDebtorInvoice(debtor.client_name);
+                            if (paymentLink) {
+                              navigator.clipboard.writeText(paymentLink);
+                              alert('קישור תשלום הועתק ללוח! 🔗');
+                            }
+                          }}
+                          className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 cursor-pointer"
+                        >
+                          🔗 העתק קישור
+                        </button>
+                        <button
+                          onClick={() => markAllDebtorInvoicesPaid(debtor.client_id)}
+                          className="px-3 py-1 bg-emerald-500 text-white text-sm rounded hover:bg-emerald-600 cursor-pointer"
+                        >
+                          ✅ סמן הכל כשולם
+                        </button>
                         <button
                           onClick={() => {
                             loadClient(debtor.client_name);
