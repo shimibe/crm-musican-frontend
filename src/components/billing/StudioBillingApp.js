@@ -584,22 +584,32 @@ const StudioBillingApp = () => {
     try {
       // Load client's unpaid invoices
       const client = clients.find(c => c.name === clientName);
-      if (!client) return;
+      if (!client) {
+        alert('לקוח לא נמצא');
+        return null;
+      }
 
       const unpaidInvoices = await billingApi.getInvoices({
         client_id: client.id,
         paid: false
       });
 
+      if (unpaidInvoices.length === 0) {
+        alert('אין חשבונות לא משולמים ללקוח זה');
+        return null;
+      }
+
       const invoiceText = generateInvoiceText(unpaidInvoices);
       const paymentUrl = generatePaymentLink(unpaidInvoices);
 
       setGeneratedInvoice(invoiceText);
       setPaymentLink(paymentUrl);
-      setShowDebtorsModal(false);
+
+      return { invoiceText, paymentUrl };
     } catch (error) {
       console.error('Failed to generate debtor invoice:', error);
       alert('שגיאה ביצירת חשבון');
+      return null;
     }
   };
 
@@ -1041,16 +1051,23 @@ const StudioBillingApp = () => {
 
                       <div className="mt-3 flex gap-2 flex-wrap">
                         <button
-                          onClick={() => generateDebtorInvoice(debtor.client_name)}
+                          onClick={async () => {
+                            const result = await generateDebtorInvoice(debtor.client_name);
+                            if (result) {
+                              navigator.clipboard.writeText(result.invoiceText);
+                              alert('החשבון הועתק ללוח! 📋');
+                              setShowDebtorsModal(false);
+                            }
+                          }}
                           className="px-3 py-1 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 cursor-pointer"
                         >
                           📋 העתק חשבון
                         </button>
                         <button
                           onClick={async () => {
-                            await generateDebtorInvoice(debtor.client_name);
-                            if (paymentLink) {
-                              navigator.clipboard.writeText(paymentLink);
+                            const result = await generateDebtorInvoice(debtor.client_name);
+                            if (result) {
+                              navigator.clipboard.writeText(result.paymentUrl);
                               alert('קישור תשלום הועתק ללוח! 🔗');
                             }
                           }}
