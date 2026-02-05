@@ -22,10 +22,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // רק טפל ב-401/403 אם זה לא בקשת התחברות
+    // רק טפל ב-401/403 אם זה לא בקשת התחברות או attendance check
     const isLoginRequest = error.config?.url?.includes('/auth/login');
+    const isAttendanceCheck = error.config?.url?.includes('/attendance/active-shift');
 
-    if ((error.response?.status === 401 || error.response?.status === 403) && !isLoginRequest) {
+    if ((error.response?.status === 401 || error.response?.status === 403) && !isLoginRequest && !isAttendanceCheck) {
       // התחברות פגה תוקף או אין הרשאה
       localStorage.removeItem('token');
       localStorage.removeItem('user');
