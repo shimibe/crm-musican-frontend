@@ -639,7 +639,12 @@ const Admin = () => {
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                      {user.username}
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer text-right"
+                      >
+                        {user.username}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       <button
@@ -650,7 +655,12 @@ const Admin = () => {
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {user.email}
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer text-right"
+                      >
+                        {user.email}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {getRoleText(user.role)}
