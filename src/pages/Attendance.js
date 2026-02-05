@@ -280,7 +280,7 @@ const Attendance = () => {
         'שעת התחלה': startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         'שעת סיום': endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         'סה"כ שעות': `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}`,
-        'עבודה מהבית': shift.work_from_home ? 'כן' : 'לא',
+        'עבודה מהבית': shift.work_from_home ? 'כן' : '',
       };
     });
 
@@ -316,7 +316,7 @@ const Attendance = () => {
     if (!wb.Workbook.Views) wb.Workbook.Views = [];
     wb.Workbook.Views[0] = { RTL: true };
 
-    const fileName = `משמרות_${selectedYear}_${selectedMonth || 'כל_השנה'}.xlsx`;
+    const fileName = `משמרות_${users ? users.find(user => user.id === selectedUserId)?.full_name : user.full_name}_${selectedYear}_${selectedMonth || 'כל_השנה'}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
@@ -520,7 +520,7 @@ const Attendance = () => {
               ₪{totals.estimatedSalary.toFixed(0)}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              (לפני הפחתות)
+              (לפני הפחתות, נסיעות ובונוסים)
             </div>
           </div>
         </div>
