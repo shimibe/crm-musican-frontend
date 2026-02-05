@@ -3,9 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDarkMode } from '../../contexts/DarkModeContext';
 import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
+import api from '../../utils/api';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -26,6 +27,10 @@ const Layout = ({ children }) => {
   // Studio timer indicator state
   const [studioTimerActive, setStudioTimerActive] = useState(false);
   const [studioElapsedTime, setStudioElapsedTime] = useState(0);
+
+  // Attendance shift status
+  const [hasActiveShift, setHasActiveShift] = useState(false);
+  const [shiftElapsedTime, setShiftElapsedTime] = useState(0);
 
   // Check for active studio timer
   useEffect(() => {
@@ -50,7 +55,73 @@ const Layout = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Check for active attendance shift
+  useEffect(() => {
+    const checkActiveShift = async () => {
+      try {
+        const response = await api.get('/attendance/active-shift');
+        const hasShift = response.data.hasActiveShift;
+        const shift = response.data.activeShift;
+
+        setHasActiveShift(hasShift);
+
+        if (hasShift && shift) {
+          const startTime = new Date(shift.start_time).getTime();
+          setShiftElapsedTime(Date.now() - startTime);
+
+          // Save to sessionStorage
+          sessionStorage.setItem('attendance_hasActiveShift', 'true');
+          sessionStorage.setItem('attendance_shiftStartTime', startTime.toString());
+          sessionStorage.setItem('attendance_workFromHome', shift.work_from_home ? 'true' : 'false');
+        } else {
+          setShiftElapsedTime(0);
+
+          // Clear sessionStorage
+          sessionStorage.removeItem('attendance_hasActiveShift');
+          sessionStorage.removeItem('attendance_shiftStartTime');
+          sessionStorage.removeItem('attendance_workFromHome');
+        }
+      } catch (error) {
+        // Silently fail - endpoint might not be available yet
+        setHasActiveShift(false);
+      }
+    };
+
+    // Check if we have cached data in sessionStorage
+    const cachedHasShift = sessionStorage.getItem('attendance_hasActiveShift') === 'true';
+    const cachedStartTime = sessionStorage.getItem('attendance_shiftStartTime');
+
+    if (cachedHasShift && cachedStartTime) {
+      // Use cached data for immediate display
+      setHasActiveShift(true);
+      setShiftElapsedTime(Date.now() - parseInt(cachedStartTime));
+
+      // Still verify with server in background
+      checkActiveShift();
+    } else {
+      // No cache - check with server
+      checkActiveShift();
+    }
+  }, []);
+
+  // Update elapsed time every second when shift is active
+  useEffect(() => {
+    if (!hasActiveShift) return;
+
+    const interval = setInterval(() => {
+      setShiftElapsedTime(prev => prev + 1000);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [hasActiveShift]);
+
   const formatStudioTime = (time) => {
+    const hours = Math.floor(time / 3600000);
+    const minutes = Math.floor((time % 3600000) / 60000);
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  const formatShiftTime = (time) => {
     const hours = Math.floor(time / 3600000);
     const minutes = Math.floor((time % 3600000) / 60000);
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
@@ -67,6 +138,7 @@ const Layout = ({ children }) => {
     { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare },
     { name: 'מכירות', href: '/sales', icon: DollarSign },
+    { name: 'נוכחות', href: '/attendance', icon: Clock },
     { name: 'פעילות', href: '/activity', icon: Activity },
     { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
   ];
@@ -133,6 +205,33 @@ const Layout = ({ children }) => {
                 <span className="font-medium text-green-700 dark:text-green-300">
                   סשן אולפן פעיל: {formatStudioTime(studioElapsedTime)}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {/* Attendance Shift Indicator */}
+          {!sidebarCollapsed && (
+            <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${
+              hasActiveShift
+                ? 'bg-green-50 dark:bg-green-900/20'
+                : 'bg-yellow-50 dark:bg-yellow-900/20'
+            }`}>
+              <div className="flex items-center gap-2 text-sm">
+                {hasActiveShift ? (
+                  <>
+                    <span className="text-green-600 dark:text-green-400">🟢</span>
+                    <span className="font-medium text-green-700 dark:text-green-300">
+                      משמרת פעילה: {formatShiftTime(shiftElapsedTime)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
+                    <span className="font-medium text-yellow-700 dark:text-yellow-300">
+                      לא במשמרת
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}

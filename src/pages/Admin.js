@@ -23,6 +23,8 @@ const Admin = () => {
     phone: '',
     role: 'employee',
     is_active: true,
+    hourly_wage: 0,
+    can_edit_attendance: false,
   });
 
   // Category modal states
@@ -182,6 +184,8 @@ const Admin = () => {
       phone: '',
       role: 'employee',
       is_active: true,
+      hourly_wage: 0,
+      can_edit_attendance: false,
     });
     setShowUserModal(true);
   };
@@ -196,6 +200,8 @@ const Admin = () => {
       phone: user.phone || '',
       role: user.role,
       is_active: user.is_active,
+      hourly_wage: user.hourly_wage || 0,
+      can_edit_attendance: user.can_edit_attendance || false,
     });
     setShowUserModal(true);
   };
@@ -210,6 +216,8 @@ const Admin = () => {
         phone: userForm.phone,
         role: userForm.role,
         is_active: userForm.is_active,
+        hourly_wage: parseFloat(userForm.hourly_wage) || 0,
+        can_edit_attendance: userForm.can_edit_attendance,
       };
 
       if (editingUser) {
@@ -228,6 +236,8 @@ const Admin = () => {
           email: userForm.email,
           phone: userForm.phone,
           role: userForm.role,
+          hourly_wage: parseFloat(userForm.hourly_wage) || 0,
+          can_edit_attendance: userForm.can_edit_attendance,
         };
         console.log('Sending data to server:', registerData);
         const response = await api.post('/auth/register', registerData);
@@ -900,6 +910,19 @@ const Admin = () => {
                   <option value="admin">מנהל</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  שכר שעתי (₪)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={userForm.hourly_wage}
+                  onChange={(e) => setUserForm({ ...userForm, hourly_wage: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -911,6 +934,19 @@ const Admin = () => {
                   משתמש פעיל
                 </label>
               </div>
+              {userForm.role !== 'admin' && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={userForm.can_edit_attendance}
+                    onChange={(e) => setUserForm({ ...userForm, can_edit_attendance: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label className="mr-2 text-sm text-gray-700 dark:text-gray-300">
+                    אפשר עריכת משמרות
+                  </label>
+                </div>
+              )}
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"

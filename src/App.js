@@ -18,6 +18,7 @@ import CampaignTemplates from './pages/CampaignTemplates';
 import Shortcuts from './pages/Shortcuts';
 import Sales from './pages/Sales';
 import StudioBilling from './pages/StudioBilling';
+import Attendance from './pages/Attendance';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -148,6 +149,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <Sales />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute>
+            <Attendance />
           </ProtectedRoute>
         }
       />

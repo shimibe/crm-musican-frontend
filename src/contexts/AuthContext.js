@@ -49,6 +49,23 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       setUser(normalizedUser);
 
+      // Check attendance status on login
+      try {
+        const attendanceResponse = await api.get('/attendance/active-shift');
+        if (attendanceResponse.data.hasActiveShift && attendanceResponse.data.activeShift) {
+          const startTime = new Date(attendanceResponse.data.activeShift.start_time).getTime();
+          sessionStorage.setItem('attendance_hasActiveShift', 'true');
+          sessionStorage.setItem('attendance_shiftStartTime', startTime.toString());
+          sessionStorage.setItem('attendance_workFromHome', attendanceResponse.data.activeShift.work_from_home ? 'true' : 'false');
+        } else {
+          sessionStorage.removeItem('attendance_hasActiveShift');
+          sessionStorage.removeItem('attendance_shiftStartTime');
+          sessionStorage.removeItem('attendance_workFromHome');
+        }
+      } catch (attendanceError) {
+        // Silently fail - attendance feature might not be available yet
+      }
+
       return { success: true };
     } catch (error) {
       return {
@@ -97,6 +114,12 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+
+    // Clear attendance sessionStorage
+    sessionStorage.removeItem('attendance_hasActiveShift');
+    sessionStorage.removeItem('attendance_shiftStartTime');
+    sessionStorage.removeItem('attendance_workFromHome');
+
     setUser(null);
   };
 
