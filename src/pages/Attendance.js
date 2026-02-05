@@ -298,8 +298,23 @@ const Attendance = () => {
     const allData = [...exportData, ...summaryRows];
 
     const ws = XLSX.utils.json_to_sheet(allData, { skipHeader: false });
+
+    // Set RTL for the worksheet
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][0] = { width: 15 };
+    ws['!cols'][1] = { width: 15 };
+    ws['!cols'][2] = { width: 15 };
+    ws['!cols'][3] = { width: 15 };
+    ws['!cols'][4] = { width: 15 };
+
+    // Create workbook and set RTL
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'משמרות');
+
+    // Set workbook to RTL
+    if (!wb.Workbook) wb.Workbook = {};
+    if (!wb.Workbook.Views) wb.Workbook.Views = [];
+    wb.Workbook.Views[0] = { RTL: true };
 
     const fileName = `משמרות_${selectedYear}_${selectedMonth || 'כל_השנה'}.xlsx`;
     XLSX.writeFile(wb, fileName);
