@@ -212,7 +212,7 @@ const Layout = ({ children }) => {
           {/* Attendance Shift Indicator */}
           {!sidebarCollapsed && (
             <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${
-              hasActiveShift
+              hasActiveShift || isAdmin
                 ? 'bg-green-50 dark:bg-green-900/20'
                 : 'bg-yellow-50 dark:bg-yellow-900/20'
             }`}>
