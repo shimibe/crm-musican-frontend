@@ -642,7 +642,12 @@ const Admin = () => {
                       {user.username}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {user.full_name}
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-pointer text-right"
+                      >
+                        {user.full_name}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {user.email}
