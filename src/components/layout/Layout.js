@@ -224,6 +224,13 @@ const Layout = ({ children }) => {
                       משמרת פעילה: {formatShiftTime(shiftElapsedTime)}
                     </span>
                   </>
+                ) : isAdmin ? (
+                  <>
+                    <span className="text-green-600 dark:text-green-400">✳️</span>
+                    <span className="font-medium text-green-700 dark:text-green-300">
+                      מנהל מחובר
+                    </span>
+                  </>
                 ) : (
                   <>
                     <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
