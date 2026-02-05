@@ -872,7 +872,7 @@ const Tasks = () => {
                     </button>
                   )}
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
@@ -913,7 +913,7 @@ const Tasks = () => {
                     )}
                   </div>
                 </div>
-                <div className="col-span-2 grid grid-cols-3 gap-4">
+                <div className="col-span-2 grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       קטגוריה
@@ -943,20 +943,6 @@ const Tasks = () => {
                       <option value="low">נמוכה</option>
                       <option value="medium">בינונית</option>
                       <option value="high">גבוהה</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      סטטוס
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="open">פתוח</option>
-                      <option value="in_progress">בטיפול</option>
-                      <option value="closed">סגור</option>
                     </select>
                   </div>
                 </div>
