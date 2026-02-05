@@ -393,11 +393,18 @@ const StudioBillingApp = () => {
 
     const unpaidTotal = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
 
+    // Sort invoices by date (oldest first)
+    const sortedInvoices = [...invoices].sort((a, b) => {
+      const dateA = new Date(a.invoice_date + ' ' + a.start_time);
+      const dateB = new Date(b.invoice_date + ' ' + b.start_time);
+      return dateA - dateB;
+    });
+
     let invoice = `🎙️ *חשבון אולפן הקלטות*\n\n`;
 
-    if (invoices.length > 1) {
+    if (sortedInvoices.length > 1) {
       invoice += `*חשבונות קודמים -*\n`;
-      invoices.slice(0, -1).forEach(inv => {
+      sortedInvoices.slice(0, -1).forEach(inv => {
         invoice += `${formatDateToHebrew(inv.invoice_date)}\n`;
         invoice += `${inv.start_time}-${inv.end_time}\n`;
         invoice += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
@@ -410,7 +417,7 @@ const StudioBillingApp = () => {
         invoice += `\n`;
       });
 
-      const lastInvoice = invoices[invoices.length - 1];
+      const lastInvoice = sortedInvoices[sortedInvoices.length - 1];
       invoice += `*חשבון היום -*\n`;
       invoice += `${formatDateToHebrew(lastInvoice.invoice_date)}\n`;
       invoice += `${lastInvoice.start_time}-${lastInvoice.end_time}\n`;
