@@ -225,7 +225,7 @@ const Attendance = () => {
   const handleInlineEdit = (shiftId, field, currentValue) => {
     setEditingCell({ shiftId, field });
     if (field === 'start_time' || field === 'end_time') {
-      setEditingValue(new Date(currentValue).toISOString().slice(0, 16));
+      setEditingValue(toLocalISOString(currentValue));
     } else {
       setEditingValue(currentValue || '');
     }
@@ -237,7 +237,9 @@ const Attendance = () => {
     try {
       const data = {};
       if (editingCell.field === 'start_time' || editingCell.field === 'end_time') {
-        data[editingCell.field] = new Date(editingValue).toISOString();
+        // Parse the datetime-local value (which is in local time) and convert to ISO
+        const localDate = new Date(editingValue);
+        data[editingCell.field] = localDate.toISOString();
       } else {
         data[editingCell.field] = editingValue;
       }
@@ -277,6 +279,7 @@ const Attendance = () => {
 
       return {
         'תאריך': startDate.toLocaleDateString('he-IL'),
+        'יום': getDayOfWeek(shift.start_time),
         'שעת התחלה': startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         'שעת סיום': endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         'סה"כ שעות': `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}`,
@@ -334,6 +337,23 @@ const Attendance = () => {
     const h = Math.floor(hours);
     const m = Math.round((hours % 1) * 60);
     return `${h}:${String(m).padStart(2, '0')}`;
+  };
+
+  const getDayOfWeek = (dateString) => {
+    if (!dateString) return '-';
+    const days = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'שבת'];
+    const date = new Date(dateString);
+    return days[date.getDay()];
+  };
+
+  const toLocalISOString = (dateString) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   // Generate month options
@@ -548,6 +568,9 @@ const Attendance = () => {
                 <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   תאריך
                 </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  יום
+                </th>
                 <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   שעת התחלה
                 </th>
@@ -568,13 +591,13 @@ const Attendance = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="7" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
                     טוען...
                   </td>
                 </tr>
               ) : shifts.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="7" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
                     לא נמצאו משמרות
                   </td>
                 </tr>
@@ -583,6 +606,10 @@ const Attendance = () => {
                   <tr key={shift.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {formatDate(shift.start_time)}
+                    </td>
+                    {/* Day of Week */}
+                    <td className="px-3 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                      {getDayOfWeek(shift.start_time)}
                     </td>
                     {/* Start Time - Inline Edit */}
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

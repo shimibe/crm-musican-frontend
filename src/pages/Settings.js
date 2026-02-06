@@ -211,7 +211,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -246,43 +246,66 @@ const Settings = () => {
           </div>
         </div>
         <form onSubmit={handleProfileSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              שם משתמש
-            </label>
-            <input
-              type="text"
-              value={user?.username || ''}
-              disabled
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                שם משתמש
+              </label>
+              <input
+                type="text"
+                value={user?.username || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                תפקיד
+              </label>
+              <input
+                type="text"
+                value={
+                  user?.role === 'admin'
+                    ? 'מנהל'
+                    : user?.role === 'manager'
+                    ? 'מנהל צוות'
+                    : 'עובד'
+                }
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              שם מלא
-            </label>
-            <input
-              type="text"
-              value={profileData.fullName}
-              onChange={(e) =>
-                setProfileData({ ...profileData, fullName: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                שם מלא
+              </label>
+              <input
+                type="text"
+                value={profileData.fullName}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, fullName: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                אימייל
+              </label>
+              <input
+                type="email"
+                value={profileData.email}
+                onChange={(e) =>
+                  setProfileData({ ...profileData, email: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              אימייל
-            </label>
-            <input
-              type="email"
-              value={profileData.email}
-              onChange={(e) =>
-                setProfileData({ ...profileData, email: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               <div className="flex items-center gap-2">
@@ -303,31 +326,17 @@ const Settings = () => {
               לשליחת קמפיין ניסיון לוואטסאפ (פורמט: 972501234567)
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              תפקיד
-            </label>
-            <input
-              type="text"
-              value={
-                user?.role === 'admin'
-                  ? 'מנהל'
-                  : user?.role === 'manager'
-                  ? 'מנהל צוות'
-                  : 'עובד'
-              }
-              disabled
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-            />
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              שמור שינויים
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            שמור שינויים
-          </button>
         </form>
       </div>
 
@@ -365,42 +374,44 @@ const Settings = () => {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  מספר ימים לעדיפות בינונית
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="365"
-                  value={taskSettings.taskPriorityLowToMedium}
-                  onChange={(e) =>
-                    setTaskSettings({ ...taskSettings, taskPriorityLowToMedium: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  משימה שלא עודכנה במשך {taskSettings.taskPriorityLowToMedium} ימים תקבל עדיפות בינונית
-                </p>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    מספר ימים לעדיפות בינונית
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={taskSettings.taskPriorityLowToMedium}
+                    onChange={(e) =>
+                      setTaskSettings({ ...taskSettings, taskPriorityLowToMedium: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    משימה שלא עודכנה במשך {taskSettings.taskPriorityLowToMedium} ימים תקבל עדיפות בינונית
+                  </p>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  מספר ימים לעדיפות גבוהה
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="365"
-                  value={taskSettings.taskPriorityMediumToHigh}
-                  onChange={(e) =>
-                    setTaskSettings({ ...taskSettings, taskPriorityMediumToHigh: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  משימה שלא עודכנה במשך {taskSettings.taskPriorityMediumToHigh} ימים תקבל עדיפות גבוהה
-                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    מספר ימים לעדיפות גבוהה
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="365"
+                    value={taskSettings.taskPriorityMediumToHigh}
+                    onChange={(e) =>
+                      setTaskSettings({ ...taskSettings, taskPriorityMediumToHigh: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    משימה שלא עודכנה במשך {taskSettings.taskPriorityMediumToHigh} ימים תקבל עדיפות גבוהה
+                  </p>
+                </div>
               </div>
             </>
           )}
@@ -427,44 +438,46 @@ const Settings = () => {
           </div>
         </div>
         <form onSubmit={handleCommissionRateSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              אחוז עמלה (%)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={commissionRate}
-              onChange={(e) => setCommissionRate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              אחוז העמלה המחושב אוטומטית על מכירות חדשות. ברירת מחדל: 5%
-            </p>
-          </div>
-
-          {(user?.role === 'admin' || user?.role === 'manager') && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                עובד ברירת מחדל לבונוסים
+                אחוז עמלה (%)
               </label>
-              <select
-                value={defaultSalesUserId}
-                onChange={(e) => setDefaultSalesUserId(e.target.value)}
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="">ללא ברירת מחדל</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.full_name}</option>
-                ))}
-              </select>
+              />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                העובד שיבחר אוטומטית בפתיחת מכירה חדשה וב-API אם לא יישלח עובד
+                אחוז העמלה המחושב אוטומטית על מכירות חדשות. ברירת מחדל: 5%
               </p>
             </div>
-          )}
+
+            {(user?.role === 'admin' || user?.role === 'manager') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  עובד ברירת מחדל לבונוסים
+                </label>
+                <select
+                  value={defaultSalesUserId}
+                  onChange={(e) => setDefaultSalesUserId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">ללא ברירת מחדל</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  העובד שיבחר אוטומטית בפתיחת מכירה חדשה וב-API אם לא יישלח עובד
+                </p>
+              </div>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -505,42 +518,44 @@ const Settings = () => {
 
           {autoRefreshSettings.enabled && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  רענן כל (דקות)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={autoRefreshSettings.interval}
-                  onChange={(e) =>
-                    setAutoRefreshSettings({ ...autoRefreshSettings, interval: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  הדף יתרענן אוטומטית כל {autoRefreshSettings.interval} דקות (רק בדפי מידע)
-                </p>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    רענן כל (דקות)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={autoRefreshSettings.interval}
+                    onChange={(e) =>
+                      setAutoRefreshSettings({ ...autoRefreshSettings, interval: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    הדף יתרענן אוטומטית כל {autoRefreshSettings.interval} דקות (רק בדפי מידע)
+                  </p>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  השהה רענון לאחר חוסר פעילות (דקות)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={autoRefreshSettings.inactivityTimeout}
-                  onChange={(e) =>
-                    setAutoRefreshSettings({ ...autoRefreshSettings, inactivityTimeout: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  הרענון יופסק אם אין פעילות במשך {autoRefreshSettings.inactivityTimeout} דקות
-                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    השהה רענון לאחר חוסר פעילות (דקות)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    value={autoRefreshSettings.inactivityTimeout}
+                    onChange={(e) =>
+                      setAutoRefreshSettings({ ...autoRefreshSettings, inactivityTimeout: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    הרענון יופסק אם אין פעילות במשך {autoRefreshSettings.inactivityTimeout} דקות
+                  </p>
+                </div>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
@@ -573,40 +588,44 @@ const Settings = () => {
           </div>
         </div>
         <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              סיסמה חדשה
-            </label>
-            <input
-              type="password"
-              value={passwordData.newPassword}
-              onChange={(e) =>
-                setPasswordData({ ...passwordData, newPassword: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                סיסמה חדשה
+              </label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                אישור סיסמה
+              </label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              אישור סיסמה
-            </label>
-            <input
-              type="password"
-              value={passwordData.confirmPassword}
-              onChange={(e) =>
-                setPasswordData({ ...passwordData, confirmPassword: e.target.value })
-              }
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+            >
+              <Key className="w-4 h-4" />
+              שנה סיסמה
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-          >
-            <Key className="w-4 h-4" />
-            שנה סיסמה
-          </button>
         </form>
       </div>
     </div>
