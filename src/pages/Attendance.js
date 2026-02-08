@@ -424,6 +424,8 @@ const Attendance = () => {
       </div>
 
       {/* Active Employees List (Manager/Admin Only) */}
+      {console.log("activeEmployees", activeEmployees)}
+      
       {(isAdmin || isManager) && activeEmployees.length > 0 && (
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <h3 className="font-medium text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
