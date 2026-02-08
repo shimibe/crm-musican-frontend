@@ -3,19 +3,19 @@ import { RefreshCw, Clock, PauseCircle } from 'lucide-react';
 import { useAutoRefresh } from '../../contexts/AutoRefreshContext';
 
 const AutoRefreshIndicator = () => {
-  const { enabled, isUserActive, shouldRefreshPage, getTimeUntilRefresh } = useAutoRefresh();
+  const { enabled, isUserActive, shouldRefreshPage, getTimeUntilRefresh, refresh } = useAutoRefresh();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [timeUntilRefresh, setTimeUntilRefresh] = useState(null);
+  const [, forceUpdate] = useState({});
 
   // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-      setTimeUntilRefresh(getTimeUntilRefresh());
+      forceUpdate({});
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [getTimeUntilRefresh]);
+  }, []);
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('he-IL', {
@@ -34,7 +34,11 @@ const AutoRefreshIndicator = () => {
     });
   };
 
-  const isRefreshActive = enabled && shouldRefreshPage && isUserActive;
+  const handleManualRefresh = () => {
+    refresh();
+  };
+
+  const timeUntilRefresh = getTimeUntilRefresh();
 
   return (
     <div className="p-4 space-y-2 text-xs">
@@ -51,14 +55,32 @@ const AutoRefreshIndicator = () => {
       {shouldRefreshPage && (
         <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
           {!enabled ? (
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-              <RefreshCw className="w-3 h-3" />
-              <span>רענון כבוי</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                <RefreshCw className="w-3 h-3" />
+                <span>רענון כבוי</span>
+              </div>
+              <button
+                onClick={handleManualRefresh}
+                className="px-2 py-1 text-[10px] bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                title="רענון ידני"
+              >
+                רענן עכשיו
+              </button>
             </div>
           ) : !isUserActive ? (
-            <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-              <PauseCircle className="w-3 h-3" />
-              <span>רענון מושהה</span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                <PauseCircle className="w-3 h-3" />
+                <span>רענון מושהה</span>
+              </div>
+              <button
+                onClick={handleManualRefresh}
+                className="px-2 py-1 text-[10px] bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                title="רענון ידני"
+              >
+                רענן עכשיו
+              </button>
             </div>
           ) : timeUntilRefresh ? (
             <div className="flex items-center gap-2 text-green-600 dark:text-green-400">

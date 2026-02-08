@@ -91,17 +91,6 @@ export const AutoRefreshProvider = ({ children }) => {
     return () => clearInterval(timer);
   }, [enabled, refreshInterval, shouldRefreshPage, isUserActive, refresh]);
 
-  // Update next refresh time countdown
-  useEffect(() => {
-    if (!nextRefreshTime) return;
-
-    const interval = setInterval(() => {
-      // Force re-render to update countdown
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [nextRefreshTime]);
-
   // Update settings from user preferences
   useEffect(() => {
     if (user?.preferences?.autoRefreshEnabled !== undefined) {
