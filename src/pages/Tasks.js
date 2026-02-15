@@ -121,7 +121,7 @@ const Tasks = () => {
       // Load all tasks - filtering will be done client-side
       const [tasksRes, customersRes, categoriesRes, usersRes] = await Promise.all([
         api.get('/tasks?limit=1000'),
-        api.get('/customers?status=active&limit=100'),
+        api.get('/customers?status=active&limit=1000'),
         api.get('/categories'),
         api.get('/users'),
       ]);
@@ -467,7 +467,9 @@ const Tasks = () => {
 
     const searchLower = customerSearchTerm.toLowerCase().trim();
     return sorted.filter(customer =>
-      customer.name && customer.name.toLowerCase().includes(searchLower)
+      (customer.name && customer.name.toLowerCase().includes(searchLower)) ||
+      (customer.phone && customer.phone.toLowerCase().includes(searchLower)) ||
+      (customer.email && customer.email.toLowerCase().includes(searchLower))
     );
   };
 
@@ -880,7 +882,7 @@ const Tasks = () => {
                     <div className="relative flex-1">
                       <input
                         type="text"
-                        placeholder="חפש לקוח..."
+                        placeholder="חפש לקוח (שם, טלפון, אימייל)..."
                         value={customerSearchTerm}
                         onChange={(e) => setCustomerSearchTerm(e.target.value)}
                         onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
