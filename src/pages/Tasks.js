@@ -81,8 +81,8 @@ const Tasks = () => {
     await updatePreferences(newPreferences);
   };
 
-  // Calculate due date indicator
-  const getDueDateIndicator = (dueDate) => {
+  // Calculate due date badge for priority column
+  const getDueDateBadge = (dueDate) => {
     if (!dueDate) return null;
 
     const today = new Date();
@@ -95,13 +95,29 @@ const Tasks = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return { emoji: '⭐', text: 'היום', color: 'text-yellow-600 dark:text-yellow-400' };
-    } else if (diffDays > 0 && diffDays <= 3) {
-      return { emoji: '🕐', text: `${diffDays}`, color: 'text-orange-600 dark:text-orange-400' };
-    } else if (diffDays > 3) {
-      return { emoji: '🕐', text: `${diffDays}`, color: 'text-blue-600 dark:text-blue-400' };
+      // Today - red (high priority color) + star
+      return {
+        label: '⭐ לטיפול היום!',
+        colorClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      };
+    } else if (diffDays === 1) {
+      // Tomorrow - medium (yellow)
+      return {
+        label: '🕐 1',
+        colorClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      };
+    } else if (diffDays > 1) {
+      // More than 1 day - green (low priority color)
+      return {
+        label: `🕐 ${diffDays}`,
+        colorClass: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+      };
     } else {
-      return { emoji: '🔴', text: `${diffDays}`, color: 'text-red-600 dark:text-red-400' };
+      // Past - overdue
+      return {
+        label: `🔴 לפני ${Math.abs(diffDays)} ימים`,
+        colorClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+      };
     }
   };
 
@@ -603,10 +619,10 @@ const Tasks = () => {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  {visibleColumns.title && <SortableHeader column="title">כותרת</SortableHeader>}
                   {visibleColumns.customer && <SortableHeader column="customer_name">לקוח</SortableHeader>}
-                  {visibleColumns.category && <SortableHeader column="category_name">קטגוריה</SortableHeader>}
+                  {visibleColumns.title && <SortableHeader column="title">כותרת</SortableHeader>}
                   {visibleColumns.priority && <SortableHeader column="priority">עדיפות</SortableHeader>}
+                  {visibleColumns.category && <SortableHeader column="category_name">קטגוריה</SortableHeader>}
                   {visibleColumns.status && <SortableHeader column="status">סטטוס</SortableHeader>}
                   {visibleColumns.assignedTo && <SortableHeader column="assigned_to_name">משויך ל</SortableHeader>}
                   {visibleColumns.createdAt && <SortableHeader column="created_at">נוצר ב</SortableHeader>}
@@ -623,59 +639,6 @@ const Tasks = () => {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                     onClick={() => handleEdit(task)}
                   >
-                    {visibleColumns.title && (
-                      <td className="px-6 py-4 text-sm">
-                        {(() => {
-                          const indicator = getDueDateIndicator(task.due_date);
-                          const progressCount = taskProgressCounts[task.id] || 0;
-                          return (
-                            <div className="flex items-center gap-1">
-                              {task.agent_note && (
-                                <span className="text-blue-600 dark:text-blue-400" title={`הערת נציג: ${task.agent_note}`}>
-                                  🟡
-                                </span>
-                              )}
-                              {progressCount > 0 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTaskForProgress(task);
-                                    setShowProgressModal(true);
-                                  }}
-                                  className="text-green-600 dark:text-green-400 hover:text-green-700 inline-flex items-center"
-                                  title={`${progressCount} עדכוני התקדמות`}
-                                >
-                                  <ClipboardList className="w-4 h-4" />
-                                  <span className="text-xs">({progressCount})</span>
-                                </button>
-                              )}
-                              <div className="flex-1 truncate">
-                                {indicator ? (
-                                  <span>
-                                    <span className={`${indicator.color} font-semibold`}>
-                                      {indicator.emoji}({indicator.text})
-                                    </span>
-                                    {' '}
-                                    <span className="font-bold text-gray-900 dark:text-white">
-                                      {task.title}
-                                    </span>
-                                  </span>
-                                ) : (
-                                  <span className="font-bold text-gray-900 dark:text-white">
-                                    {task.title}
-                                  </span>
-                                )}
-                                {task.description && (
-                                  <span className="text-gray-500 dark:text-gray-400">
-                                    {' '}{task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </td>
-                    )}
                     {visibleColumns.customer && (
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
@@ -695,28 +658,81 @@ const Tasks = () => {
                         )}
                       </td>
                     )}
-                    {visibleColumns.category && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {task.category_name || '-'}
+                    {visibleColumns.title && (
+                      <td className="px-6 py-4 text-sm">
+                        {(() => {
+                          const progressCount = taskProgressCounts[task.id] || 0;
+                          return (
+                            <div className="flex items-center gap-1">
+                              {task.agent_note && (
+                                <span className="text-blue-600 dark:text-blue-400" title={`הערת נציג: ${task.agent_note}`}>
+                                  💬
+                                </span>
+                              )}
+                              {progressCount > 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTaskForProgress(task);
+                                    setShowProgressModal(true);
+                                  }}
+                                  className="text-green-600 dark:text-green-400 hover:text-green-700 inline-flex items-center"
+                                  title={`${progressCount} עדכוני התקדמות`}
+                                >
+                                  <ClipboardList className="w-4 h-4" />
+                                  <span className="text-xs">({progressCount})</span>
+                                </button>
+                              )}
+                              <div className="flex-1 truncate">
+                                <span className="font-bold text-gray-900 dark:text-white">
+                                  {task.title}
+                                </span>
+                                {task.description && (
+                                  <span className="text-gray-500 dark:text-gray-400">
+                                    {' '}{task.description.length > 50 ? task.description.substring(0, 50) + '...' : task.description}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
                     )}
                     {visibleColumns.priority && (
                       <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        {user?.useAutoPriority ? (
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
-                            {getText(getDisplayPriority(task), 'priority')}
-                          </span>
-                        ) : (
-                          <select
-                            value={task.priority}
-                            onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
-                            className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
-                          >
-                            <option value="low">נמוכה</option>
-                            <option value="medium">בינונית</option>
-                            <option value="high">גבוהה</option>
-                          </select>
-                        )}
+                        {(() => {
+                          const dueBadge = getDueDateBadge(task.due_date);
+                          if (dueBadge) {
+                            return (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${dueBadge.colorClass}`}>
+                                {dueBadge.label}
+                              </span>
+                            );
+                          }
+                          if (user?.useAutoPriority) {
+                            return (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
+                                {getText(getDisplayPriority(task), 'priority')}
+                              </span>
+                            );
+                          }
+                          return (
+                            <select
+                              value={task.priority}
+                              onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
+                              className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
+                            >
+                              <option value="low">נמוכה</option>
+                              <option value="medium">בינונית</option>
+                              <option value="high">גבוהה</option>
+                            </select>
+                          );
+                        })()}
+                      </td>
+                    )}
+                    {visibleColumns.category && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {task.category_name || '-'}
                       </td>
                     )}
                     {visibleColumns.status && (
