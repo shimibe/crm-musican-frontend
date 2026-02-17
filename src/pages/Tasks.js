@@ -28,6 +28,7 @@ const Tasks = () => {
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [selectedTaskForProgress, setSelectedTaskForProgress] = useState(null);
   const [taskProgressCounts, setTaskProgressCounts] = useState({});
+  const [inlineDateEditTaskId, setInlineDateEditTaskId] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -198,7 +199,7 @@ const Tasks = () => {
 
       if (!data.customer_id) delete data.customer_id;
       if (!data.category_id) delete data.category_id;
-      if (!data.due_date) delete data.due_date;
+      if (!data.due_date) data.due_date = null;
       if (!data.priority) delete data.priority; // Don't send empty priority
       // Keep agent_note even if empty to allow clearing it
 
@@ -700,34 +701,70 @@ const Tasks = () => {
                     )}
                     {visibleColumns.priority && (
                       <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        {(() => {
-                          const dueBadge = getDueDateBadge(task.due_date);
-                          if (dueBadge) {
+                        {inlineDateEditTaskId === task.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="date"
+                              defaultValue={task.due_date ? task.due_date.split('T')[0] : ''}
+                              autoFocus
+                              onBlur={(e) => {
+                                const val = e.target.value;
+                                handleQuickUpdate(task.id, 'due_date', val || null);
+                                setInlineDateEditTaskId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Escape') setInlineDateEditTaskId(null);
+                              }}
+                              className="text-xs px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-32"
+                            />
+                          </div>
+                        ) : (
+                          (() => {
+                            const dueBadge = getDueDateBadge(task.due_date);
+                            if (dueBadge) {
+                              return (
+                                <span
+                                  onClick={() => setInlineDateEditTaskId(task.id)}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap cursor-pointer hover:opacity-80 ${dueBadge.colorClass}`}
+                                  title="לחץ לעריכת תאריך יעד"
+                                >
+                                  {dueBadge.label}
+                                </span>
+                              );
+                            }
+                            if (user?.useAutoPriority) {
+                              return (
+                                <span
+                                  onClick={() => setInlineDateEditTaskId(task.id)}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full cursor-pointer hover:opacity-80 ${getPriorityColor(getDisplayPriority(task))}`}
+                                  title="לחץ לעריכת תאריך יעד"
+                                >
+                                  {getText(getDisplayPriority(task), 'priority')}
+                                </span>
+                              );
+                            }
                             return (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ${dueBadge.colorClass}`}>
-                                {dueBadge.label}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <select
+                                  value={task.priority}
+                                  onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
+                                  className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
+                                >
+                                  <option value="low">נמוכה</option>
+                                  <option value="medium">בינונית</option>
+                                  <option value="high">גבוהה</option>
+                                </select>
+                                <button
+                                  onClick={() => setInlineDateEditTaskId(task.id)}
+                                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs"
+                                  title="הגדר תאריך יעד"
+                                >
+                                  📅
+                                </button>
+                              </div>
                             );
-                          }
-                          if (user?.useAutoPriority) {
-                            return (
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(getDisplayPriority(task))}`}>
-                                {getText(getDisplayPriority(task), 'priority')}
-                              </span>
-                            );
-                          }
-                          return (
-                            <select
-                              value={task.priority}
-                              onChange={(e) => handleQuickUpdate(task.id, 'priority', e.target.value)}
-                              className={`px-2 py-1 text-xs font-medium rounded-full border-0 cursor-pointer ${getPriorityColor(task.priority)}`}
-                            >
-                              <option value="low">נמוכה</option>
-                              <option value="medium">בינונית</option>
-                              <option value="high">גבוהה</option>
-                            </select>
-                          );
-                        })()}
+                          })()
+                        )}
                       </td>
                     )}
                     {visibleColumns.category && (
