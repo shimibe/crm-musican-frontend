@@ -427,11 +427,8 @@ const StudioBillingApp = () => {
 
 		let invoice = `🎙️ *חשבון אולפן הקלטות*\n\n`;
 
-		console.log("sortedInvoices", sortedInvoices);
-
 		const todayInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) === todayStr);
 		const pastInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) !== todayStr);
-		console.log("todayInvoices", todayInvoices);
 
 		if (todayInvoices.length > 0) {
 			// יש חשבון היום - מציג קודמים ואז חשבון היום
