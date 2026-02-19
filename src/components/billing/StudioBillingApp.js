@@ -427,8 +427,11 @@ const StudioBillingApp = () => {
 
 		let invoice = `🎙️ *חשבון אולפן הקלטות*\n\n`;
 
+		console.log("sortedInvoices", sortedInvoices);
+
 		const todayInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) === todayStr);
 		const pastInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) !== todayStr);
+		console.log("todayInvoices", todayInvoices);
 
 		if (todayInvoices.length > 0) {
 			// יש חשבון היום - מציג קודמים ואז חשבון היום
@@ -827,7 +830,11 @@ const StudioBillingApp = () => {
 						))}
 					</div>
 
-					<button onClick={generateInvoice} disabled={isGenerating} className="w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-lg hover:bg-blue-700 mb-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+					<button
+						onClick={generateInvoice}
+						disabled={isGenerating}
+						className="w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-lg hover:bg-blue-700 mb-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+					>
 						{isGenerating ? "⏳ יוצר חשבון..." : "🧾 צור חשבון"}
 					</button>
 
@@ -875,10 +882,18 @@ const StudioBillingApp = () => {
 							<div className="flex justify-between items-center mb-4">
 								<h3 className="text-lg font-bold text-blue-800 dark:text-blue-300">חשבון מוכן</h3>
 								<div className="flex gap-2">
-									<button onClick={() => markInvoicePaid(currentInvoiceId)} disabled={loadingPaidId === currentInvoiceId} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+									<button
+										onClick={() => markInvoicePaid(currentInvoiceId)}
+										disabled={loadingPaidId === currentInvoiceId}
+										className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+									>
 										<CheckCircle size={16} /> שולם
 									</button>
-									<button onClick={copyToClipboard} disabled={isCopied} className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+									<button
+										onClick={copyToClipboard}
+										disabled={isCopied}
+										className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+									>
 										<Copy size={16} /> {isCopied ? "✓ הועתק" : "העתק"}
 									</button>
 								</div>
@@ -923,12 +938,22 @@ const StudioBillingApp = () => {
 											<span className="font-bold dark:text-gray-200">₪{parseFloat(invoice.total).toFixed(0)}</span>
 											<div className="flex gap-1">
 												{!invoice.paid && (
-													<button onClick={() => markInvoicePaid(invoice.id, true)} disabled={loadingPaidId === invoice.id} className="p-1 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity" title="סמן כשולם">
+													<button
+														onClick={() => markInvoicePaid(invoice.id, true)}
+														disabled={loadingPaidId === invoice.id}
+														className="p-1 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+														title="סמן כשולם"
+													>
 														<CheckCircle size={14} />
 													</button>
 												)}
 												{invoice.paid && (
-													<button onClick={() => markInvoicePaid(invoice.id, false)} disabled={loadingPaidId === invoice.id} className="p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity" title="סמן כלא שולם">
+													<button
+														onClick={() => markInvoicePaid(invoice.id, false)}
+														disabled={loadingPaidId === invoice.id}
+														className="p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+														title="סמן כלא שולם"
+													>
 														<CheckCircle size={14} />
 													</button>
 												)}
@@ -1165,7 +1190,11 @@ const StudioBillingApp = () => {
 
 						{/* Buttons */}
 						<div className="flex gap-4 mt-6">
-							<button onClick={saveEditedInvoice} disabled={isSavingEdit} className="flex-1 p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+							<button
+								onClick={saveEditedInvoice}
+								disabled={isSavingEdit}
+								className="flex-1 p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+							>
 								{isSavingEdit ? "⏳ שומר..." : "💾 שמור שינויים"}
 							</button>
 							<button onClick={() => setShowEditModal(false)} className="flex-1 p-3 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 cursor-pointer">
