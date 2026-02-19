@@ -410,7 +410,9 @@ const StudioBillingApp = () => {
 			return dateA - dateB;
 		});
 
-		const todayStr = new Date().toISOString().split("T")[0];
+		const now = new Date();
+		const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+		const normalizeDate = (d) => (d ? d.slice(0, 10) : "");
 		const formatInvoiceEntry = (inv) => {
 			let entry = `${formatDateToHebrew(inv.invoice_date)}\n`;
 			entry += `${inv.start_time}-${inv.end_time}\n`;
@@ -425,8 +427,8 @@ const StudioBillingApp = () => {
 
 		let invoice = `🎙️ *חשבון אולפן הקלטות*\n\n`;
 
-		const todayInvoices = sortedInvoices.filter((inv) => inv.invoice_date === todayStr);
-		const pastInvoices = sortedInvoices.filter((inv) => inv.invoice_date !== todayStr);
+		const todayInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) === todayStr);
+		const pastInvoices = sortedInvoices.filter((inv) => normalizeDate(inv.invoice_date) !== todayStr);
 
 		if (todayInvoices.length > 0) {
 			// יש חשבון היום - מציג קודמים ואז חשבון היום
