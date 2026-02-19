@@ -48,10 +48,17 @@ const StudioBillingApp = () => {
 	// Debtors data
 	const [debtors, setDebtors] = useState([]);
 
+	// Button loading states
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [isCopied, setIsCopied] = useState(false);
+	const [isSavingEdit, setIsSavingEdit] = useState(false);
+	const [loadingPaidId, setLoadingPaidId] = useState(null);
+
 	// Load clients on mount
 	useEffect(() => {
 		loadClients();
 		loadCRMCustomers();
+		loadDebtors();
 	}, []);
 
 	// Close dropdown when clicking outside
@@ -322,16 +329,19 @@ const StudioBillingApp = () => {
 	};
 
 	const generateInvoice = async () => {
+		setIsGenerating(true);
 		try {
 			const duration = calculateDuration();
 			const currentTotal = calculateTotal();
 
 			if (!clientName.trim()) {
+				setIsGenerating(false);
 				alert("נא להזין שם לקוח");
 				return;
 			}
 
 			if (!startTime || !endTime) {
+				setIsGenerating(false);
 				alert("נא להזין שעות התחלה וסיום");
 				return;
 			}
@@ -383,6 +393,8 @@ const StudioBillingApp = () => {
 		} catch (error) {
 			console.error("Failed to create invoice:", error);
 			alert("שגיאה ביצירת החשבון: " + (error.response?.data?.error || error.message));
+		} finally {
+			setIsGenerating(false);
 		}
 	};
 
@@ -398,45 +410,43 @@ const StudioBillingApp = () => {
 			return dateA - dateB;
 		});
 
+		const todayStr = new Date().toISOString().split("T")[0];
+		const formatInvoiceEntry = (inv) => {
+			let entry = `${formatDateToHebrew(inv.invoice_date)}\n`;
+			entry += `${inv.start_time}-${inv.end_time}\n`;
+			entry += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
+			(inv.items || []).forEach((item) => {
+				if (item.description && item.price) {
+					entry += `${item.description} - *${parseFloat(item.price).toFixed(0)} ש"ח*\n`;
+				}
+			});
+			return entry;
+		};
+
 		let invoice = `🎙️ *חשבון אולפן הקלטות*\n\n`;
 
-		if (sortedInvoices.length > 1) {
-			invoice += `*חשבונות קודמים -*\n`;
-			sortedInvoices.slice(0, -1).forEach((inv) => {
-				invoice += `${formatDateToHebrew(inv.invoice_date)}\n`;
-				invoice += `${inv.start_time}-${inv.end_time}\n`;
-				invoice += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
+		const todayInvoices = sortedInvoices.filter((inv) => inv.invoice_date === todayStr);
+		const pastInvoices = sortedInvoices.filter((inv) => inv.invoice_date !== todayStr);
 
-				(inv.items || []).forEach((item) => {
-					if (item.description && item.price) {
-						invoice += `${item.description} - *${parseFloat(item.price).toFixed(0)} ש"ח*\n`;
-					}
+		if (todayInvoices.length > 0) {
+			// יש חשבון היום - מציג קודמים ואז חשבון היום
+			if (pastInvoices.length > 0) {
+				invoice += `*חשבונות קודמים -*\n`;
+				pastInvoices.forEach((inv) => {
+					invoice += formatInvoiceEntry(inv);
+					invoice += `\n`;
 				});
-				invoice += `\n`;
-			});
-
-			const lastInvoice = sortedInvoices[sortedInvoices.length - 1];
+			}
 			invoice += `*חשבון היום -*\n`;
-			invoice += `${formatDateToHebrew(lastInvoice.invoice_date)}\n`;
-			invoice += `${lastInvoice.start_time}-${lastInvoice.end_time}\n`;
-			invoice += `${formatHours(lastInvoice.duration)} שעות - *${parseFloat(lastInvoice.studio_price).toFixed(0)} ש"ח*\n`;
-
-			(lastInvoice.items || []).forEach((item) => {
-				if (item.description && item.price) {
-					invoice += `${item.description} - *${parseFloat(item.price).toFixed(0)} ש"ח*\n`;
-				}
+			todayInvoices.forEach((inv) => {
+				invoice += formatInvoiceEntry(inv);
 			});
 		} else {
-			const singleInvoice = invoices[0];
-			invoice += `*חשבון היום -*\n`;
-			invoice += `${formatDateToHebrew(singleInvoice.invoice_date)}\n`;
-			invoice += `${singleInvoice.start_time}-${singleInvoice.end_time}\n`;
-			invoice += `${formatHours(singleInvoice.duration)} שעות - *${parseFloat(singleInvoice.studio_price).toFixed(0)} ש"ח*\n`;
-
-			(singleInvoice.items || []).forEach((item) => {
-				if (item.description && item.price) {
-					invoice += `${item.description} - *${parseFloat(item.price).toFixed(0)} ש"ח*\n`;
-				}
+			// אין חשבון היום - כל החשבונות תחת "חשבונות פתוחים"
+			invoice += `*חשבונות פתוחים -*\n`;
+			sortedInvoices.forEach((inv) => {
+				invoice += formatInvoiceEntry(inv);
+				invoice += `\n`;
 			});
 		}
 
@@ -472,6 +482,7 @@ const StudioBillingApp = () => {
 	};
 
 	const markInvoicePaid = async (invoiceId, paid = true) => {
+		setLoadingPaidId(invoiceId);
 		try {
 			await billingApi.markInvoicePaid(invoiceId, paid);
 
@@ -484,6 +495,8 @@ const StudioBillingApp = () => {
 		} catch (error) {
 			console.error("Failed to mark invoice as paid:", error);
 			alert("שגיאה בעדכון סטטוס תשלום");
+		} finally {
+			setLoadingPaidId(null);
 		}
 	};
 
@@ -520,6 +533,7 @@ const StudioBillingApp = () => {
 	};
 
 	const saveEditedInvoice = async () => {
+		setIsSavingEdit(true);
 		try {
 			const editDuration = calculateEditDuration();
 
@@ -548,6 +562,8 @@ const StudioBillingApp = () => {
 		} catch (error) {
 			console.error("Failed to update invoice:", error);
 			alert("שגיאה בעדכון החשבון");
+		} finally {
+			setIsSavingEdit(false);
 		}
 	};
 
@@ -573,7 +589,8 @@ const StudioBillingApp = () => {
 
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(generatedInvoice);
-		//	alert("הטקסט הועתק ללוח! 📋");
+		setIsCopied(true);
+		setTimeout(() => setIsCopied(false), 500);
 	};
 
 	const openDebtorsModal = async () => {
@@ -808,8 +825,8 @@ const StudioBillingApp = () => {
 						))}
 					</div>
 
-					<button onClick={generateInvoice} className="w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-lg hover:bg-blue-700 mb-4 cursor-pointer">
-						🧾 צור חשבון
+					<button onClick={generateInvoice} disabled={isGenerating} className="w-full p-4 bg-blue-600 text-white font-bold rounded-lg text-lg hover:bg-blue-700 mb-4 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+						{isGenerating ? "⏳ יוצר חשבון..." : "🧾 צור חשבון"}
 					</button>
 
 					<button onClick={resetForm} className="w-full p-4 bg-gray-600 text-white font-bold rounded-lg text-lg hover:bg-gray-700 mb-4 cursor-pointer flex items-center justify-center gap-2">
@@ -817,7 +834,7 @@ const StudioBillingApp = () => {
 					</button>
 
 					<button onClick={openDebtorsModal} className="w-full p-4 bg-purple-600 text-white font-bold rounded-lg text-lg hover:bg-purple-700 cursor-pointer">
-						👥 רשימת חייבים ({debtors.length})
+						👥 רשימת חייבים ({debtors.length}){debtors.length > 0 && ` · ₪${debtors.reduce((sum, d) => sum + parseFloat(d.total_unpaid), 0).toFixed(0)}`}
 					</button>
 				</div>
 
@@ -856,11 +873,11 @@ const StudioBillingApp = () => {
 							<div className="flex justify-between items-center mb-4">
 								<h3 className="text-lg font-bold text-blue-800 dark:text-blue-300">חשבון מוכן</h3>
 								<div className="flex gap-2">
-									<button onClick={() => markInvoicePaid(currentInvoiceId)} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer">
+									<button onClick={() => markInvoicePaid(currentInvoiceId)} disabled={loadingPaidId === currentInvoiceId} className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
 										<CheckCircle size={16} /> שולם
 									</button>
-									<button onClick={copyToClipboard} className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-md cursor-pointer">
-										<Copy size={16} /> העתק
+									<button onClick={copyToClipboard} disabled={isCopied} className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+										<Copy size={16} /> {isCopied ? "✓ הועתק" : "העתק"}
 									</button>
 								</div>
 							</div>
@@ -904,12 +921,12 @@ const StudioBillingApp = () => {
 											<span className="font-bold dark:text-gray-200">₪{parseFloat(invoice.total).toFixed(0)}</span>
 											<div className="flex gap-1">
 												{!invoice.paid && (
-													<button onClick={() => markInvoicePaid(invoice.id, true)} className="p-1 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer" title="סמן כשולם">
+													<button onClick={() => markInvoicePaid(invoice.id, true)} disabled={loadingPaidId === invoice.id} className="p-1 bg-green-500 text-white rounded hover:bg-green-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity" title="סמן כשולם">
 														<CheckCircle size={14} />
 													</button>
 												)}
 												{invoice.paid && (
-													<button onClick={() => markInvoicePaid(invoice.id, false)} className="p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 cursor-pointer" title="סמן כלא שולם">
+													<button onClick={() => markInvoicePaid(invoice.id, false)} disabled={loadingPaidId === invoice.id} className="p-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity" title="סמן כלא שולם">
 														<CheckCircle size={14} />
 													</button>
 												)}
@@ -1146,8 +1163,8 @@ const StudioBillingApp = () => {
 
 						{/* Buttons */}
 						<div className="flex gap-4 mt-6">
-							<button onClick={saveEditedInvoice} className="flex-1 p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
-								💾 שמור שינויים
+							<button onClick={saveEditedInvoice} disabled={isSavingEdit} className="flex-1 p-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-opacity">
+								{isSavingEdit ? "⏳ שומר..." : "💾 שמור שינויים"}
 							</button>
 							<button onClick={() => setShowEditModal(false)} className="flex-1 p-3 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 cursor-pointer">
 								❌ ביטול
