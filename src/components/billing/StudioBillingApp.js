@@ -415,7 +415,7 @@ const StudioBillingApp = () => {
 		const normalizeDate = (d) => (d ? d.slice(0, 10) : "");
 		const formatInvoiceEntry = (inv) => {
 			let entry = `${formatDateToHebrew(inv.invoice_date)}\n`;
-			entry += `${inv.start_time}-${inv.end_time}\n`;
+			entry += `${inv.start_time.slice(0, 5)}-${inv.end_time.slice(0, 5)}\n`;
 			entry += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
 			(inv.items || []).forEach((item) => {
 				if (item.description && item.price) {
