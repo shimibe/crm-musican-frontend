@@ -351,8 +351,8 @@ const StudioBillingApp = () => {
 			const invoiceData = {
 				client_id: client.id,
 				invoice_date: date,
-				start_time: startTime,
-				end_time: endTime,
+				start_time: startTime || null,
+				end_time: endTime || null,
 				duration: duration,
 				hourly_rate: hourlyRate,
 				percent_discount: percentDiscount || 0,
@@ -409,8 +409,12 @@ const StudioBillingApp = () => {
 		const normalizeDate = (d) => (d ? d.slice(0, 10) : "");
 		const formatInvoiceEntry = (inv) => {
 			let entry = `${formatDateToHebrew(inv.invoice_date)}\n`;
-			entry += `${inv.start_time.slice(0, 5)}-${inv.end_time.slice(0, 5)}\n`;
-			entry += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
+			if (inv.start_time && inv.end_time) {
+				entry += `${inv.start_time.slice(0, 5)}-${inv.end_time.slice(0, 5)}\n`;
+			}
+			if (parseFloat(inv.duration) > 0) {
+				entry += `${formatHours(inv.duration)} שעות - *${parseFloat(inv.studio_price).toFixed(0)} ש"ח*\n`;
+			}
 			(inv.items || []).forEach((item) => {
 				if (item.description && item.price) {
 					entry += `${item.description} - *${parseFloat(item.price).toFixed(0)} ש"ח*\n`;
@@ -538,8 +542,8 @@ const StudioBillingApp = () => {
 
 			const invoiceData = {
 				invoice_date: editDate,
-				start_time: editStartTime,
-				end_time: editEndTime,
+				start_time: editStartTime || null,
+				end_time: editEndTime || null,
 				duration: editDuration,
 				hourly_rate: editHourlyRate,
 				percent_discount: editPercentDiscount || 0,
@@ -924,9 +928,11 @@ const StudioBillingApp = () => {
 									<div key={invoice.id} className={`flex justify-between items-center text-sm p-3 rounded ${invoice.paid ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"}`}>
 										<div className="flex-1">
 											<div className="font-medium dark:text-gray-200">{formatDateToHebrew(invoice.invoice_date)}</div>
-											<div className="text-xs text-gray-600 dark:text-gray-400">
-												{invoice.start_time}-{invoice.end_time} ({formatHours(invoice.duration)}ש)
-											</div>
+											{(invoice.start_time || invoice.end_time || parseFloat(invoice.duration) > 0) && (
+												<div className="text-xs text-gray-600 dark:text-gray-400">
+													{invoice.start_time && invoice.end_time ? `${invoice.start_time}-${invoice.end_time} ` : ""}{parseFloat(invoice.duration) > 0 ? `(${formatHours(invoice.duration)}ש)` : ""}
+												</div>
+											)}
 										</div>
 										<div className="flex items-center gap-2">
 											<span className="font-bold dark:text-gray-200">₪{parseFloat(invoice.total).toFixed(0)}</span>
