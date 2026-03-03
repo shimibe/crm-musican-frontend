@@ -11,7 +11,7 @@ const StudioBillingApp = () => {
 	const [percentDiscount, setPercentDiscount] = useState(localStorage.getItem("studioBilling_percentDiscount") || "");
 	const [shekelDiscount, setShekelDiscount] = useState(localStorage.getItem("studioBilling_shekelDiscount") || "");
 	const [additionalItems, setAdditionalItems] = useState(JSON.parse(localStorage.getItem("studioBilling_additionalItems") || "[]"));
-	const [hourlyRate, setHourlyRate] = useState(parseFloat(localStorage.getItem("studioBilling_hourlyRate")) || 250);
+	const [hourlyRate, setHourlyRate] = useState(() => { const r = parseFloat(localStorage.getItem("studioBilling_hourlyRate")); return isNaN(r) ? 250 : r; });
 
 	// Timer states
 	const [isTimerRunning, setIsTimerRunning] = useState(localStorage.getItem("studioBilling_isTimerRunning") === "true");
@@ -247,8 +247,8 @@ const StudioBillingApp = () => {
 	};
 
 	const updateHourlyRate = (value) => {
-		const rate = parseFloat(value) || 250;
-		setHourlyRate(rate);
+		const rate = parseFloat(value);
+		setHourlyRate(isNaN(rate) ? 250 : rate);
 	};
 
 	const startTimer = () => {
@@ -337,12 +337,6 @@ const StudioBillingApp = () => {
 			if (!clientName.trim()) {
 				setIsGenerating(false);
 				alert("נא להזין שם לקוח");
-				return;
-			}
-
-			if (!startTime || !endTime) {
-				setIsGenerating(false);
-				alert("נא להזין שעות התחלה וסיום");
 				return;
 			}
 
@@ -464,8 +458,12 @@ const StudioBillingApp = () => {
 
 		const unpaidTotal = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
 		const totalStudioHours = invoices.reduce((sum, inv) => sum + parseFloat(inv.duration), 0);
+		const totalStudioCost = invoices.reduce((sum, inv) => sum + parseFloat(inv.duration) * parseFloat(inv.hourly_rate), 0);
 
-		let serviceDescription = `${formatHours(totalStudioHours)} שעות אולפן`;
+		const parts = [];
+		if (totalStudioHours > 0 && totalStudioCost > 0) {
+			parts.push(`${formatHours(totalStudioHours)} שעות אולפן`);
+		}
 
 		const allAdditionalItems = [];
 		invoices.forEach((inv) => {
@@ -475,12 +473,11 @@ const StudioBillingApp = () => {
 		});
 
 		const additionalItemsNames = allAdditionalItems.filter((item) => item.description && item.price).map((item) => item.description);
-
 		if (additionalItemsNames.length > 0) {
-			serviceDescription += `, ${additionalItemsNames.join(", ")}`;
+			parts.push(...additionalItemsNames);
 		}
 
-		return `https://sbe-studio.com/pay?a=${Math.round(unpaidTotal)}&s=${encodeURI(serviceDescription)}`;
+		return `https://sbe-studio.com/pay?a=${Math.round(unpaidTotal)}&s=${encodeURI(parts.join(", "))}`;
 	};
 
 	const markInvoicePaid = async (invoiceId, paid = true) => {
@@ -526,7 +523,7 @@ const StudioBillingApp = () => {
 		setEditingInvoice(invoice);
 		setEditStartTime(invoice.start_time);
 		setEditEndTime(invoice.end_time);
-		setEditDate(invoice.invoice_date);
+		setEditDate(invoice.invoice_date ? invoice.invoice_date.split("T")[0] : "");
 		setEditPercentDiscount(invoice.percent_discount);
 		setEditShekelDiscount(invoice.shekel_discount);
 		setEditAdditionalItems(invoice.items || []);
@@ -1104,7 +1101,7 @@ const StudioBillingApp = () => {
 								<input
 									type="number"
 									value={editHourlyRate}
-									onChange={(e) => setEditHourlyRate(parseFloat(e.target.value) || 250)}
+									onChange={(e) => { const r = parseFloat(e.target.value); setEditHourlyRate(isNaN(r) ? 250 : r); }}
 									className="w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-white"
 									min="0"
 								/>
