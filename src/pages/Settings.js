@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
-import { User, Key, Save, Phone, Clock, RefreshCw, DollarSign } from 'lucide-react';
+import { User, Key, Save, Phone, Clock, RefreshCw, DollarSign, Bell } from 'lucide-react';
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
@@ -24,6 +24,12 @@ const Settings = () => {
   });
   const [commissionRate, setCommissionRate] = useState(user?.preferences?.commissionRate ?? 5);
   const [defaultSalesUserId, setDefaultSalesUserId] = useState(user?.preferences?.defaultSalesUserId ?? '');
+  const [emailNotifications, setEmailNotifications] = useState({
+    new_sale: user?.preferences?.email_notifications?.new_sale ?? true,
+    new_task: user?.preferences?.email_notifications?.new_task ?? true,
+    shift_start: user?.preferences?.email_notifications?.shift_start ?? true,
+    shift_end: user?.preferences?.email_notifications?.shift_end ?? true,
+  });
   const [users, setUsers] = useState([]);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -51,6 +57,12 @@ const Settings = () => {
       });
       setCommissionRate(user?.preferences?.commissionRate ?? 5);
       setDefaultSalesUserId(user?.preferences?.defaultSalesUserId ?? '');
+      setEmailNotifications({
+        new_sale: user?.preferences?.email_notifications?.new_sale ?? true,
+        new_task: user?.preferences?.email_notifications?.new_task ?? true,
+        shift_start: user?.preferences?.email_notifications?.shift_start ?? true,
+        shift_end: user?.preferences?.email_notifications?.shift_end ?? true,
+      });
     }
   }, [user]);
 
@@ -177,6 +189,26 @@ const Settings = () => {
     } catch (error) {
       console.error('Error updating auto-refresh settings:', error);
       setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות רענון אוטומטי' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailNotificationsSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const result = await api.patch(`/users/${user.id}/preferences`, {
+        preferences: { email_notifications: emailNotifications },
+      });
+
+      updateUser({ ...user, preferences: result.data.preferences });
+      setMessage({ type: 'success', text: 'הגדרות התראות עודכנו בהצלחה' });
+    } catch (error) {
+      console.error('Error updating notification settings:', error);
+      setMessage({ type: 'error', text: 'שגיאה בעדכון הגדרות התראות' });
     } finally {
       setLoading(false);
     }
@@ -574,6 +606,54 @@ const Settings = () => {
             <Save className="w-4 h-4" />
             שמור הגדרות
           </button>
+        </form>
+      </div>
+
+      {/* Email Notification Preferences */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              התראות אימייל
+            </h2>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            בחר אילו אירועים ישלחו אליך התראה במייל
+          </p>
+        </div>
+        <form onSubmit={handleEmailNotificationsSubmit} className="p-6 space-y-3">
+          {[
+            { key: 'new_sale', label: 'מכירה חדשה' },
+            { key: 'new_task', label: 'משימה חדשה' },
+            { key: 'shift_start', label: 'התחלת משמרת' },
+            { key: 'shift_end', label: 'סיום משמרת' },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id={`notif_${key}`}
+                checked={emailNotifications[key]}
+                onChange={(e) =>
+                  setEmailNotifications({ ...emailNotifications, [key]: e.target.checked })
+                }
+                className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <label htmlFor={`notif_${key}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {label}
+              </label>
+            </div>
+          ))}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              שמור הגדרות
+            </button>
+          </div>
         </form>
       </div>
 
