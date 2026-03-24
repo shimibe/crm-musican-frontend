@@ -3,7 +3,7 @@ import { RefreshCw, Clock, PauseCircle } from 'lucide-react';
 import { useAutoRefresh } from '../../contexts/AutoRefreshContext';
 
 const AutoRefreshIndicator = () => {
-  const { enabled, isUserActive, shouldRefreshPage, getTimeUntilRefresh, refresh } = useAutoRefresh();
+  const { enabled, isUserActive, shouldRefreshPage, getTimeUntilRefresh, forceRefresh } = useAutoRefresh();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [, forceUpdate] = useState({});
 
@@ -35,7 +35,7 @@ const AutoRefreshIndicator = () => {
   };
 
   const handleManualRefresh = () => {
-    refresh();
+    forceRefresh();
   };
 
   const timeUntilRefresh = getTimeUntilRefresh();

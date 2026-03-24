@@ -57,6 +57,14 @@ export const AutoRefreshProvider = ({ children }) => {
     window.location.reload();
   }, [shouldRefreshPage, enabled, isUserActive]);
 
+  // Manual refresh - bypasses activity check
+  const forceRefresh = useCallback(() => {
+    const hasOpenModal = document.querySelector('[role="dialog"], .fixed.inset-0.bg-gray-600, .fixed.inset-0.z-50');
+    if (hasOpenModal) return;
+    setLastRefreshTime(Date.now());
+    window.location.reload();
+  }, []);
+
   // Detect when user returns from inactivity and refresh immediately
   useEffect(() => {
     if (!enabled || !shouldRefreshPage) return;
@@ -127,6 +135,7 @@ export const AutoRefreshProvider = ({ children }) => {
     nextRefreshTime,
     getTimeUntilRefresh,
     refresh,
+    forceRefresh,
   };
 
   return (
