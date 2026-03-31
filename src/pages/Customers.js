@@ -232,7 +232,7 @@ const Customers = () => {
 
   const exportToCSV = () => {
     // Prepare CSV headers
-    const headers = ['שם', 'טלפון', 'אימייל', 'קטגוריה', 'תחומי עניין', 'סטטוס', 'הערות'];
+    const headers = ['שם', 'שם פרטי', 'שם משפחה', 'טלפון', 'אימייל', 'קטגוריה', 'תחומי עניין', 'סטטוס', 'הערות'];
 
     // Prepare CSV rows
     const rows = customers.map(customer => {
@@ -240,8 +240,14 @@ const Customers = () => {
         ? customer.interests.map(i => i.name || availableInterests.find(ai => ai.id === i)?.name || i).join('; ')
         : '';
 
+      const nameParts = (customer.name || '').trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ');
+
       return [
         customer.name,
+        firstName,
+        lastName,
         customer.phone || '',
         customer.email || '',
         customer.category === 'studio' ? 'אולפן' : 'מוזיקן',
