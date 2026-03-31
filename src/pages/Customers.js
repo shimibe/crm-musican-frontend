@@ -248,7 +248,7 @@ const Customers = () => {
         customer.name,
         firstName,
         lastName,
-        customer.phone || '',
+        customer.phone.replace(/\s|-/g, '') || '',
         customer.email || '',
         customer.category === 'studio' ? 'אולפן' : 'מוזיקן',
         interests,
