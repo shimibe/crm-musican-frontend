@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import React, { useState, useEffect } from "react";
 import { Play, Pause, Square, Copy, Plus, Trash2, CheckCircle, X, RotateCcw } from "lucide-react";
 import * as billingApi from "../../services/studioBillingApi";
@@ -243,7 +245,7 @@ const StudioBillingApp = () => {
 
 	const formatHours = (hours) => {
 		const num = parseFloat(hours) || 0;
-		return num % 1 === 0 ? num.toString() : num.toFixed(1);
+		return num % 1 === 0 ? num.toString() : parseFloat(num.toFixed(2)).toString();
 	};
 
 	const updateHourlyRate = (value) => {
