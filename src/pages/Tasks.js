@@ -29,6 +29,7 @@ const Tasks = () => {
   const [selectedTaskForProgress, setSelectedTaskForProgress] = useState(null);
   const [taskProgressCounts, setTaskProgressCounts] = useState({});
   const [inlineDateEditTaskId, setInlineDateEditTaskId] = useState(null);
+  const [completingTaskIds, setCompletingTaskIds] = useState(new Set());
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -231,6 +232,8 @@ const Tasks = () => {
   };
 
   const handleToggleComplete = async (task) => {
+    if (completingTaskIds.has(task.id)) return;
+    setCompletingTaskIds(prev => new Set([...prev, task.id]));
     try {
       const newStatus = task.status === 'closed' ? 'open' : 'closed';
       await api.put(`/tasks/${task.id}`, { status: newStatus });
@@ -238,6 +241,12 @@ const Tasks = () => {
     } catch (error) {
       console.error('Error updating task status:', error);
       alert('שגיאה בעדכון סטטוס משימה');
+    } finally {
+      setCompletingTaskIds(prev => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
     }
   };
 
@@ -816,14 +825,24 @@ const Tasks = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleToggleComplete(task)}
-                          className={`${
-                            task.status === 'closed'
+                          disabled={completingTaskIds.has(task.id)}
+                          className={`transition-opacity ${
+                            completingTaskIds.has(task.id)
+                              ? 'opacity-50 cursor-not-allowed'
+                              : task.status === 'closed'
                               ? 'text-green-600 hover:text-green-700 dark:text-green-400'
                               : 'text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400'
                           }`}
                           title={task.status === 'closed' ? 'סמן כפתוח' : 'סמן כהושלם'}
                         >
-                          <CheckCircle className={`w-4 h-4 ${task.status === 'closed' ? 'fill-current' : ''}`} />
+                          {completingTaskIds.has(task.id) ? (
+                            <svg className="w-4 h-4 animate-spin text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                            </svg>
+                          ) : (
+                            <CheckCircle className={`w-4 h-4 ${task.status === 'closed' ? 'fill-current' : ''}`} />
+                          )}
                         </button>
                         <button
                           onClick={() => handleEdit(task)}
