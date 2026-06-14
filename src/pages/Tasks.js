@@ -646,8 +646,12 @@ const Tasks = () => {
                 {getFilteredAndSortedTasks().map((task) => (
                   <tr
                     key={task.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={() => handleEdit(task)}
+                    className={`cursor-pointer transition-colors duration-150 ${
+                      completingTaskIds.has(task.id)
+                        ? 'bg-green-50 dark:bg-green-900/20 opacity-60 pointer-events-none'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                    onClick={() => !completingTaskIds.has(task.id) && handleEdit(task)}
                   >
                     {visibleColumns.customer && (
                       <td
