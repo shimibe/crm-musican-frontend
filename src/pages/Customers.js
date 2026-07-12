@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
+import CustomerMergeModal from '../components/customers/CustomerMergeModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 import CustomerTasksModal from '../components/customers/CustomerTasksModal';
 
@@ -20,6 +21,7 @@ const Customers = () => {
   const [duplicateCustomer, setDuplicateCustomer] = useState(null);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [mergeCustomers, setMergeCustomers] = useState(null);
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
   const [formData, setFormData] = useState({
@@ -341,6 +343,16 @@ const Customers = () => {
             >
               <Send className="w-4 h-4" />
               שלח קמפיין ({selectedCustomers.length})
+            </button>
+          )}
+          {selectedCustomers.length === 2 && (
+            <button
+              onClick={() => setMergeCustomers([selectedCustomers[0], selectedCustomers[1]])}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
+              title="מזג 2 לקוחות נבחרים"
+            >
+              <GitMerge className="w-4 h-4" />
+              מזג לקוחות
             </button>
           )}
           {user?.role === 'admin' && (
@@ -897,6 +909,19 @@ const Customers = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Merge Modal */}
+      {mergeCustomers && (
+        <CustomerMergeModal
+          customers={mergeCustomers}
+          onClose={() => setMergeCustomers(null)}
+          onMerged={() => {
+            setMergeCustomers(null);
+            setSelectedCustomers([]);
+            loadCustomers();
+          }}
+        />
       )}
 
       {/* Campaign Modal */}
