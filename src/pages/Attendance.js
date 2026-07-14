@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Clock, Play, Square, Plus, Edit, Trash2, Download, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import * as XLSX from 'xlsx';
 
 const Attendance = () => {
@@ -26,6 +27,7 @@ const Attendance = () => {
 
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Initialize filters from localStorage or use current month as default
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -140,19 +142,24 @@ const Attendance = () => {
     }
   };
 
-  const handleEndShift = async () => {
-    if (!window.confirm('האם אתה בטוח שברצונך לסיים את המשמרת?')) return;
-
-    try {
-      await api.post('/attendance/shifts/end');
-      await checkActiveShift();
-      await loadShifts();
-      // Trigger sidebar update by reloading the page
-      window.location.reload();
-    } catch (error) {
-      console.error('Error ending shift:', error);
-      alert(error.response?.data?.error || 'שגיאה בסיום משמרת');
-    }
+  const handleEndShift = () => {
+    setConfirmDialog({
+      title: 'סיום משמרת',
+      message: 'האם אתה בטוח שברצונך לסיים את המשמרת?',
+      confirmLabel: 'סיים',
+      onConfirm: async () => {
+        try {
+          await api.post('/attendance/shifts/end');
+          setConfirmDialog(null);
+          await checkActiveShift();
+          await loadShifts();
+          window.location.reload();
+        } catch (error) {
+          console.error('Error ending shift:', error);
+          alert(error.response?.data?.error || 'שגיאה בסיום משמרת');
+        }
+      },
+    });
   };
 
   const handleManualEntry = () => {
@@ -210,16 +217,21 @@ const Attendance = () => {
     }
   };
 
-  const handleDeleteShift = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק משמרת זו?')) return;
-
-    try {
-      await api.delete(`/attendance/shifts/${id}`);
-      await loadShifts();
-    } catch (error) {
-      console.error('Error deleting shift:', error);
-      alert(error.response?.data?.error || 'שגיאה במחיקת משמרת');
-    }
+  const handleDeleteShift = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת משמרת',
+      message: 'האם אתה בטוח שברצונך למחוק משמרת זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/attendance/shifts/${id}`);
+          setConfirmDialog(null);
+          await loadShifts();
+        } catch (error) {
+          console.error('Error deleting shift:', error);
+          alert(error.response?.data?.error || 'שגיאה במחיקת משמרת');
+        }
+      },
+    });
   };
 
   const handleInlineEdit = (shiftId, field, currentValue) => {
@@ -838,6 +850,13 @@ const Attendance = () => {
             </form>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel={confirmDialog.confirmLabel || 'מחק'}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

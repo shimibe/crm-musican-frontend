@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, Clipb
 import { useAuth } from '../contexts/AuthContext';
 import CustomerModal from '../components/tasks/CustomerModal';
 import ColumnToggle from '../components/common/ColumnToggle';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import ProgressModal from '../components/tasks/ProgressModal';
 
 const Tasks = () => {
@@ -30,6 +31,7 @@ const Tasks = () => {
   const [taskProgressCounts, setTaskProgressCounts] = useState({});
   const [inlineDateEditTaskId, setInlineDateEditTaskId] = useState(null);
   const [completingTaskIds, setCompletingTaskIds] = useState(new Set());
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -219,16 +221,21 @@ const Tasks = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק משימה זו?')) return;
-
-    try {
-      await api.delete(`/tasks/${id}`);
-      loadData();
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      alert('שגיאה במחיקת משימה');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת משימה',
+      message: 'האם אתה בטוח שברצונך למחוק משימה זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/tasks/${id}`);
+          setConfirmDialog(null);
+          loadData();
+        } catch (error) {
+          console.error('Error deleting task:', error);
+          alert('שגיאה במחיקת משימה');
+        }
+      },
+    });
   };
 
   const handleToggleComplete = async (task) => {
@@ -1095,6 +1102,13 @@ const Tasks = () => {
             </form>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

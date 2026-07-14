@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerModal from '../components/tasks/CustomerModal';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ const Sales = () => {
   const [editingValue, setEditingValue] = useState('');
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
   const [formData, setFormData] = useState({
@@ -159,17 +161,22 @@ const Sales = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק מכירה זו?')) return;
-
-    try {
-      await api.delete(`/sales/${id}`);
-      loadSales();
-      loadPendingInvoiceCount();
-    } catch (error) {
-      console.error('Error deleting sale:', error);
-      alert('שגיאה במחיקת מכירה');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת מכירה',
+      message: 'האם אתה בטוח שברצונך למחוק מכירה זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/sales/${id}`);
+          setConfirmDialog(null);
+          loadSales();
+          loadPendingInvoiceCount();
+        } catch (error) {
+          console.error('Error deleting sale:', error);
+          alert('שגיאה במחיקת מכירה');
+        }
+      },
+    });
   };
 
   const handleEdit = (sale) => {
@@ -877,6 +884,14 @@ const Sales = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
 
       {/* Customer Modal */}

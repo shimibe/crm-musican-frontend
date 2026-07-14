@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import CustomerMergeModal from '../components/customers/CustomerMergeModal';
 import ColumnToggle from '../components/common/ColumnToggle';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import CustomerTasksModal from '../components/customers/CustomerTasksModal';
 
 const Customers = () => {
@@ -24,6 +25,7 @@ const Customers = () => {
   const [mergeCustomers, setMergeCustomers] = useState(null);
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -185,16 +187,21 @@ const Customers = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק לקוח זה?')) return;
-    
-    try {
-      await api.delete(`/customers/${id}`);
-      loadCustomers();
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-      alert('שגיאה במחיקת לקוח');
-    }
+  const handleDelete = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת לקוח',
+      message: 'האם אתה בטוח שברצונך למחוק לקוח זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/customers/${id}`);
+          setConfirmDialog(null);
+          loadCustomers();
+        } catch (error) {
+          console.error('Error deleting customer:', error);
+          alert('שגיאה במחיקת לקוח');
+        }
+      },
+    });
   };
 
   const handleEdit = (customer) => {
@@ -940,6 +947,13 @@ const Customers = () => {
         }}
         customer={selectedCustomerForTasks}
       />
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 };

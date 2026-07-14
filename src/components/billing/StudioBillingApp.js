@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Play, Pause, Square, Copy, Plus, Trash2, CheckCircle, X, RotateCcw } from "lucide-react";
 import * as billingApi from "../../services/studioBillingApi";
 import api from "../../utils/api";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 const StudioBillingApp = () => {
 	const [clientName, setClientName] = useState(localStorage.getItem("studioBilling_clientName") || "");
@@ -46,6 +47,7 @@ const StudioBillingApp = () => {
 	const [editShekelDiscount, setEditShekelDiscount] = useState("");
 	const [editAdditionalItems, setEditAdditionalItems] = useState([]);
 	const [editHourlyRate, setEditHourlyRate] = useState(250);
+	const [confirmDialog, setConfirmDialog] = useState(null);
 
 	// Debtors data
 	const [debtors, setDebtors] = useState([]);
@@ -161,43 +163,46 @@ const StudioBillingApp = () => {
 	};
 
 	const resetForm = () => {
-		if (!window.confirm("האם אתה בטוח שברצונך לאפס את כל הנתונים?")) {
-			return;
-		}
+		setConfirmDialog({
+			title: 'איפוס נתונים',
+			message: 'האם אתה בטוח שברצונך לאפס את כל הנתונים?',
+			confirmLabel: 'אפס',
+			onConfirm: () => {
+				// Reset all states to initial values
+				setClientName("");
+				setCustomerSearchTerm("");
+				setShowCustomerDropdown(false);
+				setStartTime("");
+				setEndTime("");
+				setDate(new Date().toISOString().split("T")[0]);
+				setPercentDiscount("");
+				setShekelDiscount("");
+				setHourlyRate(250);
+				setAdditionalItems([]);
+				setIsTimerRunning(false);
+				setTimerStart(null);
+				setElapsedTime(0);
+				setSelectedClient(null);
+				setGeneratedInvoice("");
+				setPaymentLink("");
+				setCurrentInvoiceId(null);
 
-		// Reset all states to initial values
-		setClientName("");
-		setCustomerSearchTerm("");
-		setShowCustomerDropdown(false);
-		setStartTime("");
-		setEndTime("");
-		setDate(new Date().toISOString().split("T")[0]);
-		setPercentDiscount("");
-		setShekelDiscount("");
-		setHourlyRate(250);
-		setAdditionalItems([]);
-		setIsTimerRunning(false);
-		setTimerStart(null);
-		setElapsedTime(0);
-		setSelectedClient(null);
-		setGeneratedInvoice("");
-		setPaymentLink("");
-		setCurrentInvoiceId(null);
+				// Clear localStorage
+				localStorage.removeItem("studioBilling_clientName");
+				localStorage.removeItem("studioBilling_startTime");
+				localStorage.removeItem("studioBilling_endTime");
+				localStorage.removeItem("studioBilling_date");
+				localStorage.removeItem("studioBilling_percentDiscount");
+				localStorage.removeItem("studioBilling_shekelDiscount");
+				localStorage.removeItem("studioBilling_hourlyRate");
+				localStorage.removeItem("studioBilling_additionalItems");
+				localStorage.removeItem("studioBilling_isTimerRunning");
+				localStorage.removeItem("studioBilling_timerStart");
+				localStorage.removeItem("studioBilling_elapsedTime");
 
-		// Clear localStorage
-		localStorage.removeItem("studioBilling_clientName");
-		localStorage.removeItem("studioBilling_startTime");
-		localStorage.removeItem("studioBilling_endTime");
-		localStorage.removeItem("studioBilling_date");
-		localStorage.removeItem("studioBilling_percentDiscount");
-		localStorage.removeItem("studioBilling_shekelDiscount");
-		localStorage.removeItem("studioBilling_hourlyRate");
-		localStorage.removeItem("studioBilling_additionalItems");
-		localStorage.removeItem("studioBilling_isTimerRunning");
-		localStorage.removeItem("studioBilling_timerStart");
-		localStorage.removeItem("studioBilling_elapsedTime");
-
-		//		alert("הנתונים אופסו בהצלחה! 🔄");
+				setConfirmDialog(null);
+			},
+		});
 	};
 
 	// Timer effect
@@ -505,24 +510,24 @@ const StudioBillingApp = () => {
 		}
 	};
 
-	const deleteInvoice = async (invoiceId) => {
-		if (!window.confirm("האם אתה בטוח שברצונך למחוק את החשבון?")) {
-			return;
-		}
-
-		try {
-			await billingApi.deleteInvoice(invoiceId);
-
-			if (selectedClient) {
-				await loadClientInvoices(selectedClient.id);
-			}
-			await loadClients();
-
-			//		alert("החשבון נמחק בהצלחה 🗑️");
-		} catch (error) {
-			console.error("Failed to delete invoice:", error);
-			alert("שגיאה במחיקת החשבון");
-		}
+	const deleteInvoice = (invoiceId) => {
+		setConfirmDialog({
+			title: 'מחיקת חשבון',
+			message: 'האם אתה בטוח שברצונך למחוק את החשבון?',
+			onConfirm: async () => {
+				try {
+					await billingApi.deleteInvoice(invoiceId);
+					setConfirmDialog(null);
+					if (selectedClient) {
+						await loadClientInvoices(selectedClient.id);
+					}
+					await loadClients();
+				} catch (error) {
+					console.error("Failed to delete invoice:", error);
+					alert("שגיאה במחיקת החשבון");
+				}
+			},
+		});
 	};
 
 	const startEditInvoice = (invoice) => {
@@ -636,32 +641,37 @@ const StudioBillingApp = () => {
 		}
 	};
 
-	const markAllDebtorInvoicesPaid = async (clientId) => {
-		if (!window.confirm("האם אתה בטוח שברצונך לסמן את כל החשבונות כשולמו?")) {
-			return;
-		}
+	const markAllDebtorInvoicesPaid = (clientId) => {
+		setConfirmDialog({
+			title: 'סימון חשבונות כשולמו',
+			message: 'האם אתה בטוח שברצונך לסמן את כל החשבונות כשולמו?',
+			confirmLabel: 'סמן כשולמו',
+			onConfirm: async () => {
+				try {
+					// Get all unpaid invoices for this client
+					const unpaidInvoices = await billingApi.getInvoices({
+						client_id: clientId,
+						paid: false,
+					});
 
-		try {
-			// Get all unpaid invoices for this client
-			const unpaidInvoices = await billingApi.getInvoices({
-				client_id: clientId,
-				paid: false,
-			});
+					// Mark each as paid
+					for (const invoice of unpaidInvoices) {
+						await billingApi.markInvoicePaid(invoice.id, true);
+					}
 
-			// Mark each as paid
-			for (const invoice of unpaidInvoices) {
-				await billingApi.markInvoicePaid(invoice.id, true);
-			}
+					setConfirmDialog(null);
 
-			// Reload data
-			await loadDebtors();
-			await loadClients();
+					// Reload data
+					await loadDebtors();
+					await loadClients();
 
-			alert(`${unpaidInvoices.length} חשבונות סומנו כשולמו ✅`);
-		} catch (error) {
-			console.error("Failed to mark invoices as paid:", error);
-			alert("שגיאה בעדכון חשבונות");
-		}
+					alert(`${unpaidInvoices.length} חשבונות סומנו כשולמו ✅`);
+				} catch (error) {
+					console.error("Failed to mark invoices as paid:", error);
+					alert("שגיאה בעדכון חשבונות");
+				}
+			},
+		});
 	};
 
 	return (
@@ -1206,6 +1216,13 @@ const StudioBillingApp = () => {
 					</div>
 				</div>
 			)}
+		{confirmDialog && (
+			<ConfirmDialog
+				{...confirmDialog}
+				confirmLabel={confirmDialog.confirmLabel || 'אישור'}
+				onCancel={() => setConfirmDialog(null)}
+			/>
+		)}
 		</div>
 	);
 };

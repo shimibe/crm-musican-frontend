@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit2, Trash2, Mail, MessageSquare, X } from 'lucide-react';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const CampaignTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -11,6 +12,7 @@ const CampaignTemplates = () => {
     name: '',
     type: 'email' // 'email' או 'whatsapp'
   });
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   useEffect(() => {
     loadTemplates();
@@ -51,19 +53,21 @@ const CampaignTemplates = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (template) => {
-    if (!window.confirm(`האם אתה בטוח שברצונך למחוק את התבנית "${template.name}"?`)) {
-      return;
-    }
-
-    try {
-      await api.delete(`/campaign-templates/${template.id}`);
-      alert('התבנית נמחקה בהצלחה');
-      loadTemplates();
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      alert('שגיאה במחיקת תבנית');
-    }
+  const handleDelete = (template) => {
+    setConfirmDialog({
+      title: 'מחיקת תבנית',
+      message: `האם אתה בטוח שברצונך למחוק את התבנית "${template.name}"?`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/campaign-templates/${template.id}`);
+          setConfirmDialog(null);
+          loadTemplates();
+        } catch (error) {
+          console.error('Error deleting template:', error);
+          alert('שגיאה במחיקת תבנית');
+        }
+      },
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -314,6 +318,13 @@ const CampaignTemplates = () => {
             </form>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

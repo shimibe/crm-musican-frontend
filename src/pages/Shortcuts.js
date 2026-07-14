@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link2, Plus, Edit, Trash2, Copy, Check, ExternalLink, Sliders, X } from 'lucide-react';
 import api from '../utils/api';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const Shortcuts = () => {
   const [shortcuts, setShortcuts] = useState([]);
@@ -19,6 +20,7 @@ const Shortcuts = () => {
     variables: [],
   });
   const [newVariable, setNewVariable] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Load shortcuts from server
   useEffect(() => {
@@ -79,16 +81,21 @@ const Shortcuts = () => {
     }
   };
 
-  const handleDeleteShortcut = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק קיצור זה?')) return;
-
-    try {
-      await api.delete(`/shortcuts/${id}`);
-      loadShortcuts();
-    } catch (error) {
-      console.error('Error deleting shortcut:', error);
-      alert('שגיאה במחיקת הקיצור');
-    }
+  const handleDeleteShortcut = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת קיצור',
+      message: 'האם אתה בטוח שברצונך למחוק קיצור זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/shortcuts/${id}`);
+          setConfirmDialog(null);
+          loadShortcuts();
+        } catch (error) {
+          console.error('Error deleting shortcut:', error);
+          alert('שגיאה במחיקת הקיצור');
+        }
+      },
+    });
   };
 
   const copyToClipboard = async (text, id) => {
@@ -497,6 +504,13 @@ const Shortcuts = () => {
             </div>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

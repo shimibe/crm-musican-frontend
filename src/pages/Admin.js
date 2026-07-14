@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ const Admin = () => {
   const [apiTokens, setApiTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   // User modal states
   const [showUserModal, setShowUserModal] = useState(false);
@@ -298,16 +300,21 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק קטגוריה זו?')) return;
-
-    try {
-      await api.delete(`/categories/${id}`);
-      loadData();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      alert('שגיאה במחיקת קטגוריה');
-    }
+  const handleDeleteCategory = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת קטגוריה',
+      message: 'האם אתה בטוח שברצונך למחוק קטגוריה זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/categories/${id}`);
+          setConfirmDialog(null);
+          loadData();
+        } catch (error) {
+          console.error('Error deleting category:', error);
+          alert('שגיאה במחיקת קטגוריה');
+        }
+      },
+    });
   };
 
   // Interest handlers
@@ -346,16 +353,21 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteInterest = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק תחום עניין זה?')) return;
-
-    try {
-      await api.delete(`/interests/${id}`);
-      loadData();
-    } catch (error) {
-      console.error('Error deleting interest:', error);
-      alert('שגיאה במחיקת תחום עניין');
-    }
+  const handleDeleteInterest = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת תחום עניין',
+      message: 'האם אתה בטוח שברצונך למחוק תחום עניין זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/interests/${id}`);
+          setConfirmDialog(null);
+          loadData();
+        } catch (error) {
+          console.error('Error deleting interest:', error);
+          alert('שגיאה במחיקת תחום עניין');
+        }
+      },
+    });
   };
 
   // API Token handlers
@@ -418,16 +430,21 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteToken = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק API token זה?')) return;
-
-    try {
-      await api.delete(`/admin/api-tokens/${id}`);
-      loadApiTokens();
-    } catch (error) {
-      console.error('Error deleting API token:', error);
-      alert('שגיאה במחיקת API token');
-    }
+  const handleDeleteToken = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת API Token',
+      message: 'האם אתה בטוח שברצונך למחוק API token זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/admin/api-tokens/${id}`);
+          setConfirmDialog(null);
+          loadApiTokens();
+        } catch (error) {
+          console.error('Error deleting API token:', error);
+          alert('שגיאה במחיקת API token');
+        }
+      },
+    });
   };
 
   const copyToClipboard = async () => {
@@ -497,16 +514,21 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteTemplate = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק תבנית זו?')) return;
-
-    try {
-      await api.delete(`/campaign-templates/${id}`);
-      loadTemplates();
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      alert('שגיאה במחיקת תבנית');
-    }
+  const handleDeleteTemplate = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת תבנית',
+      message: 'האם אתה בטוח שברצונך למחוק תבנית זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/campaign-templates/${id}`);
+          setConfirmDialog(null);
+          loadTemplates();
+        } catch (error) {
+          console.error('Error deleting template:', error);
+          alert('שגיאה במחיקת תבנית');
+        }
+      },
+    });
   };
 
   if (loading) {
@@ -1588,6 +1610,13 @@ const Admin = () => {
             </form>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

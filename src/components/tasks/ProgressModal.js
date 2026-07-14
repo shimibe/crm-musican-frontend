@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { X, Plus, Trash2, Edit2, Save } from 'lucide-react';
+import ConfirmDialog from '../common/ConfirmDialog';
 
 const ProgressModal = ({ show, onClose, task }) => {
   const [progressUpdates, setProgressUpdates] = useState([]);
@@ -13,6 +14,7 @@ const ProgressModal = ({ show, onClose, task }) => {
   const [editingProgressId, setEditingProgressId] = useState(null);
   const [editingProgressData, setEditingProgressData] = useState({ title: '', update_date: '' });
   const [editingAgentNote, setEditingAgentNote] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [agentNoteValue, setAgentNoteValue] = useState('');
 
   useEffect(() => {
@@ -73,16 +75,21 @@ const ProgressModal = ({ show, onClose, task }) => {
     }
   };
 
-  const handleDeleteProgress = async (id) => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק התקדמות זו?')) return;
-
-    try {
-      await api.delete(`/tasks/${task.id}/progress/${id}`);
-      loadProgressUpdates();
-    } catch (error) {
-      console.error('Error deleting progress update:', error);
-      alert('שגיאה במחיקת התקדמות');
-    }
+  const handleDeleteProgress = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת התקדמות',
+      message: 'האם אתה בטוח שברצונך למחוק התקדמות זו?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/tasks/${task.id}/progress/${id}`);
+          setConfirmDialog(null);
+          loadProgressUpdates();
+        } catch (error) {
+          console.error('Error deleting progress update:', error);
+          alert('שגיאה במחיקת התקדמות');
+        }
+      },
+    });
   };
 
   const handleSaveAgentNote = async () => {
@@ -361,6 +368,13 @@ const ProgressModal = ({ show, onClose, task }) => {
             סגור
           </button>
         </div>
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          confirmLabel="מחק"
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
       </div>
     </div>
   );
