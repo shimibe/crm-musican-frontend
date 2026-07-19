@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
@@ -44,6 +44,18 @@ const Admin = () => {
   const [interestForm, setInterestForm] = useState({
     name: '',
     description: '',
+  });
+
+  // Automation modal states
+  const [showAutomationModal, setShowAutomationModal] = useState(false);
+  const [automationInterest, setAutomationInterest] = useState(null);
+  const [automationForm, setAutomationForm] = useState({
+    is_active: false,
+    email_template: '',
+    email_subject: '',
+    email_variables: '{}',
+    whatsapp_template: '',
+    whatsapp_variables: '[]',
   });
 
   // API Token modal states
@@ -368,6 +380,55 @@ const Admin = () => {
         }
       },
     });
+  };
+
+  // Automation handlers
+  const handleOpenAutomation = async (interest) => {
+    setAutomationInterest(interest);
+    if (templates.length === 0) {
+      try {
+        const res = await api.get('/campaign-templates');
+        setTemplates(res.data.templates || []);
+      } catch (e) {}
+    }
+    try {
+      const res = await api.get(`/interests/${interest.id}/automation`);
+      const auto = res.data;
+      setAutomationForm({
+        is_active: auto.is_active || false,
+        email_template: auto.email_template || '',
+        email_subject: auto.email_subject || '',
+        email_variables: JSON.stringify(auto.email_variables || {}, null, 2),
+        whatsapp_template: auto.whatsapp_template || '',
+        whatsapp_variables: JSON.stringify(auto.whatsapp_variables || [], null, 2),
+      });
+    } catch (e) {
+      setAutomationForm({ is_active: false, email_template: '', email_subject: '', email_variables: '{}', whatsapp_template: '', whatsapp_variables: '[]' });
+    }
+    setShowAutomationModal(true);
+  };
+
+  const handleSaveAutomation = async (e) => {
+    e.preventDefault();
+    let email_variables = {};
+    let whatsapp_variables = [];
+    try { email_variables = JSON.parse(automationForm.email_variables); } catch { alert('שגיאה ב-JSON של משתני אימייל'); return; }
+    try { whatsapp_variables = JSON.parse(automationForm.whatsapp_variables); } catch { alert('שגיאה ב-JSON של משתני וואטסאפ'); return; }
+    try {
+      await api.put(`/interests/${automationInterest.id}/automation`, {
+        is_active: automationForm.is_active,
+        email_template: automationForm.email_template || null,
+        email_subject: automationForm.email_subject || null,
+        email_variables,
+        whatsapp_template: automationForm.whatsapp_template || null,
+        whatsapp_variables,
+      });
+      setShowAutomationModal(false);
+      setAutomationInterest(null);
+    } catch (error) {
+      console.error('Error saving automation:', error);
+      alert('שגיאה בשמירת הגדרת אוטומציה');
+    }
   };
 
   // API Token handlers
@@ -836,6 +897,13 @@ const Admin = () => {
                       )}
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => handleOpenAutomation(interest)}
+                        className="text-purple-600 hover:text-purple-700 dark:text-purple-400"
+                        title="הגדרת אוטומציה"
+                      >
+                        <Zap className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleEditInterest(interest)}
                         className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
@@ -1334,6 +1402,137 @@ const Admin = () => {
                     setShowInterestModal(false);
                     setEditingInterest(null);
                   }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Automation Modal */}
+      {showAutomationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-purple-600" />
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  אוטומציה — {automationInterest?.name}
+                </h2>
+              </div>
+              <button onClick={() => setShowAutomationModal(false)}>
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveAutomation} className="p-6 space-y-5">
+              {/* Toggle */}
+              <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">הפעל אוטומציה</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">שלח הודעה אוטומטית כשהתגית מתווספת ללקוח</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutomationForm({ ...automationForm, is_active: !automationForm.is_active })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${automationForm.is_active ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${automationForm.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {/* Email Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                  <h3 className="font-medium text-gray-900 dark:text-white">אימייל</h3>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">תבנית אימייל (שם ב-SendPulse)</label>
+                  <select
+                    value={automationForm.email_template}
+                    onChange={(e) => setAutomationForm({ ...automationForm, email_template: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="">— ללא אימייל —</option>
+                    {templates.filter(t => t.type === 'email').map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {automationForm.email_template && (
+                  <>
+                    <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">נושא האימייל</label>
+                      <input
+                        type="text"
+                        value={automationForm.email_subject}
+                        onChange={(e) => setAutomationForm({ ...automationForm, email_subject: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        placeholder="נושא ההודעה"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">משתני אימייל (JSON)</label>
+                      <textarea
+                        value={automationForm.email_variables}
+                        onChange={(e) => setAutomationForm({ ...automationForm, email_variables: e.target.value })}
+                        rows={3}
+                        dir="ltr"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                        placeholder={'{"firstName": "{{customer.firstName}}"}'}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* WhatsApp Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-green-500" />
+                  <h3 className="font-medium text-gray-900 dark:text-white">וואטסאפ</h3>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">תבנית וואטסאפ (שם ב-SendPulse)</label>
+                  <select
+                    value={automationForm.whatsapp_template}
+                    onChange={(e) => setAutomationForm({ ...automationForm, whatsapp_template: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="">— ללא וואטסאפ —</option>
+                    {templates.filter(t => t.type === 'whatsapp').map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {automationForm.whatsapp_template && (
+                  <div>
+                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">משתני וואטסאפ (JSON array, לפי סדר)</label>
+                    <textarea
+                      value={automationForm.whatsapp_variables}
+                      onChange={(e) => setAutomationForm({ ...automationForm, whatsapp_variables: e.target.value })}
+                      rows={3}
+                      dir="ltr"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                      placeholder={'["{{customer.firstName}}", "מוזיקן"]'}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                >
+                  שמור הגדרות
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAutomationModal(false)}
                   className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
                 >
                   ביטול
