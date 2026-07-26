@@ -29,6 +29,7 @@ const Customers = () => {
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [exportInternational, setExportInternational] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -274,7 +275,7 @@ const Customers = () => {
     const headers = ['שם', 'שם פרטי', 'שם משפחה', 'טלפון', 'אימייל', 'קטגוריה', 'תחומי עניין', 'סטטוס', 'הערות'];
 
     // Prepare CSV rows
-    const rows = customers.map(customer => {
+    const rows = filteredCustomers.map(customer => {
       const interests = customer.interests && customer.interests.length > 0
         ? customer.interests.map(i => i.name || availableInterests.find(ai => ai.id === i)?.name || i).join('; ')
         : '';
@@ -287,7 +288,11 @@ const Customers = () => {
         customer.name,
         firstName,
         lastName,
-        customer.phone?.replace(/\s|-/g, '') || '',
+        (() => {
+          const cleaned = customer.phone?.replace(/\s|-/g, '') || '';
+          if (exportInternational && cleaned.startsWith('0')) return '+972' + cleaned.slice(1);
+          return cleaned;
+        })(),
         customer.email || '',
         customer.category === 'studio' ? 'אולפן' : 'מוזיקן',
         interests,
@@ -402,14 +407,25 @@ const Customers = () => {
             </button>
           )}
           {user?.role === 'admin' && (
-            <button
-              onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-              title="ייצוא לקובץ CSV"
-            >
-              <Download className="w-4 h-4" />
-              ייצוא CSV
-            </button>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={exportInternational}
+                  onChange={(e) => setExportInternational(e.target.checked)}
+                  className="w-3.5 h-3.5 rounded"
+                />
+                פורמט בינלאומי
+              </label>
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                title="ייצוא לקובץ CSV"
+              >
+                <Download className="w-4 h-4" />
+                ייצוא CSV
+              </button>
+            </div>
           )}
           <ColumnToggle
             columns={columnDefinitions}
