@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge, ChevronDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge, ChevronDown, BarChart2, RotateCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import CustomerMergeModal from '../components/customers/CustomerMergeModal';
@@ -30,6 +30,8 @@ const Customers = () => {
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [exportInternational, setExportInternational] = useState(false);
+  const [showInterestStats, setShowInterestStats] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -133,6 +135,22 @@ const Customers = () => {
     }
     return true;
   });
+
+  const interestStats = availableInterests
+    .map(interest => ({
+      id: interest.id,
+      name: interest.name,
+      count: customers.filter(c =>
+        (c.interests || []).some((/** @type {any} */ i) => String(i.id ?? i) === String(interest.id))
+      ).length,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const refreshStats = async () => {
+    setStatsLoading(true);
+    await loadCustomers();
+    setStatsLoading(false);
+  };
 
   const loadInterests = async () => {
     try {
@@ -614,6 +632,51 @@ const Customers = () => {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Interest Stats */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <button
+          type="button"
+          onClick={() => setShowInterestStats(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <BarChart2 className="w-4 h-4 text-gray-500" />
+            סטטיסטיקת תחומי עניין
+            <span className="text-xs text-gray-400">({customers.length} לקוחות סה״כ)</span>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showInterestStats ? 'rotate-180' : ''}`} />
+        </button>
+
+        {showInterestStats && (
+          <div className="border-t border-gray-200 dark:border-gray-700 px-4 pb-4 pt-3">
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={refreshStats}
+                disabled={statsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${statsLoading ? 'animate-spin' : ''}`} />
+                רענן
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+              {interestStats.map(stat => (
+                <div
+                  key={stat.id}
+                  className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+                >
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate ml-2">{stat.name}</span>
+                  <span className="text-sm font-semibold text-primary-600 dark:text-primary-400 flex-shrink-0">{stat.count}</span>
+                </div>
+              ))}
+              {interestStats.length === 0 && (
+                <p className="text-sm text-gray-400 col-span-full">אין תחומי עניין</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table */}
