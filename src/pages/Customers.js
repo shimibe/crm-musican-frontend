@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge, ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import CustomerMergeModal from '../components/customers/CustomerMergeModal';
@@ -14,7 +14,10 @@ const Customers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [interestFilter, setInterestFilter] = useState('all');
+  const [interestFilters, setInterestFilters] = useState(/** @type {string[]} */([]));
+  const [interestExcludeFilters, setInterestExcludeFilters] = useState(/** @type {string[]} */([]));
+  const [showInterestDropdown, setShowInterestDropdown] = useState(false);
+  const [showExcludeDropdown, setShowExcludeDropdown] = useState(false);
   const [availableInterests, setAvailableInterests] = useState(/** @type {any[]} */([]));
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -80,6 +83,22 @@ const Customers = () => {
     }
   }, [user?.preferences?.customers_visible_columns]);
 
+  const interestDropdownRef = useRef(/** @type {HTMLDivElement|null} */(null));
+  const excludeDropdownRef = useRef(/** @type {HTMLDivElement|null} */(null));
+
+  useEffect(() => {
+    const handleClickOutside = (/** @type {MouseEvent} */ e) => {
+      if (interestDropdownRef.current && !interestDropdownRef.current.contains(/** @type {Node} */(e.target))) {
+        setShowInterestDropdown(false);
+      }
+      if (excludeDropdownRef.current && !excludeDropdownRef.current.contains(/** @type {Node} */(e.target))) {
+        setShowExcludeDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     loadCustomers();
     loadInterests();
@@ -99,11 +118,17 @@ const Customers = () => {
 
   const filteredCustomers = customers.filter((customer) => {
     if (categoryFilter !== 'all' && customer.category !== categoryFilter) return false;
-    if (interestFilter !== 'all') {
-      const hasInterest = (customer.interests || []).some(
-        (i) => String(i.id ?? i) === String(interestFilter)
+    if (interestFilters.length > 0) {
+      const hasAny = (customer.interests || []).some(
+        (i) => interestFilters.includes(String(i.id ?? i))
       );
-      if (!hasInterest) return false;
+      if (!hasAny) return false;
+    }
+    if (interestExcludeFilters.length > 0) {
+      const hasExcluded = (customer.interests || []).some(
+        (i) => interestExcludeFilters.includes(String(i.id ?? i))
+      );
+      if (hasExcluded) return false;
     }
     return true;
   });
@@ -318,12 +343,21 @@ const Customers = () => {
   };
 
   const selectByInterest = () => {
-    if (interestFilter === 'all') {
+    if (interestFilters.length === 0) {
       alert('אנא בחר תחום עניין מהרשימה');
       return;
     }
-    // Select all customers that match the current filter
     setSelectedCustomers([...filteredCustomers]);
+  };
+
+  const toggleInterestFilter = (/** @type {any} */ id) => {
+    const sid = String(id);
+    setInterestFilters(prev => prev.includes(sid) ? prev.filter(i => i !== sid) : [...prev, sid]);
+  };
+
+  const toggleExcludeFilter = (/** @type {any} */ id) => {
+    const sid = String(id);
+    setInterestExcludeFilters(prev => prev.includes(sid) ? prev.filter(i => i !== sid) : [...prev, sid]);
   };
 
   const handleOpenCampaign = () => {
@@ -437,31 +471,121 @@ const Customers = () => {
           </button>
         </div>
 
-        {/* Interest Filter */}
-        <div className="flex gap-2 items-center justify-between">
-          <div className="flex gap-2 items-center">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">תחומי עניין:</label>
-            <select
-              value={interestFilter}
-              onChange={(e) => setInterestFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="all">כל התחומים</option>
-              {availableInterests.map((interest) => (
-                <option key={interest.id} value={interest.id}>
-                  {interest.name}
-                </option>
-              ))}
-            </select>
-            {interestFilter !== 'all' && (
+        {/* Interest Filters */}
+        <div className="flex gap-4 items-start flex-wrap justify-between">
+          <div className="flex gap-3 items-start flex-wrap">
+            {/* Positive filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">תחומי עניין:</label>
+              <div className="relative" ref={interestDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => { setShowInterestDropdown(v => !v); setShowExcludeDropdown(false); }}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-w-[150px] justify-between ${
+                    interestFilters.length > 0
+                      ? 'border-purple-500 ring-1 ring-purple-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
+                  <span>
+                    {interestFilters.length === 0
+                      ? 'כל התחומים'
+                      : `${interestFilters.length} נבחרו`}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </button>
+                {showInterestDropdown && (
+                  <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
+                    {availableInterests.map((interest) => (
+                      <label
+                        key={interest.id}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={interestFilters.includes(String(interest.id))}
+                          onChange={() => toggleInterestFilter(interest.id)}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{interest.name}</span>
+                      </label>
+                    ))}
+                    {interestFilters.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-gray-600 p-2">
+                        <button
+                          onClick={() => setInterestFilters([])}
+                          className="w-full text-xs text-red-600 dark:text-red-400 hover:underline text-right"
+                        >
+                          נקה בחירה
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Negative filter */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-red-600 dark:text-red-400 whitespace-nowrap">ללא תחומי עניין:</label>
+              <div className="relative" ref={excludeDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => { setShowExcludeDropdown(v => !v); setShowInterestDropdown(false); }}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-w-[150px] justify-between ${
+                    interestExcludeFilters.length > 0
+                      ? 'border-red-500 ring-1 ring-red-500'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
+                  <span>
+                    {interestExcludeFilters.length === 0
+                      ? 'ללא סינון שלילי'
+                      : `${interestExcludeFilters.length} להוציא`}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                </button>
+                {showExcludeDropdown && (
+                  <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-20 max-h-64 overflow-y-auto">
+                    {availableInterests.map((interest) => (
+                      <label
+                        key={interest.id}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={interestExcludeFilters.includes(String(interest.id))}
+                          onChange={() => toggleExcludeFilter(interest.id)}
+                          className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                        />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{interest.name}</span>
+                      </label>
+                    ))}
+                    {interestExcludeFilters.length > 0 && (
+                      <div className="border-t border-gray-200 dark:border-gray-600 p-2">
+                        <button
+                          onClick={() => setInterestExcludeFilters([])}
+                          className="w-full text-xs text-red-600 dark:text-red-400 hover:underline text-right"
+                        >
+                          נקה בחירה
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {interestFilters.length > 0 && (
               <button
                 onClick={selectByInterest}
                 className="px-3 py-2 text-sm bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200 rounded-md hover:bg-purple-200 dark:hover:bg-purple-800"
               >
-                בחר הכל בתחום זה
+                בחר הכל המסוננים
               </button>
             )}
           </div>
+
           {selectedCustomers.length > 0 && (
             <div className="text-sm text-gray-600 dark:text-gray-400">
               נבחרו {selectedCustomers.length} לקוחות
