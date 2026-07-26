@@ -10,19 +10,19 @@ import CustomerTasksModal from '../components/customers/CustomerTasksModal';
 
 const Customers = () => {
   const { user, updatePreferences } = useAuth();
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState(/** @type {any[]} */([]));
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [interestFilter, setInterestFilter] = useState('all');
-  const [availableInterests, setAvailableInterests] = useState([]);
+  const [availableInterests, setAvailableInterests] = useState(/** @type {any[]} */([]));
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateCustomer, setDuplicateCustomer] = useState(null);
-  const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [selectedCustomers, setSelectedCustomers] = useState(/** @type {any[]} */([]));
   const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [mergeCustomers, setMergeCustomers] = useState(null);
+  const [mergeCustomers, setMergeCustomers] = useState(/** @type {any[]|null} */(null));
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
@@ -83,17 +83,11 @@ const Customers = () => {
   useEffect(() => {
     loadCustomers();
     loadInterests();
-  }, [search, categoryFilter, interestFilter]);
+  }, [search]);
 
   const loadCustomers = async () => {
     try {
-      const params = { search, limit: 100 };
-      if (categoryFilter !== 'all') {
-        params.category = categoryFilter;
-      }
-      if (interestFilter !== 'all') {
-        params.interest = interestFilter;
-      }
+      const params = { search, limit: 10000 };
       const response = await api.get('/customers', { params });
       setCustomers(response.data.customers);
     } catch (error) {
@@ -102,6 +96,17 @@ const Customers = () => {
       setLoading(false);
     }
   };
+
+  const filteredCustomers = customers.filter((customer) => {
+    if (categoryFilter !== 'all' && customer.category !== categoryFilter) return false;
+    if (interestFilter !== 'all') {
+      const hasInterest = (customer.interests || []).some(
+        (i) => String(i.id ?? i) === String(interestFilter)
+      );
+      if (!hasInterest) return false;
+    }
+    return true;
+  });
 
   const loadInterests = async () => {
     try {
@@ -305,10 +310,10 @@ const Customers = () => {
   };
 
   const toggleAllCustomers = () => {
-    if (selectedCustomers.length === customers.length) {
+    if (selectedCustomers.length === filteredCustomers.length) {
       setSelectedCustomers([]);
     } else {
-      setSelectedCustomers([...customers]);
+      setSelectedCustomers([...filteredCustomers]);
     }
   };
 
@@ -318,7 +323,7 @@ const Customers = () => {
       return;
     }
     // Select all customers that match the current filter
-    setSelectedCustomers([...customers]);
+    setSelectedCustomers([...filteredCustomers]);
   };
 
   const handleOpenCampaign = () => {
@@ -477,7 +482,7 @@ const Customers = () => {
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             טוען...
           </div>
-        ) : customers.length === 0 ? (
+        ) : filteredCustomers.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             לא נמצאו לקוחות
           </div>
@@ -489,7 +494,7 @@ const Customers = () => {
                   <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase w-12">
                     <input
                       type="checkbox"
-                      checked={customers.length > 0 && selectedCustomers.length === customers.length}
+                      checked={filteredCustomers.length > 0 && selectedCustomers.length === filteredCustomers.length}
                       onChange={toggleAllCustomers}
                       className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                       title="בחר הכל"
@@ -531,7 +536,7 @@ const Customers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {customers.map((customer) => (
+                {filteredCustomers.map((customer) => (
                   <tr key={customer.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-3 py-4 text-center">
                       <input
