@@ -662,15 +662,24 @@ const Customers = () => {
               </button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {interestStats.map(stat => (
-                <div
-                  key={stat.id}
-                  className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md"
-                >
-                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate ml-2">{stat.name}</span>
-                  <span className="text-sm font-semibold text-primary-600 dark:text-primary-400 flex-shrink-0">{stat.count}</span>
-                </div>
-              ))}
+              {interestStats.map(stat => {
+                const isActive = interestFilters.includes(String(stat.id));
+                return (
+                  <button
+                    key={stat.id}
+                    type="button"
+                    onClick={() => toggleInterestFilter(stat.id)}
+                    className={`flex items-center justify-between px-3 py-2 rounded-md text-right transition-colors ${
+                      isActive
+                        ? 'bg-purple-100 dark:bg-purple-900/40 ring-1 ring-purple-500'
+                        : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <span className={`text-sm truncate ml-2 ${isActive ? 'text-purple-700 dark:text-purple-300 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>{stat.name}</span>
+                    <span className={`text-sm font-semibold flex-shrink-0 ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-primary-600 dark:text-primary-400'}`}>{stat.count}</span>
+                  </button>
+                );
+              })}
               {interestStats.length === 0 && (
                 <p className="text-sm text-gray-400 col-span-full">אין תחומי עניין</p>
               )}
