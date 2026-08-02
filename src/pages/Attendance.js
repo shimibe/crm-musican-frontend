@@ -294,7 +294,7 @@ const Attendance = () => {
         'יום': getDayOfWeek(shift.start_time),
         'שעת התחלה': startDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
         'שעת סיום': endDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        'סה"כ שעות': `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}`,
+        'סה"כ שעות': (() => { const totalMin = Math.round(hours * 60); return `${Math.floor(totalMin / 60)}:${String(totalMin % 60).padStart(2, '0')}`; })(),
         'עבודה מהבית': shift.work_from_home ? 'כן' : '',
       };
     });
