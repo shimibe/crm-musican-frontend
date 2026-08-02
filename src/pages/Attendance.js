@@ -303,7 +303,7 @@ const Attendance = () => {
     const summaryRows = [
       {},
       { 'תאריך': 'סיכום:' },
-      { 'תאריך': 'סה"כ שעות', 'שעת התחלה': `${Math.floor(totals.totalHours)}:${String(Math.round((totals.totalHours % 1) * 60)).padStart(2, '0')}` },
+      { 'תאריך': 'סה"כ שעות', 'שעת התחלה': (() => { const totalMin = Math.round(totals.totalHours * 60); return `${Math.floor(totalMin / 60)}:${String(totalMin % 60).padStart(2, '0')}`; })() },
       { 'תאריך': 'עבודה מהבית', 'שעת התחלה': totals.workFromHome },
       { 'תאריך': 'עבודה מהמשרד', 'שעת התחלה': totals.workFromOffice },
       { 'תאריך': 'סה"כ ימי עבודה', 'שעת התחלה': totals.totalDays },
@@ -346,9 +346,8 @@ const Attendance = () => {
   };
 
   const formatHours = (hours) => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours % 1) * 60);
-    return `${h}:${String(m).padStart(2, '0')}`;
+    const totalMin = Math.round(hours * 60);
+    return `${Math.floor(totalMin / 60)}:${String(totalMin % 60).padStart(2, '0')}`;
   };
 
   const getDayOfWeek = (dateString) => {
