@@ -15,6 +15,8 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
   });
   const [loading, setLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendingProgress, setSendingProgress] = useState(0);
+  const [sendingMessage, setSendingMessage] = useState('');
   const [newTemplateName, setNewTemplateName] = useState({ email: '', whatsapp: '' });
   const [showNewTemplate, setShowNewTemplate] = useState({ email: false, whatsapp: false });
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -190,46 +192,75 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
   const confirmAndSend = async () => {
     setShowConfirmation(false);
     setLoading(true);
+    setSendingProgress(0);
+
+    const CHUNK_SIZE = 20;
+    const allCustomerIds = selectedCustomers.map(c => c.id);
+    const chunks = [];
+    for (let i = 0; i < allCustomerIds.length; i += CHUNK_SIZE) {
+      chunks.push(allCustomerIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    // Process email variables as object (key-value pairs)
+    const emailVariables = formData.emailVariables
+      .filter(v => v.name.trim() !== '' && v.value.trim() !== '')
+      .reduce((acc, v) => ({ ...acc, [v.name]: v.value }), {});
+
+    // Process WhatsApp variables as ordered array
+    const whatsappVariables = formData.whatsappVariables
+      .map(v => v.value.trim())
+      .filter(v => v !== '');
+
+    const baseData = {
+      emailTemplate: formData.emailTemplate || null,
+      emailSubject: formData.emailSubject || null,
+      whatsappTemplate: formData.whatsappTemplate || null,
+      emailVariables: Object.keys(emailVariables).length > 0 ? emailVariables : null,
+      whatsappVariables: whatsappVariables.length > 0 ? whatsappVariables : null,
+      totalCustomers: allCustomerIds.length,
+    };
+
+    const totalStats = { emailsSent: 0, whatsappSent: 0, failed: 0 };
+    let campaignId = null;
+    let sentSoFar = 0;
 
     try {
-      // Process email variables as object (key-value pairs)
-      const emailVariables = formData.emailVariables
-        .filter(v => v.name.trim() !== '' && v.value.trim() !== '')
-        .reduce((acc, v) => ({ ...acc, [v.name]: v.value }), {});
+      for (let i = 0; i < chunks.length; i++) {
+        sentSoFar += chunks[i].length;
+        setSendingMessage(`שולח ${sentSoFar} / ${allCustomerIds.length} לקוחות...`);
 
-      // Process WhatsApp variables as ordered array
-      const whatsappVariables = formData.whatsappVariables
-        .map(v => v.value.trim())
-        .filter(v => v !== '');
+        const response = await api.post('/campaigns/send', {
+          ...baseData,
+          customerIds: chunks[i],
+          ...(campaignId ? { existingCampaignId: campaignId } : {}),
+        }, { timeout: 0 });
 
-      const campaignData = {
-        customerIds: selectedCustomers.map(c => c.id),
-        emailTemplate: formData.emailTemplate || null,
-        emailSubject: formData.emailSubject || null,
-        whatsappTemplate: formData.whatsappTemplate || null,
-        emailVariables: Object.keys(emailVariables).length > 0 ? emailVariables : null,
-        whatsappVariables: whatsappVariables.length > 0 ? whatsappVariables : null,
-      };
+        campaignId = response.data.campaignId;
 
-      const response = await api.post('/campaigns/send', campaignData);
+        const stats = response.data.stats;
+        if (stats) {
+          totalStats.emailsSent += stats.emailsSent || 0;
+          totalStats.whatsappSent += stats.whatsappSent || 0;
+          totalStats.failed += stats.failed || 0;
+        }
 
-      // הצג את התוצאות האמיתיות מהשרת
-      const stats = response.data.stats;
-      if (stats) {
-        const messages = [];
-        if (stats.emailsSent > 0) messages.push(`${stats.emailsSent} אימיילים`);
-        if (stats.whatsappSent > 0) messages.push(`${stats.whatsappSent} הודעות וואטסאפ`);
-        if (stats.failed > 0) messages.push(`${stats.failed} נכשלו`);
-
-        const summary = messages.join(', ');
-        alert(`הקמפיין הושלם!\nנשלחו: ${summary}\nסה"כ לקוחות: ${stats.totalCustomers}`);
-      } else {
-        alert(`הקמפיין נשלח בהצלחה ל-${selectedCustomers.length} לקוחות`);
+        setSendingProgress(((i + 1) / chunks.length) * 100);
       }
+
+      setSendingMessage('הקמפיין נשלח בהצלחה!');
+      await new Promise(resolve => setTimeout(resolve, 700));
+
+      const messages = [];
+      if (totalStats.emailsSent > 0) messages.push(`${totalStats.emailsSent} אימיילים`);
+      if (totalStats.whatsappSent > 0) messages.push(`${totalStats.whatsappSent} הודעות וואטסאפ`);
+      if (totalStats.failed > 0) messages.push(`${totalStats.failed} נכשלו`);
+
+      alert(`הקמפיין הושלם!\nנשלחו: ${messages.join(', ')}\nסה"כ לקוחות: ${allCustomerIds.length}`);
 
       onClose();
       resetForm();
     } catch (error) {
+      setSendingProgress(0);
       console.error('Error sending campaign:', error);
       const errorMessage = error.response?.data?.error || 'שגיאה בשליחת קמפיין';
       alert(errorMessage);
@@ -633,6 +664,25 @@ const CampaignModal = ({ show, onClose, selectedCustomers }) => {
           </div>
         </form>
       </div>
+
+      {/* Sending Progress Overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20 rounded-lg">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 max-w-xs w-full text-center mx-4">
+            <Send className="w-12 h-12 text-primary-600 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">שולח קמפיין</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">{sendingMessage}</p>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+              <div
+                className="bg-primary-600 h-3 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${sendingProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{Math.round(sendingProgress)}%</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">אנא המתן, אל תסגור את הדף</p>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       {showConfirmation && (
