@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../utils/api';
-import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge, ChevronDown, BarChart2, RotateCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Download, Send, ClipboardList, GitMerge, ChevronDown, BarChart2, RotateCw, Tag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CampaignModal from '../components/customers/CampaignModal';
 import CustomerMergeModal from '../components/customers/CustomerMergeModal';
@@ -32,6 +32,9 @@ const Customers = () => {
   const [exportInternational, setExportInternational] = useState(false);
   const [showInterestStats, setShowInterestStats] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [showActionsDropdown, setShowActionsDropdown] = useState(false);
+  const [showBulkInterestPicker, setShowBulkInterestPicker] = useState(false);
+  const [bulkInterestAction, setBulkInterestAction] = useState(/** @type {'add'|'remove'|null} */(null));
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -88,6 +91,7 @@ const Customers = () => {
 
   const interestDropdownRef = useRef(/** @type {HTMLDivElement|null} */(null));
   const excludeDropdownRef = useRef(/** @type {HTMLDivElement|null} */(null));
+  const actionsDropdownRef = useRef(/** @type {HTMLDivElement|null} */(null));
 
   useEffect(() => {
     const handleClickOutside = (/** @type {MouseEvent} */ e) => {
@@ -96,6 +100,10 @@ const Customers = () => {
       }
       if (excludeDropdownRef.current && !excludeDropdownRef.current.contains(/** @type {Node} */(e.target))) {
         setShowExcludeDropdown(false);
+      }
+      if (actionsDropdownRef.current && !actionsDropdownRef.current.contains(/** @type {Node} */(e.target))) {
+        setShowActionsDropdown(false);
+        setShowBulkInterestPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -396,6 +404,61 @@ const Customers = () => {
     setSelectedCustomers([]);
   };
 
+  const handleBulkAddInterest = async (/** @type {any} */ interestId) => {
+    try {
+      await api.post('/customers/bulk-interests', {
+        customer_ids: selectedCustomers.map(c => c.id),
+        interest_id: interestId,
+        action: 'add',
+      });
+      setShowBulkInterestPicker(false);
+      setShowActionsDropdown(false);
+      loadCustomers();
+    } catch (error) {
+      console.error('Error adding interest:', error);
+      alert('שגיאה בהוספת תחום עניין');
+    }
+  };
+
+  const handleBulkRemoveInterest = async (/** @type {any} */ interestId) => {
+    try {
+      await api.post('/customers/bulk-interests', {
+        customer_ids: selectedCustomers.map(c => c.id),
+        interest_id: interestId,
+        action: 'remove',
+      });
+      setShowBulkInterestPicker(false);
+      setShowActionsDropdown(false);
+      loadCustomers();
+    } catch (error) {
+      console.error('Error removing interest:', error);
+      alert('שגיאה בהסרת תחום עניין');
+    }
+  };
+
+  const handleBulkDelete = () => {
+    setShowActionsDropdown(false);
+    /** @type {any} */
+    const dialog = {
+      title: 'מחיקת לקוחות',
+      message: `האם אתה בטוח שברצונך למחוק ${selectedCustomers.length} לקוחות?`,
+      onConfirm: async () => {
+        try {
+          await api.post('/customers/bulk-delete', {
+            customer_ids: selectedCustomers.map(c => c.id),
+          });
+          setConfirmDialog(null);
+          setSelectedCustomers([]);
+          loadCustomers();
+        } catch (error) {
+          console.error('Error deleting customers:', error);
+          alert('שגיאה במחיקת לקוחות');
+        }
+      },
+    };
+    setConfirmDialog(dialog);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -405,24 +468,79 @@ const Customers = () => {
         </h1>
         <div className="flex gap-2">
           {selectedCustomers.length > 0 && (
-            <button
-              onClick={handleOpenCampaign}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-              title="שלח קמפיין ללקוחות שנבחרו"
-            >
-              <Send className="w-4 h-4" />
-              שלח קמפיין ({selectedCustomers.length})
-            </button>
-          )}
-          {selectedCustomers.length === 2 && (
-            <button
-              onClick={() => setMergeCustomers([selectedCustomers[0], selectedCustomers[1]])}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
-              title="מזג 2 לקוחות נבחרים"
-            >
-              <GitMerge className="w-4 h-4" />
-              מזג לקוחות
-            </button>
+            <div className="relative" ref={actionsDropdownRef}>
+              <button
+                onClick={() => { setShowActionsDropdown(prev => !prev); setShowBulkInterestPicker(false); }}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-500"
+              >
+                פעולות ({selectedCustomers.length})
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {showActionsDropdown && (
+                <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50">
+                  <button
+                    onClick={() => { setShowActionsDropdown(false); handleOpenCampaign(); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Send className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                    שלח קמפיין
+                  </button>
+                  <button
+                    onClick={() => { setBulkInterestAction('add'); setShowBulkInterestPicker(true); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Tag className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    הוספת תחום עניין
+                  </button>
+                  <button
+                    onClick={() => { setBulkInterestAction('remove'); setShowBulkInterestPicker(true); }}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <Tag className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                    הסרת תחום עניין
+                  </button>
+                  {selectedCustomers.length === 2 && (
+                    <button
+                      onClick={() => { setShowActionsDropdown(false); setMergeCustomers([selectedCustomers[0], selectedCustomers[1]]); }}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <GitMerge className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                      מזג לקוחות
+                    </button>
+                  )}
+                  <div className="border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={handleBulkDelete}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="w-4 h-4 flex-shrink-0" />
+                      מחיקת לקוחות
+                    </button>
+                  </div>
+                  {showBulkInterestPicker && (
+                    <div className="border-t border-gray-200 dark:border-gray-700">
+                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50">
+                        {bulkInterestAction === 'add' ? 'בחר תחום עניין להוספה:' : 'בחר תחום עניין להסרה:'}
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {availableInterests.map(interest => (
+                          <button
+                            key={interest.id}
+                            onClick={() => bulkInterestAction === 'add'
+                              ? handleBulkAddInterest(interest.id)
+                              : handleBulkRemoveInterest(interest.id)
+                            }
+                            className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          >
+                            {interest.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           {user?.role === 'admin' && (
             <div className="flex items-center gap-2">
