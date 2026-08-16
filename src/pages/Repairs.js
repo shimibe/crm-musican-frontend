@@ -48,6 +48,10 @@ const Repairs = () => {
     assigned_to: '',
   });
 
+  // Customer search
+  const [customers, setCustomers] = useState([]);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+
   // History note input
   const [noteInput, setNoteInput] = useState('');
   const [addingNote, setAddingNote] = useState(false);
@@ -57,6 +61,7 @@ const Repairs = () => {
   useEffect(() => {
     loadRepairTypes();
     loadUsers();
+    loadCustomers();
   }, []);
 
   useEffect(() => {
@@ -104,10 +109,38 @@ const Repairs = () => {
     }
   };
 
+  const loadCustomers = async () => {
+    try {
+      const response = await api.get('/customers', { params: { limit: 500 } });
+      setCustomers(response.data.customers || response.data || []);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+    }
+  };
+
+  const getFilteredCustomers = () => {
+    if (!customerSearchTerm.trim()) return [];
+    const lower = customerSearchTerm.toLowerCase();
+    return customers.filter(c =>
+      (c.name && c.name.toLowerCase().includes(lower)) ||
+      (c.phone && c.phone.toLowerCase().includes(lower))
+    ).slice(0, 20);
+  };
+
+  const handleQuickUpdate = async (repairId, field, value) => {
+    try {
+      await api.put(`/repairs/${repairId}`, { [field]: value || null });
+      loadRepairs();
+    } catch (error) {
+      console.error('Error updating repair:', error);
+    }
+  };
+
   const openCreate = () => {
     setEditingRepair(null);
     setRepairDetail(null);
     setForm({ type_id: '', customer_id: '', details: '', status: 'open', assigned_to: '' });
+    setCustomerSearchTerm('');
     setNoteInput('');
     setShowModal(true);
   };
@@ -121,6 +154,7 @@ const Repairs = () => {
       status: repair.status,
       assigned_to: repair.assigned_to || '',
     });
+    setCustomerSearchTerm(repair.customer_name || '');
     setNoteInput('');
 
     // Load full repair with history
@@ -328,9 +362,15 @@ const Repairs = () => {
                       <span className="line-clamp-2">{repair.details || <span className="text-gray-400">—</span>}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusInfo.color}`}>
-                        {statusInfo.label}
-                      </span>
+                      <select
+                        value={repair.status}
+                        onChange={(e) => handleQuickUpdate(repair.id, 'status', e.target.value)}
+                        className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${statusInfo.color}`}
+                      >
+                        {STATUS_OPTIONS.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-sm text-center">
                       <span className={`font-semibold ${(repair.days_open || 0) > 7 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
@@ -345,8 +385,17 @@ const Repairs = () => {
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                       {repair.customer_name || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                      {repair.assigned_to_name || <span className="text-gray-400">לא מוקצה</span>}
+                    <td className="px-4 py-3 text-sm">
+                      <select
+                        value={repair.assigned_to || ''}
+                        onChange={(e) => handleQuickUpdate(repair.id, 'assigned_to', e.target.value)}
+                        className="bg-transparent border-0 text-sm text-gray-700 dark:text-gray-300 cursor-pointer w-full"
+                      >
+                        <option value="">לא מוקצה</option>
+                        {users.map(u => (
+                          <option key={u.id} value={u.id}>{u.full_name}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {formatDate(repair.created_at)}
@@ -464,15 +513,42 @@ const Repairs = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        מזהה לקוח (אופציונלי)
+                        לקוח (אופציונלי)
                       </label>
-                      <input
-                        type="number"
-                        value={form.customer_id}
-                        onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="ID לקוח..."
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="חפש לקוח לפי שם..."
+                          value={customerSearchTerm}
+                          onChange={(e) => {
+                            setCustomerSearchTerm(e.target.value);
+                            setForm({ ...form, customer_id: '' });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        {customerSearchTerm && !form.customer_id && getFilteredCustomers().length > 0 && (
+                          <div className="absolute z-20 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-auto mt-1">
+                            {getFilteredCustomers().map((customer) => (
+                              <div
+                                key={customer.id}
+                                onClick={() => {
+                                  setForm({ ...form, customer_id: customer.id });
+                                  setCustomerSearchTerm(customer.name);
+                                }}
+                                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
+                              >
+                                {customer.name}
+                                {customer.phone && <span className="text-gray-400 mr-2 text-xs">{customer.phone}</span>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {customerSearchTerm && getFilteredCustomers().length === 0 && !form.customer_id && (
+                          <div className="absolute z-20 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg mt-1">
+                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">לא נמצאו לקוחות</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
