@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, X, Clock, User, ChevronDown, MessageSquare } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Clock, MessageSquare } from 'lucide-react';
 import { FaWrench } from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,7 +22,7 @@ const ACTION_LABELS = {
 };
 
 const Repairs = () => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [repairs, setRepairs] = useState([]);
   const [repairTypes, setRepairTypes] = useState([]);
   const [users, setUsers] = useState([]);
