@@ -6,10 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const STATUS_OPTIONS = [
-  { value: 'open', label: 'פתוח', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
-  { value: 'in_progress', label: 'בטיפול', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
-  { value: 'resolved', label: 'טופל', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-  { value: 'closed', label: 'סגור', color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' },
+  { value: 'open', label: 'לטיפול', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+  { value: 'in_progress', label: 'נשלח לפי"ל', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
+  { value: 'resolved', label: 'אישור ביצוע (פי"ל)', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
+  { value: 'closed', label: 'תיקון מאומת', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
 ];
 
 const getStatusInfo = (status) => STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
