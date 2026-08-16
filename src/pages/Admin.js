@@ -10,6 +10,18 @@ const Admin = () => {
   const [categories, setCategories] = useState([]);
   const [interests, setInterests] = useState([]);
   const [apiTokens, setApiTokens] = useState([]);
+  const [repairTypes, setRepairTypes] = useState([]);
+  const [creditTypes, setCreditTypes] = useState([]);
+
+  // Repair type modal states
+  const [showRepairTypeModal, setShowRepairTypeModal] = useState(false);
+  const [editingRepairType, setEditingRepairType] = useState(null);
+  const [repairTypeForm, setRepairTypeForm] = useState({ name: '', description: '' });
+
+  // Credit type modal states
+  const [showCreditTypeModal, setShowCreditTypeModal] = useState(false);
+  const [editingCreditType, setEditingCreditType] = useState(null);
+  const [creditTypeForm, setCreditTypeForm] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
   const [confirmDialog, setConfirmDialog] = useState(null);
@@ -117,6 +129,13 @@ const Admin = () => {
       if (activeTab === 'settings') {
         await loadSettings();
       }
+
+      const [repairTypesRes, creditTypesRes] = await Promise.all([
+        api.get('/repair-types'),
+        api.get('/credit-types'),
+      ]);
+      setRepairTypes(repairTypesRes.data || []);
+      setCreditTypes(creditTypesRes.data || []);
 
       const responses = await Promise.all(requests);
       setUsers(responses[0].data);
@@ -377,6 +396,104 @@ const Admin = () => {
         } catch (error) {
           console.error('Error deleting interest:', error);
           alert('שגיאה במחיקת תחום עניין');
+        }
+      },
+    });
+  };
+
+  // Repair type handlers
+  const handleAddRepairType = () => {
+    setEditingRepairType(null);
+    setRepairTypeForm({ name: '', description: '' });
+    setShowRepairTypeModal(true);
+  };
+
+  const handleEditRepairType = (rt) => {
+    setEditingRepairType(rt);
+    setRepairTypeForm({ name: rt.name, description: rt.description || '' });
+    setShowRepairTypeModal(true);
+  };
+
+  const handleSaveRepairType = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingRepairType) {
+        await api.put(`/repair-types/${editingRepairType.id}`, repairTypeForm);
+      } else {
+        await api.post('/repair-types', repairTypeForm);
+      }
+      setShowRepairTypeModal(false);
+      setEditingRepairType(null);
+      const res = await api.get('/repair-types');
+      setRepairTypes(res.data || []);
+    } catch (error) {
+      console.error('Error saving repair type:', error);
+      alert('שגיאה בשמירת סוג תיקון');
+    }
+  };
+
+  const handleDeleteRepairType = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת סוג תיקון',
+      message: 'האם אתה בטוח שברצונך למחוק סוג תיקון זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/repair-types/${id}`);
+          setConfirmDialog(null);
+          const res = await api.get('/repair-types');
+          setRepairTypes(res.data || []);
+        } catch (error) {
+          const msg = error.response?.data?.error || 'שגיאה במחיקת סוג תיקון';
+          alert(msg);
+        }
+      },
+    });
+  };
+
+  // Credit type handlers
+  const handleAddCreditType = () => {
+    setEditingCreditType(null);
+    setCreditTypeForm({ name: '', description: '' });
+    setShowCreditTypeModal(true);
+  };
+
+  const handleEditCreditType = (ct) => {
+    setEditingCreditType(ct);
+    setCreditTypeForm({ name: ct.name, description: ct.description || '' });
+    setShowCreditTypeModal(true);
+  };
+
+  const handleSaveCreditType = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingCreditType) {
+        await api.put(`/credit-types/${editingCreditType.id}`, creditTypeForm);
+      } else {
+        await api.post('/credit-types', creditTypeForm);
+      }
+      setShowCreditTypeModal(false);
+      setEditingCreditType(null);
+      const res = await api.get('/credit-types');
+      setCreditTypes(res.data || []);
+    } catch (error) {
+      console.error('Error saving credit type:', error);
+      alert('שגיאה בשמירת סוג זיכוי');
+    }
+  };
+
+  const handleDeleteCreditType = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת סוג זיכוי',
+      message: 'האם אתה בטוח שברצונך למחוק סוג זיכוי זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/credit-types/${id}`);
+          setConfirmDialog(null);
+          const res = await api.get('/credit-types');
+          setCreditTypes(res.data || []);
+        } catch (error) {
+          const msg = error.response?.data?.error || 'שגיאה במחיקת סוג זיכוי';
+          alert(msg);
         }
       },
     });
@@ -665,6 +782,26 @@ const Admin = () => {
             }`}
           >
             API Keys
+          </button>
+          <button
+            onClick={() => setActiveTab('repair-types')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'repair-types'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            סוגי תיקונים
+          </button>
+          <button
+            onClick={() => setActiveTab('credit-types')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'credit-types'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            סוגי זיכויים
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -1810,6 +1947,168 @@ const Admin = () => {
           </div>
         </div>
       )}
+      {/* Repair Types Tab */}
+      {activeTab === 'repair-types' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">סוגי תיקונים</h2>
+            <button
+              onClick={handleAddRepairType}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              סוג חדש
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {repairTypes.map((rt) => (
+                <div key={rt.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{rt.name}</h3>
+                    {rt.description && <p className="text-sm text-gray-500 dark:text-gray-400">{rt.description}</p>}
+                    {!rt.is_active && <span className="text-xs text-gray-400">לא פעיל</span>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditRepairType(rt)} className="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteRepairType(rt.id)} className="text-red-600 hover:text-red-700 dark:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Types Tab */}
+      {activeTab === 'credit-types' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">סוגי מוצרי זיכוי</h2>
+            <button
+              onClick={handleAddCreditType}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              סוג חדש
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {creditTypes.map((ct) => (
+                <div key={ct.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">{ct.name}</h3>
+                    {ct.description && <p className="text-sm text-gray-500 dark:text-gray-400">{ct.description}</p>}
+                    {!ct.is_active && <span className="text-xs text-gray-400">לא פעיל</span>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditCreditType(ct)} className="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteCreditType(ct.id)} className="text-red-600 hover:text-red-700 dark:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Repair Type Modal */}
+      {showRepairTypeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingRepairType ? 'עריכת סוג תיקון' : 'סוג תיקון חדש'}
+              </h2>
+            </div>
+            <form onSubmit={handleSaveRepairType} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">שם *</label>
+                <input
+                  type="text"
+                  required
+                  value={repairTypeForm.name}
+                  onChange={(e) => setRepairTypeForm({ ...repairTypeForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">תיאור</label>
+                <textarea
+                  value={repairTypeForm.description}
+                  onChange={(e) => setRepairTypeForm({ ...repairTypeForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">שמור</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowRepairTypeModal(false); setEditingRepairType(null); }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Credit Type Modal */}
+      {showCreditTypeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingCreditType ? 'עריכת סוג זיכוי' : 'סוג זיכוי חדש'}
+              </h2>
+            </div>
+            <form onSubmit={handleSaveCreditType} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">שם *</label>
+                <input
+                  type="text"
+                  required
+                  value={creditTypeForm.name}
+                  onChange={(e) => setCreditTypeForm({ ...creditTypeForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">תיאור</label>
+                <textarea
+                  value={creditTypeForm.description}
+                  onChange={(e) => setCreditTypeForm({ ...creditTypeForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">שמור</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowCreditTypeModal(false); setEditingCreditType(null); }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {confirmDialog && (
         <ConfirmDialog
           {...confirmDialog}

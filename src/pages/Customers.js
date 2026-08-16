@@ -7,6 +7,7 @@ import CustomerMergeModal from '../components/customers/CustomerMergeModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import CustomerTasksModal from '../components/customers/CustomerTasksModal';
+import CustomerCreditsModal from '../components/customers/CustomerCreditsModal';
 
 const Customers = () => {
   const { user, updatePreferences } = useAuth();
@@ -28,6 +29,8 @@ const Customers = () => {
   const [mergeCustomers, setMergeCustomers] = useState(/** @type {any[]|null} */(null));
   const [showTasksModal, setShowTasksModal] = useState(false);
   const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
+  const [selectedCustomerForCredits, setSelectedCustomerForCredits] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [exportInternational, setExportInternational] = useState(false);
   const [showInterestStats, setShowInterestStats] = useState(false);
@@ -968,6 +971,17 @@ const Customers = () => {
                           <ClipboardList className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCustomerForCredits(customer);
+                            setShowCreditsModal(true);
+                          }}
+                          className="text-green-600 hover:text-green-700 dark:text-green-400"
+                          title="זיכויים"
+                        >
+                          <Tag className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleEdit(customer)}
                           className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
                         >
@@ -1281,6 +1295,16 @@ const Customers = () => {
           setSelectedCustomerForTasks(null);
         }}
         customer={selectedCustomerForTasks}
+      />
+
+      {/* Customer Credits Modal */}
+      <CustomerCreditsModal
+        show={showCreditsModal}
+        onClose={() => {
+          setShowCreditsModal(false);
+          setSelectedCustomerForCredits(null);
+        }}
+        customer={selectedCustomerForCredits}
       />
       {confirmDialog && (
         <ConfirmDialog

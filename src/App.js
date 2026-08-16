@@ -19,6 +19,7 @@ import Shortcuts from './pages/Shortcuts';
 import Sales from './pages/Sales';
 import StudioBilling from './pages/StudioBilling';
 import Attendance from './pages/Attendance';
+import Repairs from './pages/Repairs';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -165,6 +166,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAdmin>
             <StudioBilling />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/repairs"
+        element={
+          <ProtectedRoute>
+            <Repairs />
           </ProtectedRoute>
         }
       />

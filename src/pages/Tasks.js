@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList, Wrench, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerModal from '../components/tasks/CustomerModal';
 import ColumnToggle from '../components/common/ColumnToggle';
@@ -32,6 +32,9 @@ const Tasks = () => {
   const [inlineDateEditTaskId, setInlineDateEditTaskId] = useState(null);
   const [completingTaskIds, setCompletingTaskIds] = useState(new Set());
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [convertToRepairTask, setConvertToRepairTask] = useState(null);
+  const [repairTypes, setRepairTypes] = useState([]);
+  const [convertForm, setConvertForm] = useState({ type_id: '', details: '' });
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -162,6 +165,12 @@ const Tasks = () => {
       setCategories(categoriesRes.data);
       setUsers(usersRes.data);
 
+      // Load repair types for convert-to-repair feature
+      try {
+        const repairTypesRes = await api.get('/repair-types');
+        setRepairTypes(repairTypesRes.data || []);
+      } catch (_) {}
+
       // Load progress counts for all tasks
       loadProgressCounts(filteredTasks);
     } catch (error) {
@@ -236,6 +245,35 @@ const Tasks = () => {
         }
       },
     });
+  };
+
+  const openConvertToRepair = (task) => {
+    setConvertToRepairTask(task);
+    setConvertForm({
+      type_id: '',
+      details: [task.title, task.description].filter(Boolean).join(' — '),
+    });
+  };
+
+  const handleConvertToRepair = async (e) => {
+    e.preventDefault();
+    if (!convertToRepairTask) return;
+    try {
+      await api.post('/repairs', {
+        type_id: convertForm.type_id || null,
+        customer_id: convertToRepairTask.customer_id || null,
+        details: convertForm.details,
+        status: 'open',
+        assigned_to: convertToRepairTask.assigned_to && convertToRepairTask.assigned_to !== 'general'
+          ? convertToRepairTask.assigned_to
+          : null,
+      });
+      setConvertToRepairTask(null);
+      alert('הבקשה הומרה לתיקון בהצלחה!');
+    } catch (error) {
+      console.error('Error converting task to repair:', error);
+      alert('שגיאה בהמרת המשימה לתיקון');
+    }
   };
 
   const handleToggleComplete = async (task) => {
@@ -862,6 +900,13 @@ const Tasks = () => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => openConvertToRepair(task)}
+                          className="text-orange-500 hover:text-orange-600 dark:text-orange-400"
+                          title="המר לבקשת תיקון"
+                        >
+                          <Wrench className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(task.id)}
                           className="text-red-600 hover:text-red-700 dark:text-red-400"
                         >
@@ -1109,6 +1154,66 @@ const Tasks = () => {
           confirmLabel="מחק"
           onCancel={() => setConfirmDialog(null)}
         />
+      )}
+
+      {/* Convert to Repair Modal */}
+      {convertToRepairTask && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setConvertToRepairTask(null)}></div>
+            <div className="inline-block w-full max-w-md my-8 overflow-hidden text-right align-middle transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-orange-500" />
+                  המרה לבקשת תיקון
+                </h2>
+                <button onClick={() => setConvertToRepairTask(null)} className="text-gray-400 hover:text-gray-500">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleConvertToRepair} className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    סוג תיקון
+                  </label>
+                  <select
+                    value={convertForm.type_id}
+                    onChange={(e) => setConvertForm({ ...convertForm, type_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="">בחר סוג...</option>
+                    {repairTypes.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    פירוט
+                  </label>
+                  <textarea
+                    value={convertForm.details}
+                    onChange={(e) => setConvertForm({ ...convertForm, details: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="submit" className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 text-sm">
+                    המר לתיקון
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConvertToRepairTask(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm"
+                  >
+                    ביטול
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import api from '../../utils/api';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -137,6 +137,7 @@ const Layout = ({ children }) => {
     { name: 'לקוחות', href: '/customers', icon: Users },
     { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare },
+    { name: 'תיקונים', href: '/repairs', icon: Wrench },
     { name: 'מכירות', href: '/sales', icon: DollarSign },
     { name: 'נוכחות', href: '/attendance', icon: Clock },
     { name: 'פעילות', href: '/activity', icon: Activity },
