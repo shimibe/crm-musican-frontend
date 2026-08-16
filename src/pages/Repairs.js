@@ -52,6 +52,10 @@ const Repairs = () => {
   const [customers, setCustomers] = useState([]);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
 
+  // Inline detail editing
+  const [inlineEditId, setInlineEditId] = useState(null);
+  const [inlineEditValue, setInlineEditValue] = useState('');
+
   // History note input
   const [noteInput, setNoteInput] = useState('');
   const [addingNote, setAddingNote] = useState(false);
@@ -134,6 +138,12 @@ const Repairs = () => {
     } catch (error) {
       console.error('Error updating repair:', error);
     }
+  };
+
+  const saveInlineDetail = async (repairId) => {
+    await handleQuickUpdate(repairId, 'details', inlineEditValue);
+    setInlineEditId(null);
+    setInlineEditValue('');
   };
 
   const openCreate = () => {
@@ -354,12 +364,30 @@ const Repairs = () => {
               {repairs.map((repair) => {
                 const statusInfo = getStatusInfo(repair.status);
                 return (
-                  <tr key={repair.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                  <tr key={repair.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                       {repair.type_name || <span className="text-gray-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs">
-                      <span className="line-clamp-2">{repair.details || <span className="text-gray-400">—</span>}</span>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs cursor-pointer"
+                      onClick={() => { if (inlineEditId !== repair.id) { setInlineEditId(repair.id); setInlineEditValue(repair.details || ''); } }}
+                    >
+                      {inlineEditId === repair.id ? (
+                        <textarea
+                          autoFocus
+                          value={inlineEditValue}
+                          onChange={(e) => setInlineEditValue(e.target.value)}
+                          onBlur={() => saveInlineDetail(repair.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveInlineDetail(repair.id); }
+                            if (e.key === 'Escape') { setInlineEditId(null); }
+                          }}
+                          rows={2}
+                          className="w-full px-2 py-1 text-sm border border-primary-400 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-1 focus:ring-primary-500"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="line-clamp-2">{repair.details || <span className="text-gray-400 italic">לחץ לעריכה</span>}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <select
