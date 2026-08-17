@@ -24,6 +24,9 @@ const Layout = ({ children }) => {
     localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
   }, [sidebarCollapsed]);
 
+  // Nav badge counts
+  const [navBadges, setNavBadges] = useState({ tasks: 0, repairs: 0 });
+
   // Studio timer indicator state
   const [studioTimerActive, setStudioTimerActive] = useState(false);
   const [studioElapsedTime, setStudioElapsedTime] = useState(0);
@@ -115,6 +118,26 @@ const Layout = ({ children }) => {
     return () => clearInterval(interval);
   }, [hasActiveShift]);
 
+  // Load nav badge counts
+  useEffect(() => {
+    const loadNavBadges = async () => {
+      if (!user?.id) return;
+      try {
+        const [tasksRes, repairsRes] = await Promise.all([
+          api.get('/tasks', { params: { assigned_to: user.id, limit: 100 } }),
+          api.get('/repairs', { params: { mine: 'true', limit: 100 } }),
+        ]);
+        const openTasks = (tasksRes.data.tasks || [])
+          .filter(t => t.status === 'open' || t.status === 'in_progress').length;
+        const openRepairs = (repairsRes.data.repairs || []).length;
+        setNavBadges({ tasks: openTasks, repairs: openRepairs });
+      } catch (e) {
+        // silently fail
+      }
+    };
+    loadNavBadges();
+  }, [user?.id]);
+
   const formatStudioTime = (time) => {
     const hours = Math.floor(time / 3600000);
     const minutes = Math.floor((time % 3600000) / 60000);
@@ -136,8 +159,8 @@ const Layout = ({ children }) => {
     { name: 'דשבורד', href: '/', icon: Home },
     { name: 'לקוחות', href: '/customers', icon: Users },
     { name: 'קמפיינים', href: '/campaigns', icon: Send },
-    { name: 'משימות', href: '/tasks', icon: CheckSquare },
-    { name: 'תיקונים', href: '/repairs', icon: Wrench },
+    { name: 'משימות', href: '/tasks', icon: CheckSquare, badgeKey: 'tasks' },
+    { name: 'תיקונים', href: '/repairs', icon: Wrench, badgeKey: 'repairs' },
     { name: 'מכירות', href: '/sales', icon: DollarSign },
     { name: 'נוכחות', href: '/attendance', icon: Clock },
     { name: 'פעילות', href: '/activity', icon: Activity },
@@ -146,8 +169,8 @@ const Layout = ({ children }) => {
 
   // Add admin links if user is admin
   if (isAdmin) {
-    navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic });
-    navigation.push({ name: 'ניהול', href: '/admin', icon: Shield });
+    navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic, adminOnly: true });
+    navigation.push({ name: 'ניהול', href: '/admin', icon: Shield, adminOnly: true });
   }
 
   navigation.push({ name: 'הגדרות', href: '/settings', icon: Settings });
@@ -261,6 +284,7 @@ const Layout = ({ children }) => {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
+              const badge = item.badgeKey ? navBadges[item.badgeKey] || 0 : 0;
               return (
                 <Link
                   key={item.name}
@@ -268,13 +292,25 @@ const Layout = ({ children }) => {
                   className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md ${
                     isActive
                       ? 'bg-primary-100 dark:bg-primary-900 text-primary-900 dark:text-primary-100'
+                      : item.adminOnly
+                      ? 'text-gray-500 dark:text-gray-500 bg-gray-100/60 dark:bg-black/20 hover:bg-gray-200/60 dark:hover:bg-black/30'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                   onClick={() => setSidebarOpen(false)}
                   title={sidebarCollapsed ? item.name : ''}
                 >
-                  <Icon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
-                  {!sidebarCollapsed && item.name}
+                  <div className="relative flex-shrink-0">
+                    <Icon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
+                    {sidebarCollapsed && badge > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                    )}
+                  </div>
+                  {!sidebarCollapsed && <span className="flex-1">{item.name}</span>}
+                  {!sidebarCollapsed && badge > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/api";
-import { Users, CheckSquare, Activity, TrendingUp } from "lucide-react";
+import { Users, CheckSquare, Activity, TrendingUp, Wrench } from "lucide-react";
 
 const Dashboard = () => {
 	const { user, isAdmin } = useAuth();
 	const [stats, setStats] = useState(null);
 	const [myTasks, setMyTasks] = useState([]);
+	const [myTasksCount, setMyTasksCount] = useState(0);
+	const [myRepairs, setMyRepairs] = useState([]);
+	const [myRepairsCount, setMyRepairsCount] = useState(0);
 	const [recentActivity, setRecentActivity] = useState([]);
 	const [loading, setLoading] = useState(true);
 
@@ -19,23 +22,20 @@ const Dashboard = () => {
 		try {
 		//	console.log("loading Dashboard");
 
-			const [tasksRes, activityRes] = await Promise.all([
+			const [tasksRes, repairsRes, activityRes] = await Promise.all([
 				api.get("/tasks", { params: { assigned_to: user?.id } }),
+				api.get("/repairs", { params: { mine: 'true', limit: 100 } }),
 				api.get("/activity/my?limit=5")
 			]);
 
-//			console.log({
-//				tasksRes: tasksRes,
-//				activityRes: activityRes,
-//			});
+			const rawActiveTasks = tasksRes.data.tasks
+				.filter(task => task.status === 'open' || task.status === 'in_progress');
+			setMyTasksCount(rawActiveTasks.length);
+			setMyTasks(rawActiveTasks.slice(0, 5));
 
-			// Filter to show only open and in_progress tasks, and limit to 5
-			const myActiveTasks = tasksRes.data.tasks
-				.filter(task => task.status === 'open' || task.status === 'in_progress')
-				.slice(0, 5);
-
-			setMyTasks(myActiveTasks);
-//			console.log("mytesks - set!");
+			const allRepairs = repairsRes.data.repairs || [];
+			setMyRepairsCount(allRepairs.length);
+			setMyRepairs(allRepairs.slice(0, 5));
 
 			setRecentActivity(activityRes.data.logs);
 //			console.log("myactivity - set!");
@@ -92,6 +92,18 @@ const Dashboard = () => {
 			default:
 				return status;
 		}
+	};
+
+	const getRepairStatusClass = (color) => {
+		const map = {
+			red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+			yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+			green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+			blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+			orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+			purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+		};
+		return map[color] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 	};
 
 	const getActionText = (log) => {
@@ -228,7 +240,12 @@ const Dashboard = () => {
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
 				<div className="p-6 border-b border-gray-200 dark:border-gray-700">
 					<div className="flex items-center justify-between">
-						<h2 className="text-lg font-semibold text-gray-900 dark:text-white">המשימות שלי</h2>
+						<div className="flex items-center gap-2">
+							<h2 className="text-lg font-semibold text-gray-900 dark:text-white">המשימות שלי</h2>
+							{myTasksCount > 0 && (
+								<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{myTasksCount}</span>
+							)}
+						</div>
 						<Link to="/tasks" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
 							צפה בהכל
 						</Link>
@@ -248,6 +265,55 @@ const Dashboard = () => {
 									<div className="flex items-center gap-2">
 										<span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>{getPriorityText(task.priority)}</span>
 										<span className="text-xs text-gray-500 dark:text-gray-400">{getStatusText(task.status)}</span>
+									</div>
+								</div>
+							</div>
+						))
+					)}
+				</div>
+			</div>
+
+			{/* My Repairs */}
+			<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className="p-6 border-b border-gray-200 dark:border-gray-700">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<Wrench className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+							<h2 className="text-lg font-semibold text-gray-900 dark:text-white">התיקונים שלי</h2>
+							{myRepairsCount > 0 && (
+								<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{myRepairsCount}</span>
+							)}
+						</div>
+						<Link to="/repairs" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+							צפה בהכל
+						</Link>
+					</div>
+				</div>
+				<div className="divide-y divide-gray-200 dark:divide-gray-700">
+					{myRepairs.length === 0 ? (
+						<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין בקשות תיקון פתוחות</div>
+					) : (
+						myRepairs.map((repair) => (
+							<div key={repair.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+								<div className="flex items-center justify-between gap-4">
+									<div className="flex-1 min-w-0">
+										<p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+											{repair.details ? repair.details.substring(0, 60) + (repair.details.length > 60 ? '...' : '') : repair.type_name || 'ללא פירוט'}
+										</p>
+										<div className="flex items-center gap-3 mt-1 flex-wrap">
+											{repair.type_name && <span className="text-xs text-gray-500 dark:text-gray-400">{repair.type_name}</span>}
+											{repair.customer_name && <span className="text-xs text-gray-500 dark:text-gray-400">לקוח: {repair.customer_name}</span>}
+										</div>
+									</div>
+									<div className="flex items-center gap-2 flex-shrink-0">
+										{repair.status_name && (
+											<span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getRepairStatusClass(repair.status_color)}`}>
+												{repair.status_name}
+											</span>
+										)}
+										{repair.days_open != null && (
+											<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{repair.days_open} ימים</span>
+										)}
 									</div>
 								</div>
 							</div>
