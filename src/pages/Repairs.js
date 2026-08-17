@@ -378,7 +378,14 @@ const Repairs = () => {
               {repairs.map((repair) => {
                 const statusColorClass = getStatusColor(repair.status_color);
                 return (
-                  <tr key={repair.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr
+                    key={repair.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={(e) => {
+                      if (e.target.closest('select, textarea, button, a')) return;
+                      openEdit(repair);
+                    }}
+                  >
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
                       {repair.type_name || <span className="text-gray-400">—</span>}
                     </td>
