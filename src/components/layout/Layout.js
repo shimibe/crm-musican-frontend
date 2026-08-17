@@ -118,10 +118,11 @@ const Layout = ({ children }) => {
     return () => clearInterval(interval);
   }, [hasActiveShift]);
 
-  // Load nav badge counts
+  // Load nav badge counts — refresh on navigation + every 3 minutes
   useEffect(() => {
     const loadNavBadges = async () => {
       if (!user?.id) return;
+      if (document.visibilityState === 'hidden') return;
       try {
         const [tasksRes, repairsRes] = await Promise.all([
           api.get('/tasks', { params: { assigned_to: user.id, limit: 100 } }),
@@ -136,7 +137,9 @@ const Layout = ({ children }) => {
       }
     };
     loadNavBadges();
-  }, [user?.id]);
+    const interval = setInterval(loadNavBadges, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user?.id, location.pathname]);
 
   const formatStudioTime = (time) => {
     const hours = Math.floor(time / 3600000);
@@ -158,7 +161,6 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'דשבורד', href: '/', icon: Home },
     { name: 'לקוחות', href: '/customers', icon: Users },
-    { name: 'קמפיינים', href: '/campaigns', icon: Send },
     { name: 'משימות', href: '/tasks', icon: CheckSquare, badgeKey: 'tasks' },
     { name: 'תיקונים', href: '/repairs', icon: Wrench, badgeKey: 'repairs' },
     { name: 'מכירות', href: '/sales', icon: DollarSign },
@@ -169,6 +171,7 @@ const Layout = ({ children }) => {
 
   // Add admin links if user is admin
   if (isAdmin) {
+    navigation.push({ name: 'קמפיינים', href: '/campaigns', icon: Send, adminOnly: true });
     navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic, adminOnly: true });
     navigation.push({ name: 'ניהול', href: '/admin', icon: Shield, adminOnly: true });
   }
