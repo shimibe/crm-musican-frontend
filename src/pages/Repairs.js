@@ -5,14 +5,17 @@ import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
-const STATUS_OPTIONS = [
-  { value: 'open', label: 'לטיפול', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
-  { value: 'in_progress', label: 'נשלח לפי"ל', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
-  { value: 'resolved', label: 'אישור ביצוע (פי"ל)', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
-  { value: 'closed', label: 'תיקון מאומת', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
-];
+const COLOR_MAP = {
+  red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  gray: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+};
 
-const getStatusInfo = (status) => STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
+const getStatusColor = (colorKey) => COLOR_MAP[colorKey] || COLOR_MAP.gray;
 
 const ACTION_LABELS = {
   created: 'נפתח',
@@ -25,6 +28,7 @@ const Repairs = () => {
   const { isAdmin } = useAuth();
   const [repairs, setRepairs] = useState([]);
   const [repairTypes, setRepairTypes] = useState([]);
+  const [repairStatuses, setRepairStatuses] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState(null);
@@ -44,7 +48,7 @@ const Repairs = () => {
     type_id: '',
     customer_id: '',
     details: '',
-    status: 'open',
+    status_id: '',
     assigned_to: '',
   });
 
@@ -64,6 +68,7 @@ const Repairs = () => {
 
   useEffect(() => {
     loadRepairTypes();
+    loadRepairStatuses();
     loadUsers();
     loadCustomers();
   }, []);
@@ -101,6 +106,15 @@ const Repairs = () => {
       setRepairTypes(response.data || []);
     } catch (error) {
       console.error('Error loading repair types:', error);
+    }
+  };
+
+  const loadRepairStatuses = async () => {
+    try {
+      const response = await api.get('/repair-statuses');
+      setRepairStatuses(response.data || []);
+    } catch (error) {
+      console.error('Error loading repair statuses:', error);
     }
   };
 
@@ -149,7 +163,7 @@ const Repairs = () => {
   const openCreate = () => {
     setEditingRepair(null);
     setRepairDetail(null);
-    setForm({ type_id: '', customer_id: '', details: '', status: 'open', assigned_to: '' });
+    setForm({ type_id: '', customer_id: '', details: '', status_id: repairStatuses[0]?.id || '', assigned_to: '' });
     setCustomerSearchTerm('');
     setNoteInput('');
     setShowModal(true);
@@ -161,7 +175,7 @@ const Repairs = () => {
       type_id: repair.type_id || '',
       customer_id: repair.customer_id || '',
       details: repair.details || '',
-      status: repair.status,
+      status_id: repair.status_id || '',
       assigned_to: repair.assigned_to || '',
     });
     setCustomerSearchTerm(repair.customer_name || '');
@@ -186,7 +200,7 @@ const Repairs = () => {
         type_id: form.type_id || null,
         customer_id: form.customer_id || null,
         details: form.details || null,
-        status: form.status,
+        status_id: form.status_id || null,
         assigned_to: form.assigned_to || null,
       };
 
@@ -286,8 +300,8 @@ const Repairs = () => {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="">כל הסטטוסים</option>
-            {STATUS_OPTIONS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            {repairStatuses.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
 
@@ -362,7 +376,7 @@ const Repairs = () => {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {repairs.map((repair) => {
-                const statusInfo = getStatusInfo(repair.status);
+                const statusColorClass = getStatusColor(repair.status_color);
                 return (
                   <tr key={repair.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
@@ -391,12 +405,12 @@ const Repairs = () => {
                     </td>
                     <td className="px-4 py-3">
                       <select
-                        value={repair.status}
-                        onChange={(e) => handleQuickUpdate(repair.id, 'status', e.target.value)}
-                        className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${statusInfo.color}`}
+                        value={repair.status_id || ''}
+                        onChange={(e) => handleQuickUpdate(repair.id, 'status_id', e.target.value)}
+                        className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${statusColorClass}`}
                       >
-                        {STATUS_OPTIONS.map(s => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
+                        {repairStatuses.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                     </td>
@@ -498,12 +512,13 @@ const Repairs = () => {
                         סטטוס
                       </label>
                       <select
-                        value={form.status}
-                        onChange={(e) => setForm({ ...form, status: e.target.value })}
+                        value={form.status_id}
+                        onChange={(e) => setForm({ ...form, status_id: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
-                        {STATUS_OPTIONS.map(s => (
-                          <option key={s.value} value={s.value}>{s.label}</option>
+                        <option value="">בחר סטטוס...</option>
+                        {repairStatuses.map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                     </div>

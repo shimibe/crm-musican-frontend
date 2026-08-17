@@ -11,12 +11,18 @@ const Admin = () => {
   const [interests, setInterests] = useState([]);
   const [apiTokens, setApiTokens] = useState([]);
   const [repairTypes, setRepairTypes] = useState([]);
+  const [repairStatuses, setRepairStatuses] = useState([]);
   const [creditTypes, setCreditTypes] = useState([]);
 
   // Repair type modal states
   const [showRepairTypeModal, setShowRepairTypeModal] = useState(false);
   const [editingRepairType, setEditingRepairType] = useState(null);
   const [repairTypeForm, setRepairTypeForm] = useState({ name: '', description: '' });
+
+  // Repair status modal states
+  const [showRepairStatusModal, setShowRepairStatusModal] = useState(false);
+  const [editingRepairStatus, setEditingRepairStatus] = useState(null);
+  const [repairStatusForm, setRepairStatusForm] = useState({ name: '', color: 'gray', sort_order: 0 });
 
   // Credit type modal states
   const [showCreditTypeModal, setShowCreditTypeModal] = useState(false);
@@ -130,11 +136,13 @@ const Admin = () => {
         await loadSettings();
       }
 
-      const [repairTypesRes, creditTypesRes] = await Promise.all([
+      const [repairTypesRes, repairStatusesRes, creditTypesRes] = await Promise.all([
         api.get('/repair-types'),
+        api.get('/repair-statuses'),
         api.get('/credit-types'),
       ]);
       setRepairTypes(repairTypesRes.data || []);
+      setRepairStatuses(repairStatusesRes.data || []);
       setCreditTypes(creditTypesRes.data || []);
 
       const responses = await Promise.all(requests);
@@ -444,6 +452,55 @@ const Admin = () => {
           setRepairTypes(res.data || []);
         } catch (error) {
           const msg = error.response?.data?.error || 'שגיאה במחיקת סוג תיקון';
+          alert(msg);
+        }
+      },
+    });
+  };
+
+  // Repair status handlers
+  const handleAddRepairStatus = () => {
+    setEditingRepairStatus(null);
+    setRepairStatusForm({ name: '', color: 'gray', sort_order: repairStatuses.length });
+    setShowRepairStatusModal(true);
+  };
+
+  const handleEditRepairStatus = (s) => {
+    setEditingRepairStatus(s);
+    setRepairStatusForm({ name: s.name, color: s.color || 'gray', sort_order: s.sort_order ?? 0 });
+    setShowRepairStatusModal(true);
+  };
+
+  const handleSaveRepairStatus = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingRepairStatus) {
+        await api.put(`/repair-statuses/${editingRepairStatus.id}`, repairStatusForm);
+      } else {
+        await api.post('/repair-statuses', repairStatusForm);
+      }
+      setShowRepairStatusModal(false);
+      setEditingRepairStatus(null);
+      const res = await api.get('/repair-statuses');
+      setRepairStatuses(res.data || []);
+    } catch (error) {
+      console.error('Error saving repair status:', error);
+      alert('שגיאה בשמירת סטטוס');
+    }
+  };
+
+  const handleDeleteRepairStatus = (id) => {
+    setConfirmDialog({
+      title: 'מחיקת סטטוס תיקון',
+      message: 'האם אתה בטוח שברצונך למחוק סטטוס זה?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/repair-statuses/${id}`);
+          setConfirmDialog(null);
+          const res = await api.get('/repair-statuses');
+          setRepairStatuses(res.data || []);
+        } catch (error) {
+          const msg = error.response?.data?.error || 'שגיאה במחיקת סטטוס';
           alert(msg);
         }
       },
@@ -792,6 +849,16 @@ const Admin = () => {
             }`}
           >
             סוגי תיקונים
+          </button>
+          <button
+            onClick={() => setActiveTab('repair-statuses')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'repair-statuses'
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            סטטוסי תיקון
           </button>
           <button
             onClick={() => setActiveTab('credit-types')}
@@ -1984,6 +2051,46 @@ const Admin = () => {
         </div>
       )}
 
+      {/* Repair Statuses Tab */}
+      {activeTab === 'repair-statuses' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">סטטוסי תיקון</h2>
+            <button
+              onClick={handleAddRepairStatus}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+            >
+              <Plus className="w-4 h-4" />
+              סטטוס חדש
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {repairStatuses.map((s) => (
+                <div key={s.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: { red: '#EF4444', yellow: '#EAB308', green: '#22C55E', blue: '#3B82F6', orange: '#F97316', purple: '#A855F7', gray: '#6B7280' }[s.color] || '#6B7280' }} />
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">{s.name}</h3>
+                      <span className="text-xs text-gray-400">סדר: {s.sort_order}</span>
+                      {!s.is_active && <span className="text-xs text-gray-400 mr-2">לא פעיל</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditRepairStatus(s)} className="text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteRepairStatus(s.id)} className="text-red-600 hover:text-red-700 dark:text-red-400">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Credit Types Tab */}
       {activeTab === 'credit-types' && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -2055,6 +2162,66 @@ const Admin = () => {
                 <button
                   type="button"
                   onClick={() => { setShowRepairTypeModal(false); setEditingRepairType(null); }}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Repair Status Modal */}
+      {showRepairStatusModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {editingRepairStatus ? 'עריכת סטטוס' : 'סטטוס חדש'}
+              </h2>
+            </div>
+            <form onSubmit={handleSaveRepairStatus} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">שם *</label>
+                <input
+                  type="text"
+                  required
+                  value={repairStatusForm.name}
+                  onChange={(e) => setRepairStatusForm({ ...repairStatusForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">צבע</label>
+                <select
+                  value={repairStatusForm.color}
+                  onChange={(e) => setRepairStatusForm({ ...repairStatusForm, color: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="red">אדום</option>
+                  <option value="yellow">צהוב</option>
+                  <option value="green">ירוק</option>
+                  <option value="blue">כחול</option>
+                  <option value="orange">כתום</option>
+                  <option value="purple">סגול</option>
+                  <option value="gray">אפור</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">סדר תצוגה</label>
+                <input
+                  type="number"
+                  value={repairStatusForm.sort_order}
+                  onChange={(e) => setRepairStatusForm({ ...repairStatusForm, sort_order: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">שמור</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowRepairStatusModal(false); setEditingRepairStatus(null); }}
                   className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500"
                 >
                   ביטול
