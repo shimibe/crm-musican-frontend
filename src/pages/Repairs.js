@@ -390,7 +390,7 @@ const Repairs = () => {
                       {repair.type_name || <span className="text-gray-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs cursor-pointer"
-                      onClick={() => { if (inlineEditId !== repair.id) { setInlineEditId(repair.id); setInlineEditValue(repair.details || ''); } }}
+                      onClick={(e) => { e.stopPropagation(); if (inlineEditId !== repair.id) { setInlineEditId(repair.id); setInlineEditValue(repair.details || ''); } }}
                     >
                       {inlineEditId === repair.id ? (
                         <textarea
