@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Edit, Trash2, X, Clock, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Plus, Edit, Trash2, X, Clock, MessageSquare, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { FaWrench } from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,17 +33,22 @@ const Repairs = () => {
   const [loading, setLoading] = useState(true);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  // Filters
+  // Server-side filters
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterAssigned, setFilterAssigned] = useState('');
   const [filterMine, setFilterMine] = useState(false);
   const [search, setSearch] = useState('');
 
+  // Client-side sort & display
+  const [sortField, setSortField] = useState('created_at');
+  const [sortDir, setSortDir] = useState('desc');
+  const [showCompleted, setShowCompleted] = useState(false);
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
-  const [repairDetail, setRepairDetail] = useState(null); // repair with history
+  const [repairDetail, setRepairDetail] = useState(null);
   const [form, setForm] = useState({
     type_id: '',
     customer_id: '',
@@ -136,6 +141,77 @@ const Repairs = () => {
     }
   };
 
+  // ── Computed ──────────────────────────────────────────────────────────────
+
+  // Status IDs considered "completed" — green color = done
+  const completedStatusIds = useMemo(() =>
+    new Set(repairStatuses.filter(s => s.color === 'green').map(s => s.id)),
+    [repairStatuses]
+  );
+
+  const completedCount = useMemo(() =>
+    repairs.filter(r => completedStatusIds.has(r.status_id)).length,
+    [repairs, completedStatusIds]
+  );
+
+  // Filtered + sorted repairs for display
+  const displayRepairs = useMemo(() => {
+    let list = [...repairs];
+
+    // Hide completed unless showCompleted is on, or user explicitly picked a status
+    if (!showCompleted && !filterStatus) {
+      list = list.filter(r => !completedStatusIds.has(r.status_id));
+    }
+
+    list.sort((a, b) => {
+      let aVal, bVal;
+
+      if (sortField === 'status') {
+        aVal = repairStatuses.find(s => s.id === a.status_id)?.name || '';
+        bVal = repairStatuses.find(s => s.id === b.status_id)?.name || '';
+      } else if (sortField === 'assigned') {
+        aVal = users.find(u => u.id === a.assigned_to)?.full_name || '';
+        bVal = users.find(u => u.id === b.assigned_to)?.full_name || '';
+      } else {
+        aVal = a[sortField] ?? '';
+        bVal = b[sortField] ?? '';
+      }
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const cmp = String(aVal).localeCompare(String(bVal), 'he');
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    return list;
+  }, [repairs, showCompleted, filterStatus, sortField, sortDir, completedStatusIds, repairStatuses, users]);
+
+  // Groups by type — only active when sorting by type_name
+  const groupedByType = useMemo(() => {
+    if (sortField !== 'type_name') return null;
+    const groups = new Map();
+    for (const repair of displayRepairs) {
+      const key = repair.type_name || '—';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(repair);
+    }
+    return [...groups.entries()].map(([typeName, items]) => ({ typeName, items }));
+  }, [displayRepairs, sortField]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      // Numeric/date columns default to descending (largest first)
+      setSortDir(['created_at', 'days_open', 'days_since_status_update'].includes(field) ? 'desc' : 'asc');
+    }
+  };
+
   const getFilteredCustomers = () => {
     if (!customerSearchTerm.trim()) return [];
     const lower = customerSearchTerm.toLowerCase();
@@ -181,7 +257,6 @@ const Repairs = () => {
     setCustomerSearchTerm(repair.customer_name || '');
     setNoteInput('');
 
-    // Load full repair with history
     try {
       const response = await api.get(`/repairs/${repair.id}`);
       setRepairDetail(response.data);
@@ -225,7 +300,6 @@ const Repairs = () => {
     try {
       await api.post(`/repairs/${editingRepair.id}/history`, { notes: noteInput });
       setNoteInput('');
-      // Reload history
       const response = await api.get(`/repairs/${editingRepair.id}`);
       setRepairDetail(response.data);
     } catch (error) {
@@ -262,6 +336,132 @@ const Repairs = () => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   };
+
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) return <ChevronsUpDown className="w-3 h-3 opacity-30 flex-shrink-0" />;
+    return sortDir === 'asc'
+      ? <ChevronUp className="w-3 h-3 text-primary-500 flex-shrink-0" />
+      : <ChevronDown className="w-3 h-3 text-primary-500 flex-shrink-0" />;
+  };
+
+  const thSort = "px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors";
+  const thStatic = "px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase";
+
+  const renderRepairRow = (repair) => {
+    const statusColorClass = getStatusColor(repair.status_color);
+    const isUrgent = (repair.days_open || 0) > 7;
+    const isStale = (repair.days_since_status_update || 0) > 3;
+
+    return (
+      <tr
+        key={repair.id}
+        className={`hover:bg-blue-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+          isUrgent ? 'bg-red-50/40 dark:bg-red-900/10' : ''
+        }`}
+        onClick={(e) => {
+          if (e.target.closest('select, textarea, button, a')) return;
+          openEdit(repair);
+        }}
+      >
+        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+          {repair.type_name || <span className="text-gray-400">—</span>}
+        </td>
+        <td
+          className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (inlineEditId !== repair.id) {
+              setInlineEditId(repair.id);
+              setInlineEditValue(repair.details || '');
+            }
+          }}
+        >
+          {inlineEditId === repair.id ? (
+            <textarea
+              autoFocus
+              value={inlineEditValue}
+              onChange={(e) => setInlineEditValue(e.target.value)}
+              onBlur={() => saveInlineDetail(repair.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveInlineDetail(repair.id); }
+                if (e.key === 'Escape') { setInlineEditId(null); }
+              }}
+              rows={2}
+              className="w-full px-2 py-1 text-sm border border-primary-400 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-1 focus:ring-primary-500"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="line-clamp-2">{repair.details || <span className="text-gray-400 italic">לחץ לעריכה</span>}</span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <select
+            value={repair.status_id || ''}
+            onChange={(e) => handleQuickUpdate(repair.id, 'status_id', e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${statusColorClass}`}
+          >
+            {repairStatuses.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </td>
+        <td className="px-4 py-3 text-sm text-center">
+          <span className={`font-semibold ${isUrgent ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+            {repair.days_open ?? 0}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-sm text-center">
+          <span className={`font-semibold ${isStale ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
+            {repair.days_since_status_update ?? 0}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+          {repair.customer_name || <span className="text-gray-400">—</span>}
+        </td>
+        <td className="px-4 py-3 text-sm">
+          <select
+            value={repair.assigned_to || ''}
+            onChange={(e) => handleQuickUpdate(repair.id, 'assigned_to', e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-transparent border-0 text-sm text-gray-700 dark:text-gray-300 cursor-pointer w-full"
+          >
+            <option value="">לא מוקצה</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.full_name}</option>
+            ))}
+          </select>
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+          {formatDate(repair.created_at)}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); openEdit(repair); }}
+              className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+              title="עריכה"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+            {isAdmin && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDelete(repair.id); }}
+                className="text-red-600 hover:text-red-700 dark:text-red-400"
+                title="מחיקה"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  // ── JSX ───────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-6">
@@ -338,6 +538,22 @@ const Repairs = () => {
             הבקשות שלי
           </button>
 
+          {/* Show completed toggle */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(e) => setShowCompleted(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-primary-600 accent-primary-600"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">
+              הצג הושלמו
+              {!showCompleted && completedCount > 0 && (
+                <span className="mr-1 text-xs text-gray-400 dark:text-gray-500">({completedCount})</span>
+              )}
+            </span>
+          </label>
+
           {(filterStatus || filterType || filterAssigned || filterMine || search) && (
             <button
               onClick={() => { setFilterStatus(''); setFilterType(''); setFilterAssigned(''); setFilterMine(false); setSearch(''); }}
@@ -355,125 +571,92 @@ const Repairs = () => {
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
           </div>
-        ) : repairs.length === 0 ? (
+        ) : displayRepairs.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            אין בקשות תיקון
+            {repairs.length > 0 && !showCompleted && !filterStatus
+              ? 'כל הבקשות הושלמו — סמן "הצג הושלמו" כדי לראות אותן'
+              : 'אין בקשות תיקון'}
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">סוג</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">פירוט</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">סטטוס</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ימים פתוח</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ימים מעדכון</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">לקוח</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">נציג</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">תאריך פתיחה</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {repairs.map((repair) => {
-                const statusColorClass = getStatusColor(repair.status_color);
-                return (
-                  <tr
-                    key={repair.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                    onClick={(e) => {
-                      if (e.target.closest('select, textarea, button, a')) return;
-                      openEdit(repair);
-                    }}
-                  >
-                    <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                      {repair.type_name || <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); if (inlineEditId !== repair.id) { setInlineEditId(repair.id); setInlineEditValue(repair.details || ''); } }}
-                    >
-                      {inlineEditId === repair.id ? (
-                        <textarea
-                          autoFocus
-                          value={inlineEditValue}
-                          onChange={(e) => setInlineEditValue(e.target.value)}
-                          onBlur={() => saveInlineDetail(repair.id)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveInlineDetail(repair.id); }
-                            if (e.key === 'Escape') { setInlineEditId(null); }
-                          }}
-                          rows={2}
-                          className="w-full px-2 py-1 text-sm border border-primary-400 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-1 focus:ring-primary-500"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <span className="line-clamp-2">{repair.details || <span className="text-gray-400 italic">לחץ לעריכה</span>}</span>
+          <>
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className={thSort} onClick={() => handleSort('type_name')}>
+                    <span className="flex items-center gap-1 justify-end">סוג <SortIcon field="type_name" /></span>
+                  </th>
+                  <th className={thStatic}>פירוט</th>
+                  <th className={thSort} onClick={() => handleSort('status')}>
+                    <span className="flex items-center gap-1 justify-end">סטטוס <SortIcon field="status" /></span>
+                  </th>
+                  <th className={thSort} onClick={() => handleSort('days_open')}>
+                    <span className="flex items-center gap-1 justify-end">ימים פתוח <SortIcon field="days_open" /></span>
+                  </th>
+                  <th className={thSort} onClick={() => handleSort('days_since_status_update')}>
+                    <span className="flex items-center gap-1 justify-end">ימים מעדכון <SortIcon field="days_since_status_update" /></span>
+                  </th>
+                  <th className={thSort} onClick={() => handleSort('customer_name')}>
+                    <span className="flex items-center gap-1 justify-end">לקוח <SortIcon field="customer_name" /></span>
+                  </th>
+                  <th className={thSort} onClick={() => handleSort('assigned')}>
+                    <span className="flex items-center gap-1 justify-end">נציג <SortIcon field="assigned" /></span>
+                  </th>
+                  <th className={thSort} onClick={() => handleSort('created_at')}>
+                    <span className="flex items-center gap-1 justify-end">תאריך פתיחה <SortIcon field="created_at" /></span>
+                  </th>
+                  <th className={thStatic}>פעולות</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {groupedByType ? (
+                  groupedByType.map(({ typeName, items }, groupIdx) => (
+                    <React.Fragment key={typeName}>
+                      {/* Spacer between groups */}
+                      {groupIdx > 0 && (
+                        <tr>
+                          <td colSpan={9} className="py-2 bg-gray-50 dark:bg-gray-800/60" />
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={repair.status_id || ''}
-                        onChange={(e) => handleQuickUpdate(repair.id, 'status_id', e.target.value)}
-                        className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${statusColorClass}`}
-                      >
-                        {repairStatuses.map(s => (
-                          <option key={s.id} value={s.id}>{s.name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-center">
-                      <span className={`font-semibold ${(repair.days_open || 0) > 7 ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {repair.days_open ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-center">
-                      <span className={`font-semibold ${(repair.days_since_status_update || 0) > 3 ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {repair.days_since_status_update ?? 0}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                      {repair.customer_name || <span className="text-gray-400">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <select
-                        value={repair.assigned_to || ''}
-                        onChange={(e) => handleQuickUpdate(repair.id, 'assigned_to', e.target.value)}
-                        className="bg-transparent border-0 text-sm text-gray-700 dark:text-gray-300 cursor-pointer w-full"
-                      >
-                        <option value="">לא מוקצה</option>
-                        {users.map(u => (
-                          <option key={u.id} value={u.id}>{u.full_name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      {formatDate(repair.created_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openEdit(repair)}
-                          className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                          title="עריכה"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDelete(repair.id)}
-                            className="text-red-600 hover:text-red-700 dark:text-red-400"
-                            title="מחיקה"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* Group header */}
+                      <tr className="bg-gray-100 dark:bg-gray-700/80 border-b-0">
+                        <td colSpan={9} className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <FaWrench className="w-3 h-3 text-gray-500 dark:text-gray-400" />
+                            <span className="font-bold text-gray-800 dark:text-gray-100 text-sm tracking-wide">
+                              {typeName}
+                            </span>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded-full">
+                              {items.length}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Group rows */}
+                      {items.map(repair => renderRepairRow(repair))}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  displayRepairs.map(repair => renderRepairRow(repair))
+                )}
+              </tbody>
+            </table>
+
+            {/* Footer: row count */}
+            <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
+              <span>מציג {displayRepairs.length} מתוך {repairs.length} בקשות</span>
+              {!showCompleted && completedCount > 0 && !filterStatus && (
+                <span className="text-gray-300 dark:text-gray-600">·</span>
+              )}
+              {!showCompleted && completedCount > 0 && !filterStatus && (
+                <button
+                  onClick={() => setShowCompleted(true)}
+                  className="text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400 underline"
+                >
+                  {completedCount} הושלמו ומוסתרות
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
 
