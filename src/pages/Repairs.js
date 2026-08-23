@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Edit, Trash2, X, Clock, MessageSquare, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Clock, MessageSquare, ChevronUp, ChevronDown, ChevronsUpDown, RotateCw } from 'lucide-react';
 import { FaWrench } from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +31,7 @@ const Repairs = () => {
   const [repairStatuses, setRepairStatuses] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Server-side filters
@@ -70,23 +71,32 @@ const Repairs = () => {
   const [addingNote, setAddingNote] = useState(false);
 
   const searchTimeout = useRef(null);
+  const filtersInitialized = useRef(false);
 
+  // Initial load — all calls fire in parallel, no artificial delay
   useEffect(() => {
-    loadRepairTypes();
-    loadRepairStatuses();
-    loadUsers();
-    loadCustomers();
-  }, []);
+    Promise.all([
+      loadRepairTypes(),
+      loadRepairStatuses(),
+      loadUsers(),
+      loadCustomers(),
+      loadRepairs(),
+    ]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Filter changes — debounced, skips the first render (handled above)
   useEffect(() => {
+    if (!filtersInitialized.current) {
+      filtersInitialized.current = true;
+      return;
+    }
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      loadRepairs();
-    }, 300);
+    searchTimeout.current = setTimeout(loadRepairs, 300);
     return () => clearTimeout(searchTimeout.current);
   }, [filterStatus, filterType, filterAssigned, filterMine, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRepairs = async () => {
+    setRefreshing(true);
     try {
       const params = {};
       if (filterStatus) params.status = filterStatus;
@@ -101,6 +111,7 @@ const Repairs = () => {
     } catch (error) {
       console.error('Error loading repairs:', error);
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
@@ -474,13 +485,23 @@ const Repairs = () => {
           </h1>
           <p className="text-gray-600 dark:text-gray-400">מעקב אחרי בקשות תיקון פתוחות</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-        >
-          <Plus className="w-4 h-4" />
-          בקשה חדשה
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadRepairs}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition"
+            title="רענן"
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+          >
+            <Plus className="w-4 h-4" />
+            בקשה חדשה
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

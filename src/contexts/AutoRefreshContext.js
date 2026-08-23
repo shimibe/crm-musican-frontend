@@ -38,7 +38,7 @@ export const AutoRefreshProvider = ({ children }) => {
   const isUserActive = useUserActivity(inactivityTimeout * 60 * 1000);
 
   // Pages that should auto-refresh (data pages, not settings)
-  const dataPages = ['/', '/customers', '/tasks', '/campaigns', '/activity', '/dashboard', '/sales'];
+  const dataPages = ['/', '/customers', '/tasks', '/campaigns', '/activity', '/dashboard', '/sales', '/repairs'];
   const shouldRefreshPage = dataPages.includes(location.pathname);
 
   // Refresh callback
