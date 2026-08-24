@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 import api from '../utils/api';
 import { Send, Eye, RefreshCw, AlertCircle, Calendar, Mail, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -15,6 +16,8 @@ const Campaigns = () => {
     emailVariables: {},
     whatsappVariables: []
   });
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileCustomer, setProfileCustomer] = useState(null);
   const [showConfirmResend, setShowConfirmResend] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendingProgress, setSendingProgress] = useState(0);
@@ -494,7 +497,19 @@ const Campaigns = () => {
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {selectedCampaign.customerDetails.map((customer) => (
                           <tr key={customer.customer_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td className="px-3 py-2 text-gray-900 dark:text-white">{customer.customer_name}</td>
+                            <td
+                              className="px-3 py-2"
+                              onClick={() => {
+                                if (customer.customer_id) {
+                                  setProfileCustomer({ id: customer.customer_id, name: customer.customer_name });
+                                  setShowProfileModal(true);
+                                }
+                              }}
+                            >
+                              <span className={customer.customer_id ? 'text-primary-600 dark:text-primary-400 hover:underline cursor-pointer' : 'text-gray-900 dark:text-white'}>
+                                {customer.customer_name}
+                              </span>
+                            </td>
                             <td className="px-3 py-2 text-center">
                               {customer.email_status === 'sent' && (
                                 <span className="text-green-600 dark:text-green-400">✓</span>
@@ -751,6 +766,12 @@ const Campaigns = () => {
           </div>
         </div>
       )}
+      <CustomerProfileModal
+        show={showProfileModal}
+        onClose={() => { setShowProfileModal(false); setProfileCustomer(null); }}
+        customer={profileCustomer}
+        defaultTab="summary"
+      />
     </div>
   );
 };

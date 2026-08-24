@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import CustomerModal from '../components/tasks/CustomerModal';
+import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const Sales = () => {
@@ -31,8 +31,8 @@ const Sales = () => {
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [editingCell, setEditingCell] = useState(null); // { saleId, field }
   const [editingValue, setEditingValue] = useState('');
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileCustomer, setProfileCustomer] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
@@ -259,17 +259,10 @@ const Sales = () => {
     setEditingValue('');
   };
 
-  const handleCustomerClick = async (customerId) => {
+  const handleCustomerClick = (customerId, customerName) => {
     if (!customerId) return;
-
-    try {
-      const response = await api.get(`/customers/${customerId}`);
-      setSelectedCustomer(response.data);
-      setShowCustomerModal(true);
-    } catch (error) {
-      console.error('Error loading customer:', error);
-      alert('שגיאה בטעינת פרטי לקוח');
-    }
+    setProfileCustomer({ id: customerId, name: customerName });
+    setShowProfileModal(true);
   };
 
   const resetForm = () => {
@@ -513,7 +506,7 @@ const Sales = () => {
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
                         {sale.customer_id ? (
                           <button
-                            onClick={() => handleCustomerClick(sale.customer_id)}
+                            onClick={() => handleCustomerClick(sale.customer_id, sale.customer_name)}
                             className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
                           >
                             {sale.customer_name}
@@ -894,11 +887,11 @@ const Sales = () => {
         />
       )}
 
-      {/* Customer Modal */}
-      <CustomerModal
-        show={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
-        customer={selectedCustomer}
+      <CustomerProfileModal
+        show={showProfileModal}
+        onClose={() => { setShowProfileModal(false); setProfileCustomer(null); }}
+        customer={profileCustomer}
+        defaultTab="summary"
       />
     </div>
   );

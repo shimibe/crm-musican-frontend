@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList, Wrench, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import CustomerModal from '../components/tasks/CustomerModal';
+import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ProgressModal from '../components/tasks/ProgressModal';
@@ -23,8 +23,8 @@ const Tasks = () => {
   const [customerFilter, setCustomerFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileCustomer, setProfileCustomer] = useState(null);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [selectedTaskForProgress, setSelectedTaskForProgress] = useState(null);
@@ -511,17 +511,10 @@ const Tasks = () => {
     return task.priority;
   };
 
-  const handleCustomerClick = async (customerId) => {
+  const handleCustomerClick = (customerId, customerName) => {
     if (!customerId) return;
-
-    try {
-      const response = await api.get(`/customers/${customerId}`);
-      setSelectedCustomer(response.data);
-      setShowCustomerModal(true);
-    } catch (error) {
-      console.error('Error loading customer:', error);
-      alert('שגיאה בטעינת פרטי לקוח');
-    }
+    setProfileCustomer({ id: customerId, name: customerName });
+    setShowProfileModal(true);
   };
 
   const getSortedCustomers = () => {
@@ -704,7 +697,7 @@ const Tasks = () => {
                         onClick={(e) => {
                           if (task.customer_id) {
                             e.stopPropagation();
-                            handleCustomerClick(task.customer_id);
+                            handleCustomerClick(task.customer_id, task.customer_name);
                           }
                         }}
                       >
@@ -922,11 +915,11 @@ const Tasks = () => {
         )}
       </div>
 
-      {/* Customer Modal */}
-      <CustomerModal
-        show={showCustomerModal}
-        onClose={() => setShowCustomerModal(false)}
-        customer={selectedCustomer}
+      <CustomerProfileModal
+        show={showProfileModal}
+        onClose={() => { setShowProfileModal(false); setProfileCustomer(null); }}
+        customer={profileCustomer}
+        defaultTab="summary"
       />
 
       {/* Progress Modal */}

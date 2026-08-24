@@ -4,6 +4,7 @@ import { FaWrench } from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 
 const COLOR_MAP = {
   red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -33,6 +34,8 @@ const Repairs = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileCustomer, setProfileCustomer] = useState(null);
 
   // Server-side filters
   const [filterStatus, setFilterStatus] = useState('');
@@ -429,8 +432,21 @@ const Repairs = () => {
             {repair.days_since_status_update ?? 0}
           </span>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-          {repair.customer_name || <span className="text-gray-400">—</span>}
+        <td
+          className="px-4 py-3 text-sm"
+          onClick={(e) => {
+            if (repair.customer_id) {
+              e.stopPropagation();
+              setProfileCustomer({ id: repair.customer_id, name: repair.customer_name });
+              setShowProfileModal(true);
+            }
+          }}
+        >
+          {repair.customer_name ? (
+            <span className={repair.customer_id ? 'text-primary-600 dark:text-primary-400 hover:underline cursor-pointer' : 'text-gray-700 dark:text-gray-300'}>
+              {repair.customer_name}
+            </span>
+          ) : <span className="text-gray-400">—</span>}
         </td>
         <td className="px-4 py-3 text-sm">
           <select
@@ -895,6 +911,12 @@ const Repairs = () => {
           onCancel={() => setConfirmDialog(null)}
         />
       )}
+      <CustomerProfileModal
+        show={showProfileModal}
+        onClose={() => { setShowProfileModal(false); setProfileCustomer(null); }}
+        customer={profileCustomer}
+        defaultTab="summary"
+      />
     </div>
   );
 };
