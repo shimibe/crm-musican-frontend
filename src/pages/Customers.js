@@ -6,8 +6,7 @@ import CampaignModal from '../components/customers/CampaignModal';
 import CustomerMergeModal from '../components/customers/CustomerMergeModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
-import CustomerTasksModal from '../components/customers/CustomerTasksModal';
-import CustomerCreditsModal from '../components/customers/CustomerCreditsModal';
+import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 
 const Customers = () => {
   const { user, updatePreferences } = useAuth();
@@ -27,10 +26,9 @@ const Customers = () => {
   const [selectedCustomers, setSelectedCustomers] = useState(/** @type {any[]} */([]));
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [mergeCustomers, setMergeCustomers] = useState(/** @type {any[]|null} */(null));
-  const [showTasksModal, setShowTasksModal] = useState(false);
-  const [selectedCustomerForTasks, setSelectedCustomerForTasks] = useState(null);
-  const [showCreditsModal, setShowCreditsModal] = useState(false);
-  const [selectedCustomerForCredits, setSelectedCustomerForCredits] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileCustomer, setProfileCustomer] = useState(null);
+  const [profileDefaultTab, setProfileDefaultTab] = useState('summary');
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [exportInternational, setExportInternational] = useState(false);
   const [showInterestStats, setShowInterestStats] = useState(false);
@@ -68,6 +66,7 @@ const Customers = () => {
     { key: 'category', label: 'קטגוריה' },
     { key: 'interests', label: 'תחומי עניין' },
     { key: 'status', label: 'סטטוס' },
+    { key: 'service_level', label: 'רמת שירות' },
   ];
 
   const toggleColumn = async (columnKey) => {
@@ -245,6 +244,21 @@ const Customers = () => {
       console.error('Error updating category:', error);
       alert('שגיאה בעדכון קטגוריה');
     }
+  };
+
+  const handleQuickServiceLevelUpdate = async (customerId, newLevel) => {
+    try {
+      await api.put(`/customers/${customerId}`, { service_level: newLevel });
+      loadCustomers();
+    } catch (error) {
+      console.error('Error updating service level:', error);
+    }
+  };
+
+  const openProfile = (customer, tab = 'summary') => {
+    setProfileCustomer(customer);
+    setProfileDefaultTab(tab);
+    setShowProfileModal(true);
   };
 
   const handleDelete = (id) => {
@@ -863,6 +877,11 @@ const Customers = () => {
                       סטטוס
                     </th>
                   )}
+                  {visibleColumns.service_level && (
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                      רמת שירות
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
                     פעולות
                   </th>
@@ -883,7 +902,7 @@ const Customers = () => {
                     {visibleColumns.name && (
                       <td
                         className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
-                        onClick={() => handleEdit(customer)}
+                        onClick={() => openProfile(customer, 'summary')}
                       >
                         {customer.name}
                       </td>
@@ -957,33 +976,46 @@ const Customers = () => {
                         </span>
                       </td>
                     )}
+                    {visibleColumns.service_level && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={customer.service_level || 'none'}
+                          onChange={(e) => handleQuickServiceLevelUpdate(customer.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className={`text-xs font-medium rounded-full px-2 py-1 border-0 cursor-pointer appearance-none ${
+                            customer.service_level === 'vip'        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                            customer.service_level === 'premium'    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
+                            customer.service_level === 'subscriber' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                            'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <option value="none">ללא</option>
+                          <option value="subscriber">מנוי</option>
+                          <option value="premium">פרימיום</option>
+                          <option value="vip">VIP</option>
+                        </select>
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCustomerForTasks(customer);
-                            setShowTasksModal(true);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); openProfile(customer, 'tasks'); }}
                           className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
                           title="משימות"
                         >
                           <ClipboardList className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCustomerForCredits(customer);
-                            setShowCreditsModal(true);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); openProfile(customer, 'credits'); }}
                           className="text-green-600 hover:text-green-700 dark:text-green-400"
                           title="זיכויים"
                         >
                           <Tag className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleEdit(customer)}
+                          onClick={(e) => { e.stopPropagation(); openProfile(customer, 'details'); }}
                           className="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                          title="עריכה"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -1287,24 +1319,11 @@ const Customers = () => {
         selectedCustomers={selectedCustomers}
       />
 
-      {/* Customer Tasks Modal */}
-      <CustomerTasksModal
-        show={showTasksModal}
-        onClose={() => {
-          setShowTasksModal(false);
-          setSelectedCustomerForTasks(null);
-        }}
-        customer={selectedCustomerForTasks}
-      />
-
-      {/* Customer Credits Modal */}
-      <CustomerCreditsModal
-        show={showCreditsModal}
-        onClose={() => {
-          setShowCreditsModal(false);
-          setSelectedCustomerForCredits(null);
-        }}
-        customer={selectedCustomerForCredits}
+      <CustomerProfileModal
+        show={showProfileModal}
+        onClose={() => { setShowProfileModal(false); setProfileCustomer(null); loadCustomers(); }}
+        customer={profileCustomer}
+        defaultTab={profileDefaultTab}
       />
       {confirmDialog && (
         <ConfirmDialog
