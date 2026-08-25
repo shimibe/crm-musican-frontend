@@ -24,7 +24,7 @@ const Dashboard = () => {
 
 			const [tasksRes, repairsRes, activityRes] = await Promise.all([
 				api.get("/tasks", { params: { assigned_to: user?.id } }),
-				api.get("/repairs", { params: { mine: 'true', limit: 100 } }),
+				api.get("/repairs", { params: { mine: 'true', exclude_final: 'true', limit: 100 } }),
 				api.get("/activity/my?limit=5")
 			]);
 
@@ -34,10 +34,8 @@ const Dashboard = () => {
 			setMyTasks(rawActiveTasks.slice(0, 5));
 
 			const allRepairs = repairsRes.data.repairs || [];
-			// @ts-ignore
-			const activeRepairs = allRepairs.filter(r => r.status !== 'completed');
-			setMyRepairsCount(activeRepairs.length);
-			setMyRepairs(activeRepairs.slice(0, 5));
+			setMyRepairsCount(allRepairs.length);
+			setMyRepairs(allRepairs.slice(0, 5));
 
 			setRecentActivity(activityRes.data.logs);
 //			console.log("myactivity - set!");

@@ -22,7 +22,7 @@ const Admin = () => {
   // Repair status modal states
   const [showRepairStatusModal, setShowRepairStatusModal] = useState(false);
   const [editingRepairStatus, setEditingRepairStatus] = useState(null);
-  const [repairStatusForm, setRepairStatusForm] = useState({ name: '', color: 'gray', sort_order: 0 });
+  const [repairStatusForm, setRepairStatusForm] = useState({ name: '', color: 'gray', sort_order: 0, is_final: false });
 
   // Credit type modal states
   const [showCreditTypeModal, setShowCreditTypeModal] = useState(false);
@@ -466,13 +466,13 @@ const Admin = () => {
   // Repair status handlers
   const handleAddRepairStatus = () => {
     setEditingRepairStatus(null);
-    setRepairStatusForm({ name: '', color: 'gray', sort_order: repairStatuses.length });
+    setRepairStatusForm({ name: '', color: 'gray', sort_order: repairStatuses.length, is_final: false });
     setShowRepairStatusModal(true);
   };
 
   const handleEditRepairStatus = (s) => {
     setEditingRepairStatus(s);
-    setRepairStatusForm({ name: s.name, color: s.color || 'gray', sort_order: s.sort_order ?? 0 });
+    setRepairStatusForm({ name: s.name, color: s.color || 'gray', sort_order: s.sort_order ?? 0, is_final: s.is_final || false });
     setShowRepairStatusModal(true);
   };
 
@@ -2105,6 +2105,7 @@ const Admin = () => {
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">{s.name}</h3>
                       <span className="text-xs text-gray-400">סדר: {s.sort_order}</span>
+                      {s.is_final && <span className="text-xs text-green-600 dark:text-green-400 mr-2">✓ סטטוס סיום</span>}
                       {!s.is_active && <span className="text-xs text-gray-400 mr-2">לא פעיל</span>}
                     </div>
                   </div>
@@ -2248,6 +2249,16 @@ const Admin = () => {
                   onChange={(e) => setRepairStatusForm({ ...repairStatusForm, sort_order: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_final"
+                  checked={repairStatusForm.is_final}
+                  onChange={(e) => setRepairStatusForm({ ...repairStatusForm, is_final: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 rounded"
+                />
+                <label htmlFor="is_final" className="text-sm text-gray-700 dark:text-gray-300">סטטוס סיום (הושלם) — לא יופיע בדשבורד</label>
               </div>
               <div className="flex gap-3 pt-4">
                 <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">שמור</button>
