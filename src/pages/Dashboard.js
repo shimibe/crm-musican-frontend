@@ -34,8 +34,10 @@ const Dashboard = () => {
 			setMyTasks(rawActiveTasks.slice(0, 5));
 
 			const allRepairs = repairsRes.data.repairs || [];
-			setMyRepairsCount(allRepairs.length);
-			setMyRepairs(allRepairs.slice(0, 5));
+			// @ts-ignore
+			const activeRepairs = allRepairs.filter(r => r.status !== 'completed');
+			setMyRepairsCount(activeRepairs.length);
+			setMyRepairs(activeRepairs.slice(0, 5));
 
 			setRecentActivity(activityRes.data.logs);
 //			console.log("myactivity - set!");
