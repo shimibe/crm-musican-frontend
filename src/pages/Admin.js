@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X, Zap } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X, Zap, Wrench, ReceiptText, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
@@ -31,6 +31,11 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
   const [confirmDialog, setConfirmDialog] = useState(null);
+
+  // Tools tab state
+  const [retryInvoiceId, setRetryInvoiceId] = useState('');
+  const [retryInvoiceLoading, setRetryInvoiceLoading] = useState(false);
+  const [retryInvoiceResult, setRetryInvoiceResult] = useState(null); // { success, message }
 
   // User modal states
   const [showUserModal, setShowUserModal] = useState(false);
@@ -766,6 +771,22 @@ const Admin = () => {
     });
   };
 
+  const handleRetryInvoice = async (e) => {
+    e.preventDefault();
+    setRetryInvoiceLoading(true);
+    setRetryInvoiceResult(null);
+    try {
+      await api.post('/tools/retry-invoice', { paymentId: retryInvoiceId.trim() });
+      setRetryInvoiceResult({ success: true, message: 'החשבונית הופקה בהצלחה!' });
+      setRetryInvoiceId('');
+    } catch (err) {
+      const msg = err.response?.data?.error || 'שגיאה בהפקת החשבונית';
+      setRetryInvoiceResult({ success: false, message: msg });
+    } finally {
+      setRetryInvoiceLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -879,6 +900,17 @@ const Admin = () => {
             }`}
           >
             הגדרות
+          </button>
+          <button
+            onClick={() => setActiveTab('tools')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm flex items-center gap-1 ${
+              activeTab === 'tools'
+                ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            כלים
           </button>
         </nav>
       </div>
@@ -2272,6 +2304,76 @@ const Admin = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tools Tab */}
+      {activeTab === 'tools' && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">כלי מנהל</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">פעולות חד-פעמיות וכלי עזר לניהול המערכת</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+            {/* Tool Card: Retry Invoice */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3">
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                  <ReceiptText className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">הפקת חשבונית ידנית</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    שלח בקשת retry לאתר Wix להפקת חשבונית שנכשלה
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleRetryInvoice} className="p-5 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Payment ID
+                  </label>
+                  <input
+                    type="text"
+                    value={retryInvoiceId}
+                    onChange={(e) => { setRetryInvoiceId(e.target.value); setRetryInvoiceResult(null); }}
+                    placeholder="הדבק את ה-ID מתיאור המשימה"
+                    dir="ltr"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400"
+                  />
+                </div>
+
+                {retryInvoiceResult && (
+                  <div className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
+                    retryInvoiceResult.success
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                      : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                  }`}>
+                    {retryInvoiceResult.success
+                      ? <Check className="w-4 h-4 shrink-0" />
+                      : <X className="w-4 h-4 shrink-0" />}
+                    <span>{retryInvoiceResult.message}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={retryInvoiceLoading || !retryInvoiceId.trim()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
+                >
+                  {retryInvoiceLoading
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> שולח...</>
+                    : <><ReceiptText className="w-4 h-4" /> הפק חשבונית</>}
+                </button>
+              </form>
+            </div>
+
+            {/* Future tool cards will be added here */}
+
           </div>
         </div>
       )}
