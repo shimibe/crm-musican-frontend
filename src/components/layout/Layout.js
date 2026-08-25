@@ -126,7 +126,7 @@ const Layout = ({ children }) => {
       try {
         const [tasksRes, repairsRes] = await Promise.all([
           api.get('/tasks', { params: { assigned_to: user.id, limit: 100 } }),
-          api.get('/repairs', { params: { mine: 'true', limit: 100 } }),
+          api.get('/repairs', { params: { mine: 'true', exclude_final: 'true', limit: 100 } }),
         ]);
         const openTasks = (tasksRes.data.tasks || [])
           .filter(t => t.status === 'open' || t.status === 'in_progress').length;
