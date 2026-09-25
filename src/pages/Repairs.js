@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
+import CustomerSearchInput from '../components/customers/CustomerSearchInput';
 
 const COLOR_MAP = {
   red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -62,7 +63,6 @@ const Repairs = () => {
   });
 
   // Customer search
-  const [customers, setCustomers] = useState([]);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
 
   // Inline detail editing
@@ -82,7 +82,6 @@ const Repairs = () => {
       loadRepairTypes(),
       loadRepairStatuses(),
       loadUsers(),
-      loadCustomers(),
       loadRepairs(),
     ]);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -146,14 +145,6 @@ const Repairs = () => {
     }
   };
 
-  const loadCustomers = async () => {
-    try {
-      const response = await api.get('/customers', { params: { limit: 500 } });
-      setCustomers(response.data.customers || response.data || []);
-    } catch (error) {
-      console.error('Error loading customers:', error);
-    }
-  };
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -224,15 +215,6 @@ const Repairs = () => {
       // Numeric/date columns default to descending (largest first)
       setSortDir(['created_at', 'days_open', 'days_since_status_update'].includes(field) ? 'desc' : 'asc');
     }
-  };
-
-  const getFilteredCustomers = () => {
-    if (!customerSearchTerm.trim()) return [];
-    const lower = customerSearchTerm.toLowerCase();
-    return customers.filter(c =>
-      (c.name && c.name.toLowerCase().includes(lower)) ||
-      (c.phone && c.phone.toLowerCase().includes(lower))
-    ).slice(0, 20);
   };
 
   const handleQuickUpdate = async (repairId, field, value) => {
@@ -785,40 +767,19 @@ const Repairs = () => {
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         לקוח (אופציונלי)
                       </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="חפש לקוח לפי שם..."
-                          value={customerSearchTerm}
-                          onChange={(e) => {
-                            setCustomerSearchTerm(e.target.value);
-                            setForm({ ...form, customer_id: '' });
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
-                        {customerSearchTerm && !form.customer_id && getFilteredCustomers().length > 0 && (
-                          <div className="absolute z-20 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-auto mt-1">
-                            {getFilteredCustomers().map((customer) => (
-                              <div
-                                key={customer.id}
-                                onClick={() => {
-                                  setForm({ ...form, customer_id: customer.id });
-                                  setCustomerSearchTerm(customer.name);
-                                }}
-                                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
-                              >
-                                {customer.name}
-                                {customer.phone && <span className="text-gray-400 mr-2 text-xs">{customer.phone}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {customerSearchTerm && getFilteredCustomers().length === 0 && !form.customer_id && (
-                          <div className="absolute z-20 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg mt-1">
-                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">לא נמצאו לקוחות</div>
-                          </div>
-                        )}
-                      </div>
+                      <CustomerSearchInput
+                        searchValue={customerSearchTerm}
+                        selectedId={form.customer_id}
+                        onSearchChange={(val) => {
+                          setCustomerSearchTerm(val);
+                          setForm({ ...form, customer_id: '' });
+                        }}
+                        onSelect={(customer) => {
+                          setForm({ ...form, customer_id: customer.id });
+                          setCustomerSearchTerm(customer.name);
+                        }}
+                        placeholder="חפש לקוח לפי שם..."
+                      />
                     </div>
                   </div>
 

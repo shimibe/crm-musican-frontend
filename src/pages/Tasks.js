@@ -3,6 +3,7 @@ import api from '../utils/api';
 import { Plus, Edit, Trash2, CheckCircle, ArrowUpDown, ArrowUp, ArrowDown, ClipboardList, Wrench, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
+import CustomerSearchInput from '../components/customers/CustomerSearchInput';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ProgressModal from '../components/tasks/ProgressModal';
@@ -517,26 +518,6 @@ const Tasks = () => {
     setShowProfileModal(true);
   };
 
-  const getSortedCustomers = () => {
-    return [...customers].sort((a, b) => {
-      const nameA = a.name.toLowerCase();
-      const nameB = b.name.toLowerCase();
-      return nameA.localeCompare(nameB, 'he');
-    });
-  };
-
-  const getFilteredCustomers = () => {
-    const sorted = getSortedCustomers();
-    if (!customerSearchTerm || customerSearchTerm.trim() === '') return sorted;
-
-    const searchLower = customerSearchTerm.toLowerCase().trim();
-    return sorted.filter(customer =>
-      (customer.name && customer.name.toLowerCase().includes(searchLower)) ||
-      (customer.phone && customer.phone.toLowerCase().includes(searchLower)) ||
-      (customer.email && customer.email.toLowerCase().includes(searchLower))
-    );
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -999,42 +980,19 @@ const Tasks = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        placeholder="חפש לקוח (שם, טלפון, אימייל)..."
-                        value={customerSearchTerm}
-                        onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                        onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
-                    </div>
-                    {customerSearchTerm && (
-                      <div className="relative flex-1">
-                        <div className="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                          {getFilteredCustomers().length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                              לא נמצאו לקוחות
-                            </div>
-                          ) : (
-                            getFilteredCustomers().map((customer) => (
-                              <div
-                                key={customer.id}
-                                onClick={() => {
-                                  setFormData({ ...formData, customer_id: customer.id });
-                                  setCustomerSearchTerm(customer.name);
-                                }}
-                                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
-                              >
-                                {customer.name}
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <CustomerSearchInput
+                    searchValue={customerSearchTerm}
+                    selectedId={formData.customer_id}
+                    onSearchChange={(val) => {
+                      setCustomerSearchTerm(val);
+                      setFormData({ ...formData, customer_id: '' });
+                    }}
+                    onSelect={(customer) => {
+                      setFormData({ ...formData, customer_id: customer.id });
+                      setCustomerSearchTerm(customer.name);
+                    }}
+                    placeholder="חפש לקוח (שם, טלפון, אימייל)..."
+                  />
                 </div>
                 <div className="col-span-2 grid grid-cols-2 gap-4">
                   <div>

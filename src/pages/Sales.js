@@ -3,12 +3,12 @@ import api from '../utils/api';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
+import CustomerSearchInput from '../components/customers/CustomerSearchInput';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const Sales = () => {
   const { user } = useAuth();
   const [sales, setSales] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -59,7 +59,6 @@ const Sales = () => {
 
   useEffect(() => {
     loadSales();
-    loadCustomers();
     loadPendingInvoiceCount();
     if (isAdmin || isManager) {
       loadUsers();
@@ -82,17 +81,6 @@ const Sales = () => {
       alert('שגיאה בטעינת מכירות');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadCustomers = async () => {
-    try {
-      const response = await api.get('/customers?status=active&limit=1000');
-      const customerData = response.data.customers || response.data;
-      setCustomers(Array.isArray(customerData) ? customerData : []);
-    } catch (error) {
-      console.error('Error loading customers:', error);
-      setCustomers([]);
     }
   };
 
@@ -197,24 +185,6 @@ const Sales = () => {
     // Set customer search term to customer name if exists
     setCustomerSearchTerm(sale.customer_name || '');
     setShowModal(true);
-  };
-
-  const getSortedCustomers = () => {
-    return [...customers].sort((a, b) => {
-      const nameA = a.name.toLowerCase();
-      const nameB = b.name.toLowerCase();
-      return nameA.localeCompare(nameB, 'he');
-    });
-  };
-
-  const getFilteredCustomers = () => {
-    const sorted = getSortedCustomers();
-    if (!customerSearchTerm || customerSearchTerm.trim() === '') return sorted;
-
-    const searchLower = customerSearchTerm.toLowerCase().trim();
-    return sorted.filter(customer =>
-      customer.name && customer.name.toLowerCase().includes(searchLower)
-    );
   };
 
   const handleInlineEdit = (saleId, field, currentValue) => {
@@ -698,38 +668,19 @@ const Sales = () => {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     לקוח
                   </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="חפש לקוח..."
-                      value={customerSearchTerm}
-                      onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                      onFocus={() => setCustomerSearchTerm(customerSearchTerm || '')}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                    {customerSearchTerm && (
-                      <div className="absolute z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto mt-1">
-                        {getFilteredCustomers().length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            לא נמצאו לקוחות
-                          </div>
-                        ) : (
-                          getFilteredCustomers().map((customer) => (
-                            <div
-                              key={customer.id}
-                              onClick={() => {
-                                setFormData({ ...formData, customer_id: customer.id });
-                                setCustomerSearchTerm(customer.name);
-                              }}
-                              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-sm text-gray-900 dark:text-white"
-                            >
-                              {customer.name}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <CustomerSearchInput
+                    searchValue={customerSearchTerm}
+                    selectedId={formData.customer_id}
+                    onSearchChange={(val) => {
+                      setCustomerSearchTerm(val);
+                      setFormData({ ...formData, customer_id: '' });
+                    }}
+                    onSelect={(customer) => {
+                      setFormData({ ...formData, customer_id: customer.id });
+                      setCustomerSearchTerm(customer.name);
+                    }}
+                    placeholder="חפש לקוח..."
+                  />
                 </div>
 
                 {(isAdmin || isManager) && (
