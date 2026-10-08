@@ -66,9 +66,16 @@ const ReviewBox = ({ d, onDone }) => {
   );
 };
 
+function parseReasons(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+  return [];
+}
+
 const DecisionCard = ({ d, onDone }) => {
   const r = d.reasons || {};
   const findings = r.findings || [];
+  const reasons = parseReasons(r.reasons);
   return (
     <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
       <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -85,9 +92,9 @@ const DecisionCard = ({ d, onDone }) => {
         </div>
       </div>
 
-      {(r.reasons || []).length > 0 && (
+      {reasons.length > 0 && (
         <ul className="mt-3 text-sm text-gray-700 dark:text-gray-300 list-disc pr-5 space-y-0.5">
-          {r.reasons.map((x, i) => <li key={i}>{x}</li>)}
+          {reasons.map((x, i) => <li key={i}>{x}</li>)}
         </ul>
       )}
       {r.cover_content_issue && <p className="mt-2 text-sm text-red-600 dark:text-red-400">עטיפה: {r.cover_content_issue}</p>}
