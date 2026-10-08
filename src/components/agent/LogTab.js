@@ -48,8 +48,11 @@ export const RunDetail = ({ run, onChanged }) => {
 const RunRow = ({ r, taskName }) => {
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState(null);
+  const fetchDetail = useCallback(async () => {
+    setDetail((await api.get(`/agent/runs/${r.id}`)).data);
+  }, [r.id]);
   const toggle = async () => {
-    if (!open && !detail) setDetail((await api.get(`/agent/runs/${r.id}`)).data);
+    if (!open && !detail) await fetchDetail();
     setOpen((v) => !v);
   };
   const [label, cls] = RUN_STATUS[r.status] || [r.status, ''];
@@ -69,7 +72,7 @@ const RunRow = ({ r, taskName }) => {
       {open && (
         <tr>
           <td colSpan={7} className="p-4 bg-gray-50 dark:bg-gray-900/40">
-            {detail ? <RunDetail run={detail} /> : 'טוען…'}
+            {detail ? <RunDetail run={detail} onChanged={fetchDetail} /> : 'טוען…'}
           </td>
         </tr>
       )}

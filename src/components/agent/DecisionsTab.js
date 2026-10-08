@@ -15,7 +15,7 @@ const ReviewBox = ({ d, onDone }) => {
     setBusy(true);
     try {
       await api.put(`/agent/decisions/${d.id}/review`, { human_decision: v, human_note: note, save_example: saveExample });
-      onDone();
+      onDone?.();
     } catch (e) {
       alert(errMsg(e));
     } finally {
