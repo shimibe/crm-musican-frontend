@@ -20,6 +20,7 @@ import Sales from './pages/Sales';
 import StudioBilling from './pages/StudioBilling';
 import Attendance from './pages/Attendance';
 import Repairs from './pages/Repairs';
+import AgentYoav from './pages/AgentYoav';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -174,6 +175,15 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <Repairs />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/agent"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AgentYoav />
           </ProtectedRoute>
         }
       />

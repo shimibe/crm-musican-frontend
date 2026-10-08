@@ -6,7 +6,7 @@ import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import api from '../../utils/api';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench, Bot
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -173,6 +173,7 @@ const Layout = ({ children }) => {
   if (isAdmin) {
     navigation.push({ name: 'קמפיינים', href: '/campaigns', icon: Send, adminOnly: true });
     navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic, adminOnly: true });
+    navigation.push({ name: 'הסוכן יואב', href: '/agent', icon: Bot, adminOnly: true });
     navigation.push({ name: 'ניהול', href: '/admin', icon: Shield, adminOnly: true });
   }
 
