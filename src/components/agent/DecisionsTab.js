@@ -3,8 +3,8 @@ import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, DecisionBadge, DECISION_LABEL, input, btnPrimary, btnGhost, fmtDate, errMsg, Badge } from './ui';
 
-const ReviewBox = ({ d, onDone }) => {
-  const [verdict, setVerdict] = useState(d.decision);
+const ReviewBox = ({ d, onDone, initialVerdict }) => {
+  const [verdict, setVerdict] = useState(initialVerdict ?? d.decision);
   const [note, setNote] = useState('');
   const [saveExample, setSaveExample] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -100,6 +100,7 @@ function parseReasons(raw) {
 
 const DecisionCard = ({ d, onDone }) => {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const r = d.reasons || {};
   const findings = r.findings || [];
   const reasons = parseReasons(r.reasons);
@@ -150,11 +151,14 @@ const DecisionCard = ({ d, onDone }) => {
               {d.proposed_note}
             </div>
           )}
-          {d.human_decision ? (
-            <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+          {d.human_decision && !editing ? (
+            <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2 flex-wrap">
               {d.human_decision === d.decision ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
               נבדק ע"י {d.reviewed_by}: <DecisionBadge value={d.human_decision} /> {d.human_note && `— ${d.human_note}`}
+              <button onClick={() => setEditing(true)} className="text-xs text-primary-600 dark:text-primary-400 hover:underline mr-1">ערוך</button>
             </div>
+          ) : editing ? (
+            <ReviewBox d={d} initialVerdict={d.human_decision} onDone={() => { setEditing(false); onDone?.(); }} />
           ) : (
             needsReview && <ReviewBox d={d} onDone={onDone} />
           )}
