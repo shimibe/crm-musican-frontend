@@ -102,6 +102,18 @@ const DecisionCard = ({ d, onDone }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [sourceData, setSourceData] = useState(null);
+  const [sourceOpen, setSourceOpen] = useState(false);
+
+  const toggleSource = async () => {
+    if (!sourceData) {
+      try {
+        const { data } = await api.get(`/agent/decisions/${d.id}/source`);
+        setSourceData(data);
+      } catch { setSourceData({ error: 'לא נמצא' }); }
+    }
+    setSourceOpen((v) => !v);
+  };
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -173,6 +185,17 @@ const DecisionCard = ({ d, onDone }) => {
               {d.proposed_note}
             </div>
           )}
+          <div className="mt-3">
+            <button onClick={toggleSource} className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+              {sourceOpen ? '▲ הסתר נתון מקורי' : '▼ נתון מקורי'}
+            </button>
+            {sourceOpen && sourceData && (
+              <pre className="mt-2 p-3 rounded bg-gray-50 dark:bg-gray-900 text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap break-all max-h-96 overflow-y-auto" dir="ltr">
+                {JSON.stringify(sourceData, null, 2)}
+              </pre>
+            )}
+          </div>
+
           {d.human_decision && !editing ? (
             <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2 flex-wrap">
               {d.human_decision === d.decision ? <Check className="w-4 h-4 text-green-500" /> : <X className="w-4 h-4 text-red-500" />}
