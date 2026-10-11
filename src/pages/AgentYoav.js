@@ -30,8 +30,10 @@ const AgentYoav = () => {
   const [tasks, setTasks] = useState([]);
   const [meta, setMeta] = useState({ tools: [], models: [] });
   const [error, setError] = useState(null);
+  const [tick, setTick] = useState(0);
 
   const reload = useCallback(async () => {
+    setTick((t) => t + 1);
     try {
       const [o, t, m] = await Promise.all([api.get('/agent/overview'), api.get('/agent/tasks'), api.get('/agent/meta')]);
       setOverview(o.data);
@@ -100,11 +102,11 @@ const AgentYoav = () => {
       </div>
 
       {tab === 'overview' && <OverviewTab overview={overview} tasks={tasks} reload={reload} goTo={setTab} />}
-      {tab === 'decisions' && <DecisionsTab onChanged={reload} />}
-      {tab === 'approvals' && <ApprovalsTab onChanged={reload} />}
+      {tab === 'decisions' && <DecisionsTab onChanged={reload} tick={tick} />}
+      {tab === 'approvals' && <ApprovalsTab onChanged={reload} tick={tick} />}
       {tab === 'tasks' && <TasksTab tasks={tasks} meta={meta} reload={reload} />}
       {tab === 'instructions' && <InstructionsTab tasks={tasks} />}
-      {tab === 'log' && <LogTab tasks={tasks} />}
+      {tab === 'log' && <LogTab tasks={tasks} tick={tick} />}
       {tab === 'server' && <ServerTab />}
       {tab === 'settings' && <SettingsTab settings={s} reload={reload} />}
     </div>

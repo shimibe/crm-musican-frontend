@@ -12,7 +12,7 @@ const STATUS = {
   failed: ['נכשל', 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'],
 };
 
-const ApprovalsTab = ({ onChanged }) => {
+const ApprovalsTab = ({ onChanged, tick }) => {
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState('pending');
   const [busy, setBusy] = useState(null);
@@ -20,7 +20,7 @@ const ApprovalsTab = ({ onChanged }) => {
   const load = useCallback(async () => {
     const { data } = await api.get('/agent/approvals', { params: { status } });
     setRows(data);
-  }, [status]);
+  }, [status, tick]);
   useEffect(() => { load(); }, [load]);
 
   const decide = async (id, approve) => {

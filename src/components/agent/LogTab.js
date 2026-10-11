@@ -98,7 +98,7 @@ const AuditList = () => {
   );
 };
 
-const LogTab = ({ tasks }) => {
+const LogTab = ({ tasks, tick }) => {
   const [rows, setRows] = useState([]);
   const [taskKey, setTaskKey] = useState('');
   const [view, setView] = useState('runs');
@@ -106,7 +106,7 @@ const LogTab = ({ tasks }) => {
   const load = useCallback(async () => {
     const { data } = await api.get('/agent/runs', { params: { task_key: taskKey || undefined, limit: 100 } });
     setRows(data);
-  }, [taskKey]);
+  }, [taskKey, tick]);
   useEffect(() => { load(); }, [load]);
 
   const name = (k) => tasks.find((t) => t.key === k)?.name || k;

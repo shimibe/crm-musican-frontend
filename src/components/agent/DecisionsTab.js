@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft, Trash2 } from 'lucide-react';
+import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft, Trash2, RotateCcw } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, DecisionBadge, DECISION_LABEL, input, btnPrimary, btnGhost, fmtDate, errMsg, Badge } from './ui';
 
@@ -102,6 +102,7 @@ const DecisionCard = ({ d, onDone }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [rereviewing, setRereviewing] = useState(false);
   const [sourceData, setSourceData] = useState(null);
   const [sourceOpen, setSourceOpen] = useState(false);
 
@@ -125,6 +126,20 @@ const DecisionCard = ({ d, onDone }) => {
     } catch (err) {
       alert(errMsg(err));
       setDeleting(false);
+    }
+  };
+
+  const handleReReview = async (e) => {
+    e.stopPropagation();
+    if (!window.confirm('למחוק את ההחלטה הנוכחית ולבקש מיואב לבדוק מחדש?')) return;
+    setRereviewing(true);
+    try {
+      await api.delete(`/agent/decisions/${d.id}`);
+      await api.post('/agent/tasks/release_review/run', { dry_run: false, params: { release_id: d.subject_id } });
+      onDone?.();
+    } catch (err) {
+      alert(errMsg(err));
+      setRereviewing(false);
     }
   };
   const r = d.reasons || {};
@@ -151,6 +166,14 @@ const DecisionCard = ({ d, onDone }) => {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400" dir="ltr">{r.model} · {fmtDate(d.created_at)}</span>
+          <button
+            disabled={rereviewing || deleting}
+            onClick={handleReReview}
+            className="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded"
+            title="בדוק שוב (מחק ובצע בדיקה מחדש)"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+          </button>
           <button
             disabled={deleting}
             onClick={handleDelete}
@@ -213,7 +236,7 @@ const DecisionCard = ({ d, onDone }) => {
   );
 };
 
-const DecisionsTab = ({ onChanged }) => {
+const DecisionsTab = ({ onChanged, tick }) => {
   const [rows, setRows] = useState([]);
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -226,7 +249,7 @@ const DecisionsTab = ({ onChanged }) => {
     } finally {
       setLoading(false);
     }
-  }, [onlyOpen]);
+  }, [onlyOpen, tick]);
 
   useEffect(() => { load(); }, [load]);
 
