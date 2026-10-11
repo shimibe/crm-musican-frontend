@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft, Trash2 } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, DecisionBadge, DECISION_LABEL, input, btnPrimary, btnGhost, fmtDate, errMsg, Badge } from './ui';
 
@@ -101,6 +101,20 @@ function parseReasons(raw) {
 const DecisionCard = ({ d, onDone }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (!window.confirm('למחוק את ההחלטה הזו?')) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/agent/decisions/${d.id}`);
+      onDone?.();
+    } catch (err) {
+      alert(errMsg(err));
+      setDeleting(false);
+    }
+  };
   const r = d.reasons || {};
   const findings = r.findings || [];
   const reasons = parseReasons(r.reasons);
@@ -123,8 +137,16 @@ const DecisionCard = ({ d, onDone }) => {
           {d.trigger === 'dry_run' && <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">בדיקה יבשה</Badge>}
           {needsReview && <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">ממתין לבדיקה</Badge>}
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400" dir="ltr">
-          {r.model} · {fmtDate(d.created_at)}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-400" dir="ltr">{r.model} · {fmtDate(d.created_at)}</span>
+          <button
+            disabled={deleting}
+            onClick={handleDelete}
+            className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded"
+            title="מחק החלטה"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </button>
 
