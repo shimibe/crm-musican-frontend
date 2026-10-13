@@ -10,6 +10,7 @@ import InstructionsTab from '../components/agent/InstructionsTab';
 import LogTab from '../components/agent/LogTab';
 import SettingsTab from '../components/agent/SettingsTab';
 import ServerTab from '../components/agent/ServerTab';
+import WhatsAppTab from '../components/agent/WhatsAppTab';
 
 const TABS = [
   ['overview', 'סקירה'],
@@ -19,6 +20,7 @@ const TABS = [
   ['instructions', 'הוראות'],
   ['log', 'יומן'],
   ['server', 'שרת'],
+  ['whatsapp', 'וואטסאפ'],
   ['settings', 'הגדרות'],
 ];
 
@@ -108,6 +110,7 @@ const AgentYoav = () => {
       {tab === 'instructions' && <InstructionsTab tasks={tasks} />}
       {tab === 'log' && <LogTab tasks={tasks} tick={tick} />}
       {tab === 'server' && <ServerTab />}
+      {tab === 'whatsapp' && <WhatsAppTab reload={reload} />}
       {tab === 'settings' && <SettingsTab settings={s} reload={reload} />}
     </div>
   );
