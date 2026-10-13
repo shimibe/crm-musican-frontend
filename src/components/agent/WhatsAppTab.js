@@ -227,6 +227,7 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
         wa_business_end_hour:   Number(formSettings.wa_business_end_hour),
         wa_ai_ack:              formSettings.wa_ai_ack,
         wa_notify_user_ids:     formSettings.wa_notify_user_ids || [],
+        wa_ack_prompt:          formSettings.wa_ack_prompt || null,
       });
       await load();
       if (reloadParent) reloadParent();
@@ -349,6 +350,17 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                     value={formSettings.wa_ack_message ?? ''} onChange={set('wa_ack_message')} />
                 </Field>
               </div>
+
+              {formSettings.wa_ai_ack && (
+                <div className="md:col-span-2">
+                  <Field label="פרומפט ל-Claude"
+                    hint="הוראות ניסוח + קבלת החלטות. שם הלקוח, טקסט ההודעה ודרישת ה-JSON מוזרקים אוטומטית — אין לכלול אותם כאן.">
+                    <textarea dir="rtl" rows={8} className={`${input} font-mono text-xs`}
+                      placeholder={`אתה נציג שירות של חברת מוזיקן להפצת מוזיקה...\n(ריק = ברירת המחדל)`}
+                      value={formSettings.wa_ack_prompt ?? ''} onChange={set('wa_ack_prompt')} />
+                  </Field>
+                </div>
+              )}
 
               {users.length > 0 && (
                 <div className="md:col-span-2">
