@@ -13,6 +13,9 @@ const fmtMins = (mins) => {
   return r > 0 ? `${h}ש' ${r}ד'` : `${h} שעות`;
 };
 
+/** Strip @suffix from a JID for display (e.g. "972501234567@s.whatsapp.net" → "972501234567"). */
+const fmtJid = (jid) => jid ? jid.split('@')[0] : '';
+
 /** Convert Israeli phone to international digits (e.g. "052-123-4567" → "972521234567"). */
 const toIntlPhone = (p) => {
   const d = p.replace(/\D/g, '');
@@ -459,14 +462,14 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                       {c.customer_id ? (
                         <button className="font-medium text-primary-600 dark:text-primary-400 hover:underline text-right"
                           onClick={() => openCustomerCard(c.customer_id)}>
-                          {c.customer_name || c.display_name || c.phone || c.jid}
+                          {c.customer_name || c.display_name || c.phone || fmtJid(c.jid)}
                         </button>
                       ) : (
                         <div className="font-medium text-gray-900 dark:text-white">
-                          {c.display_name || c.phone || c.jid}
+                          {c.display_name || c.phone || fmtJid(c.jid)}
                         </div>
                       )}
-                      <div className="text-xs text-gray-400">{c.phone || c.jid}</div>
+                      <div className="text-xs text-gray-400">{c.phone || fmtJid(c.jid)}</div>
                     </td>
                     <td className="py-2 px-2 max-w-xs">
                       <span className="text-gray-600 dark:text-gray-300 line-clamp-2 text-xs">
@@ -522,10 +525,10 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                         {c.customer_id ? (
                           <button className="text-primary-600 dark:text-primary-400 hover:underline text-right"
                             onClick={() => openCustomerCard(c.customer_id)}>
-                            {c.customer_name || c.display_name || c.phone || c.jid}
+                            {c.customer_name || c.display_name || c.phone || fmtJid(c.jid)}
                           </button>
                         ) : (
-                          <span>{c.display_name || c.phone || c.jid}</span>
+                          <span>{c.display_name || c.phone || fmtJid(c.jid)}</span>
                         )}
                         {c.safelist && <span className="text-xs text-red-400" title="ללא ACK">🚫</span>}
                       </div>
