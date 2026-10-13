@@ -35,7 +35,8 @@ const ConnectionPanel = ({ onConnected }) => {
   const [pairingCode,  setPairingCode]  = useState(null);
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState(null);
-  const pollRef = useRef(null);
+  const pollRef    = useRef(null);
+  const prevStatus = useRef(null);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -44,13 +45,15 @@ const ConnectionPanel = ({ onConnected }) => {
       if (data.status === 'connected') {
         setQrDataUrl(null);
         setPairingCode(null);
-        if (onConnected) onConnected();
+        // call onConnected only on transition to connected, not on every poll
+        if (prevStatus.current !== 'connected' && onConnected) onConnected();
       } else if (data.hasQr) {
         const qr = await api.get('/agent/wa/qr').catch(() => null);
         if (qr?.data?.qrDataUrl) setQrDataUrl(qr.data.qrDataUrl);
       } else {
         setQrDataUrl(null);
       }
+      prevStatus.current = data.status;
     } catch { /* service may be starting */ }
   }, [onConnected]);
 
