@@ -16,12 +16,19 @@ export const MODE_HINT = {
   approve: 'כל פעולה מחכה לאישור שלך',
   auto: 'מבצע לבד (שליחת ריליס תמיד באישור)',
 };
-export const DECISION_LABEL = { ready: 'מוכן לשליחה', needs_fix: 'דורש תיקון', escalate: 'להחלטת מנהל', reject: 'לדחות' };
+export const DECISION_LABEL = {
+  ready: 'מוכן לשליחה', needs_fix: 'דורש תיקון', escalate: 'להחלטת מנהל', reject: 'לדחות',
+  ok: 'בסדר', task_created: 'משימה נוצרה', artist_notified: 'הודעה נשלחה', escalated: 'נשלח למנהל',
+};
 export const DECISION_COLOR = {
   ready: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   needs_fix: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
   escalate: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   reject: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  ok: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  task_created: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  artist_notified: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+  escalated: 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
 };
 export const RUN_STATUS = {
   running: ['רץ', 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'],
