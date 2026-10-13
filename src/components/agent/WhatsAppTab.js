@@ -229,6 +229,7 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
         wa_notify_user_ids:     formSettings.wa_notify_user_ids || [],
         wa_ack_prompt:          formSettings.wa_ack_prompt || null,
         wa_business_days:       formSettings.wa_business_days ?? [0, 1, 2, 3, 4],
+        wa_ack_cooldown_hours:  Number(formSettings.wa_ack_cooldown_hours ?? 24),
       });
       await load();
       if (reloadParent) reloadParent();
@@ -323,6 +324,11 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
               <Field label="המתנה לפני ACK (דקות)" hint="כמה דקות ללא מענה לפני שליחה">
                 <input type="number" min="5" max="480" dir="ltr" className={input}
                   value={formSettings.wa_threshold_minutes ?? 30} onChange={set('wa_threshold_minutes')} />
+              </Field>
+
+              <Field label="מגבלת תדירות ACK (שעות)" hint="פרק זמן מינימלי בין שני ACK לאותו לקוח">
+                <input type="number" min="1" max="720" dir="ltr" className={input}
+                  value={formSettings.wa_ack_cooldown_hours ?? 24} onChange={set('wa_ack_cooldown_hours')} />
               </Field>
 
               <Field label="שעות עבודה בלבד">
