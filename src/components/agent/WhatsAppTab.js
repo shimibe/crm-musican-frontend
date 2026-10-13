@@ -228,6 +228,7 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
         wa_ai_ack:              formSettings.wa_ai_ack,
         wa_notify_user_ids:     formSettings.wa_notify_user_ids || [],
         wa_ack_prompt:          formSettings.wa_ack_prompt || null,
+        wa_business_days:       formSettings.wa_business_days ?? [0, 1, 2, 3, 4],
       });
       await load();
       if (reloadParent) reloadParent();
@@ -283,6 +284,17 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
     setFormSettings((prev) => ({ ...prev, [k]: v }));
   };
 
+  const DAY_LABELS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const toggleDay = (d) => {
+    setFormSettings((prev) => {
+      const days = prev.wa_business_days ?? [0, 1, 2, 3, 4];
+      return {
+        ...prev,
+        wa_business_days: days.includes(d) ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b),
+      };
+    });
+  };
+
   const unanswered = conversations.filter((c) => c.minutes_unanswered != null);
   const answered   = conversations.filter((c) => c.minutes_unanswered == null);
 
@@ -329,6 +341,27 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                 <Field label="סגירה (שעה)">
                   <input type="number" min="0" max="23" dir="ltr" className={input}
                     value={formSettings.wa_business_end_hour ?? 18} onChange={set('wa_business_end_hour')} />
+                </Field>
+              </div>
+
+              <div className="md:col-span-2">
+                <Field label="ימי פעילות" hint="ימים בהם ישלח ACK (0=ראשון … 6=שבת)">
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {DAY_LABELS.map((label, d) => {
+                      const active = (formSettings.wa_business_days ?? [0, 1, 2, 3, 4]).includes(d);
+                      return (
+                        <button key={d} type="button"
+                          onClick={() => toggleDay(d)}
+                          className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                            active
+                              ? 'bg-primary-600 text-white border-primary-600'
+                              : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-primary-400'
+                          }`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </Field>
               </div>
 
