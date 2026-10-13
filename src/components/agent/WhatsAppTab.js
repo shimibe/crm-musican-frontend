@@ -185,19 +185,22 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
   const [conversations, setConversations] = useState([]);
   const [waSettings, setWaSettings]       = useState(null);
   const [formSettings, setFormSettings]   = useState({});
+  const [users, setUsers]   = useState([]);
   const [busy, setBusy]   = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [convRes, settingsRes] = await Promise.all([
+      const [convRes, settingsRes, usersRes] = await Promise.all([
         api.get('/agent/wa/conversations'),
         api.get('/agent/wa/settings'),
+        api.get('/agent/wa/users'),
       ]);
       setConversations(convRes.data || []);
       setWaSettings(settingsRes.data);
       setFormSettings(settingsRes.data || {});
+      setUsers(usersRes.data || []);
     } catch (e) {
       console.error('WA tab load error:', e);
     } finally {
@@ -217,6 +220,8 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
         wa_business_hours_only: formSettings.wa_business_hours_only,
         wa_business_start_hour: Number(formSettings.wa_business_start_hour),
         wa_business_end_hour:   Number(formSettings.wa_business_end_hour),
+        wa_ai_ack:              formSettings.wa_ai_ack,
+        wa_notify_user_ids:     formSettings.wa_notify_user_ids || [],
       });
       await load();
       if (reloadParent) reloadParent();
@@ -225,6 +230,18 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
     } finally {
       setBusy(false);
     }
+  };
+
+  const toggleNotifyUser = (userId) => {
+    setFormSettings((prev) => {
+      const ids = prev.wa_notify_user_ids || [];
+      return {
+        ...prev,
+        wa_notify_user_ids: ids.includes(userId)
+          ? ids.filter((x) => x !== userId)
+          : [...ids, userId],
+      };
+    });
   };
 
   const snooze = async (id, hours) => {
@@ -288,12 +305,45 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                 </Field>
               </div>
 
+              <Field label="הודעת ACK חכמה (Claude)">
+                <label className="flex items-center gap-2 mt-1">
+                  <input type="checkbox" checked={!!formSettings.wa_ai_ack} onChange={set('wa_ai_ack')}
+                    className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {formSettings.wa_ai_ack
+                      ? 'כן — Claude מנסח הודעה אישית לפי קונטקסט'
+                      : 'לא — הודעה סטטית'}
+                  </span>
+                </label>
+              </Field>
+
               <div className="md:col-span-2">
-                <Field label="הודעת ACK" hint="הטקסט שנשלח ללקוח שלא קיבל מענה">
-                  <textarea dir="rtl" className={`${input} h-20`}
+                <Field label="הודעת ACK" hint={formSettings.wa_ai_ack ? 'גיבוי — ישמש אם Claude אינו זמין' : 'הטקסט שנשלח ללקוח שלא קיבל מענה'}>
+                  <textarea dir="rtl" className={`${input} h-20 ${formSettings.wa_ai_ack ? 'opacity-50' : ''}`}
                     value={formSettings.wa_ack_message ?? ''} onChange={set('wa_ack_message')} />
                 </Field>
               </div>
+
+              {users.length > 0 && (
+                <div className="md:col-span-2">
+                  <Field label="התראת מייל לנציגים" hint="נציגים שיקבלו מייל בכל ACK שנשלח">
+                    <div className="mt-1 flex flex-wrap gap-x-6 gap-y-2">
+                      {users.map((u) => (
+                        <label key={u.id} className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox"
+                            checked={(formSettings.wa_notify_user_ids || []).includes(u.id)}
+                            onChange={() => toggleNotifyUser(u.id)}
+                            className="w-4 h-4 rounded border-gray-300 text-primary-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            {u.full_name}
+                            <span className="text-xs text-gray-400 mr-1">({u.email})</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex items-center gap-3">
