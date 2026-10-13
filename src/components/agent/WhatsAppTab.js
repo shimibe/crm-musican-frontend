@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../utils/api';
 import { Section, Field, input, btnPrimary, btnGhost, btnDanger, errMsg, fmtDate } from './ui';
+import CustomerProfileModal from '../customers/CustomerProfileModal';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,7 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
   const [users, setUsers]   = useState([]);
   const [busy, setBusy]   = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileCustomer, setProfileCustomer] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -251,6 +253,27 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
     try {
       await api.post(`/agent/wa/conversations/${id}/snooze`, { hours });
       await load();
+    } catch (e) { alert(errMsg(e)); }
+  };
+
+  const dismiss = async (id) => {
+    try {
+      await api.post(`/agent/wa/conversations/${id}/dismiss`);
+      await load();
+    } catch (e) { alert(errMsg(e)); }
+  };
+
+  const toggleSafelist = async (id) => {
+    try {
+      await api.post(`/agent/wa/conversations/${id}/safelist`);
+      await load();
+    } catch (e) { alert(errMsg(e)); }
+  };
+
+  const openCustomerCard = async (customerId) => {
+    try {
+      const { data } = await api.get(`/customers/${customerId}`);
+      setProfileCustomer(data);
     } catch (e) { alert(errMsg(e)); }
   };
 
@@ -382,10 +405,17 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                 {unanswered.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="py-2 pr-1">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {c.customer_name || c.display_name || c.phone || c.jid}
-                      </div>
-                      {c.customer_name && <div className="text-xs text-gray-400">{c.phone || c.jid}</div>}
+                      {c.customer_id ? (
+                        <button className="font-medium text-primary-600 dark:text-primary-400 hover:underline text-right"
+                          onClick={() => openCustomerCard(c.customer_id)}>
+                          {c.customer_name || c.display_name || c.phone || c.jid}
+                        </button>
+                      ) : (
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {c.display_name || c.phone || c.jid}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400">{c.phone || c.jid}</div>
                     </td>
                     <td className="py-2 px-2 max-w-xs">
                       <span className="text-gray-600 dark:text-gray-300 line-clamp-2 text-xs">
@@ -397,11 +427,20 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                     </td>
                     <td className="py-2 px-2 text-xs text-gray-500">{c.ack_sent_at ? fmtDate(c.ack_sent_at) : '—'}</td>
                     <td className="py-2 pl-1 whitespace-nowrap">
-                      {!c.snoozed_until ? (
-                        <button className={`${btnGhost} text-xs`} onClick={() => snooze(c.id, 4)}>דחה 4ש'</button>
-                      ) : (
-                        <span className="text-xs text-gray-400">נדחה עד {fmtDate(c.snoozed_until)}</span>
-                      )}
+                      <div className="flex gap-1 flex-wrap justify-end">
+                        {!c.snoozed_until ? (
+                          <button className={`${btnGhost} text-xs`} onClick={() => snooze(c.id, 4)}>דחה 4ש'</button>
+                        ) : (
+                          <span className="text-xs text-gray-400">נדחה עד {fmtDate(c.snoozed_until)}</span>
+                        )}
+                        <button className={`${btnGhost} text-xs`} onClick={() => dismiss(c.id)}
+                          title="בטל — הוצא מהתור ללא ACK">בטל</button>
+                        <button className={`${btnGhost} text-xs ${c.safelist ? 'text-red-500' : ''}`}
+                          onClick={() => toggleSafelist(c.id)}
+                          title="הוסף לרשימה בטוחה — לא ישלח ACK לעולם">
+                          {c.safelist ? '🚫 ללא ACK' : 'ללא ACK'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -428,7 +467,17 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
                 {answered.slice(0, 20).map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 text-xs">
                     <td className="py-2 pr-1 font-medium text-gray-700 dark:text-gray-200">
-                      {c.customer_name || c.display_name || c.phone || c.jid}
+                      <div className="flex items-center gap-1">
+                        {c.customer_id ? (
+                          <button className="text-primary-600 dark:text-primary-400 hover:underline text-right"
+                            onClick={() => openCustomerCard(c.customer_id)}>
+                            {c.customer_name || c.display_name || c.phone || c.jid}
+                          </button>
+                        ) : (
+                          <span>{c.display_name || c.phone || c.jid}</span>
+                        )}
+                        {c.safelist && <span className="text-xs text-red-400" title="ללא ACK">🚫</span>}
+                      </div>
                     </td>
                     <td className="py-2 px-2 text-gray-500 max-w-xs">
                       <span className="line-clamp-1">{c.last_inbound_text || '—'}</span>
@@ -441,6 +490,14 @@ const WhatsAppTab = ({ reload: reloadParent }) => {
             </table>
           </div>
         </Section>
+      )}
+      {profileCustomer && (
+        <CustomerProfileModal
+          show={!!profileCustomer}
+          customer={profileCustomer}
+          defaultTab="summary"
+          onClose={() => setProfileCustomer(null)}
+        />
       )}
     </div>
   );
