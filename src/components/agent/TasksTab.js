@@ -4,11 +4,13 @@ import api from '../../utils/api';
 import { Section, Badge, Field, input, btnPrimary, btnGhost, MODE_LABEL, MODE_HINT, RUN_STATUS, fmtDate, fmtUsd, errMsg } from './ui';
 import { RunDetail } from './LogTab';
 
+// ערכים ב-UTC. ישראל חורף = UTC+2 → מחסירים 2 שעות.
 const CRON_PRESETS = [
-  ['*/30 8-20 * * 0-4', 'כל חצי שעה, א׳–ה׳ 08:00–20:00'],
-  ['0 9,13,17 * * 0-5', '3 פעמים ביום (9, 13, 17), א׳–ו׳'],
-  ['0 19 * * 0-4', 'פעם ביום ב-19:00, א׳–ה׳'],
-  ['0 9 * * 0', 'פעם בשבוע, יום א׳ 09:00'],
+  ['*/30 6-18 * * 0-4', 'כל חצי שעה, א׳–ה׳ 08:00–20:00'],
+  ['0 7,11,15 * * 0-5', '3 פעמים ביום (9, 13, 17), א׳–ו׳'],
+  ['0 6-14 * * 0-4',   'כל שעה, א׳–ה׳ 08:00–16:00'],
+  ['0 17 * * 0-4',     'פעם ביום ב-19:00, א׳–ה׳'],
+  ['0 7 * * 0',        'פעם בשבוע, יום א׳ 09:00'],
 ];
 
 const Modal = ({ title, onClose, children, wide }) => (
@@ -62,7 +64,7 @@ const TaskEditor = ({ task, meta, onClose, onSaved }) => {
         <div className="md:col-span-2">
           <Field label="תיאור"><textarea rows={2} className={input} value={f.description} onChange={set('description')} /></Field>
         </div>
-        <Field label="תזמון (cron, שעון ישראל)" hint="ריק = רק ידני / אירוע">
+        <Field label="תזמון (cron, UTC — ישראל חורף = UTC+2)" hint="ריק = רק ידני / אירוע">
           <input className={`${input} font-mono`} dir="ltr" value={f.cron} onChange={set('cron')} placeholder="0 9,13,17 * * 0-4" />
           <div className="flex flex-wrap gap-1 mt-1.5">
             {CRON_PRESETS.map(([v, l]) => (
