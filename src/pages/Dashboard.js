@@ -2,11 +2,75 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../utils/api";
-import { Users, CheckSquare, Activity, TrendingUp, Wrench, Clock, DollarSign, ArrowUp, ArrowDown } from "lucide-react";
+import {
+	Users, CheckSquare, Activity, TrendingUp, Wrench, Clock,
+	DollarSign, ArrowUp, ArrowDown, EyeOff, Eye, FolderOpen,
+} from "lucide-react";
 
+// ─── Section definitions ──────────────────────────────────────────────────────
+const SECTION_DEFS = [
+	{ id: 'stats',    label: 'סטטיסטיקות',      adminOnly: true },
+	{ id: 'shifts',   label: 'משמרות החודש' },
+	{ id: 'projects', label: 'פרויקטים',         projectsOnly: true },
+	{ id: 'sales',    label: 'מכירות החודש',     nonFreelancer: true },
+	{ id: 'tasks',    label: 'המשימות שלי',      nonFreelancer: true },
+	{ id: 'repairs',  label: 'התיקונים שלי',     nonFreelancer: true },
+	{ id: 'activity', label: 'פעילות אחרונה',    nonFreelancer: true },
+];
+
+const PROJECT_STATUS_BADGE = {
+	'פתוח':         'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+	'בעבודה':       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+	'ממתין לאישור': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+	'הסתיים':       'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+};
+
+const getDaysOpen = (project) => {
+	const start = new Date(project.created_at);
+	const label = project.status_label || 'פתוח';
+	const end = label === 'הסתיים'
+		? new Date(project.status_label_updated_at || Date.now())
+		: new Date();
+	return Math.max(0, Math.floor((end - start) / 86400000));
+};
+
+// ─── SectionHeader ────────────────────────────────────────────────────────────
+const SectionHeader = ({ onHide, icon, title, badge, link, linkLabel }) => (
+	<div className="p-6 border-b border-gray-200 dark:border-gray-700">
+		<div className="flex items-center justify-between">
+			<div className="flex items-center gap-2">
+				{icon}
+				<h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+				{badge}
+			</div>
+			<div className="flex items-center gap-2">
+				{link && (
+					<Link to={link} className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+						{linkLabel || 'צפה בהכל'}
+					</Link>
+				)}
+				<button
+					onClick={onHide}
+					className="p-1 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 rounded transition-colors"
+					title="הסתר"
+				>
+					<EyeOff className="w-4 h-4" />
+				</button>
+			</div>
+		</div>
+	</div>
+);
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
-	const { user, isAdmin } = useAuth();
+	const { user, isAdmin, updatePreferences } = useAuth();
 	const isFreelancer = user?.role === 'freelancer';
+	const isManager = user?.role === 'manager' || isAdmin;
+	const canSeeProjects = isFreelancer || isAdmin || isManager;
+
+	const [hiddenSections, setHiddenSections] = useState(
+		() => user?.preferences?.dashboard_hidden_sections || []
+	);
 
 	const [stats, setStats] = useState(null);
 	const [myTasks, setMyTasks] = useState([]);
@@ -16,10 +80,37 @@ const Dashboard = () => {
 	const [recentActivity, setRecentActivity] = useState([]);
 	const [monthShifts, setMonthShifts] = useState(null);
 	const [salesStats, setSalesStats] = useState(null);
+	const [myProjects, setMyProjects] = useState([]);
 	const [loading, setLoading] = useState(true);
 
+	// ─── Section visibility ───────────────────────────────────────────────────
+	const isHidden = (id) => hiddenSections.includes(id);
+
+	const hideSection = (id) => {
+		const next = [...hiddenSections, id];
+		setHiddenSections(next);
+		updatePreferences({ ...user.preferences, dashboard_hidden_sections: next });
+	};
+
+	const showSection = (id) => {
+		const next = hiddenSections.filter(s => s !== id);
+		setHiddenSections(next);
+		updatePreferences({ ...user.preferences, dashboard_hidden_sections: next });
+	};
+
+	// sections that are applicable to this user AND currently hidden
+	const restorableHidden = SECTION_DEFS.filter(s => {
+		if (!hiddenSections.includes(s.id)) return false;
+		if (s.adminOnly && !isAdmin) return false;
+		if (s.projectsOnly && !canSeeProjects) return false;
+		if (s.nonFreelancer && isFreelancer) return false;
+		return true;
+	});
+
+	// ─── Data loading ─────────────────────────────────────────────────────────
 	useEffect(() => {
 		loadDashboardData();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const loadDashboardData = async () => {
@@ -31,8 +122,12 @@ const Dashboard = () => {
 
 		try {
 			if (isFreelancer) {
-				const shiftsRes = await api.get('/attendance/shifts', { params: { month, year } });
-				setMonthShifts(shiftsRes.data.totals);
+				const [shiftsRes, projectsRes] = await Promise.allSettled([
+					api.get('/attendance/shifts', { params: { month, year } }),
+					api.get('/freelance-projects', { params: { status: 'active' } }),
+				]);
+				if (shiftsRes.status === 'fulfilled') setMonthShifts(shiftsRes.value.data.totals);
+				if (projectsRes.status === 'fulfilled') setMyProjects(projectsRes.value.data || []);
 			} else {
 				const requests = [
 					api.get("/tasks", { params: { assigned_to: user?.id } }),
@@ -42,10 +137,11 @@ const Dashboard = () => {
 					api.get('/sales', { params: { month, year, limit: 9999 } }),
 					api.get('/sales', { params: { month: prevMonth, year: prevYear, limit: 9999 } }),
 					api.get('/sales', { params: { month, year: year - 1, limit: 9999 } }),
+					...(canSeeProjects ? [api.get('/freelance-projects', { params: { status: 'active' } })] : []),
 				];
 
-				const [tasksRes, repairsRes, activityRes, shiftsRes, salesCurrent, salesPrev, salesYearAgo] =
-					await Promise.allSettled(requests);
+				const results = await Promise.allSettled(requests);
+				const [tasksRes, repairsRes, activityRes, shiftsRes, salesCurrent, salesPrev, salesYearAgo, projectsRes] = results;
 
 				if (tasksRes.status === 'fulfilled') {
 					const rawActiveTasks = (tasksRes.value.data.tasks || [])
@@ -53,20 +149,14 @@ const Dashboard = () => {
 					setMyTasksCount(rawActiveTasks.length);
 					setMyTasks(rawActiveTasks.slice(0, 5));
 				}
-
 				if (repairsRes.status === 'fulfilled') {
 					const allRepairs = repairsRes.value.data.repairs || [];
 					setMyRepairsCount(allRepairs.length);
 					setMyRepairs(allRepairs.slice(0, 5));
 				}
-
-				if (activityRes.status === 'fulfilled') {
-					setRecentActivity(activityRes.value.data.logs || []);
-				}
-
-				if (shiftsRes.status === 'fulfilled') {
-					setMonthShifts(shiftsRes.value.data.totals);
-				}
+				if (activityRes.status === 'fulfilled') setRecentActivity(activityRes.value.data.logs || []);
+				if (shiftsRes.status === 'fulfilled') setMonthShifts(shiftsRes.value.data.totals);
+				if (projectsRes?.status === 'fulfilled') setMyProjects(projectsRes.value.data || []);
 
 				const currentTotal = salesCurrent.status === 'fulfilled'
 					? parseFloat(salesCurrent.value.data.totals?.totalSales) || 0 : null;
@@ -76,10 +166,7 @@ const Dashboard = () => {
 					? parseFloat(salesPrev.value.data.totals?.totalSales) || 0 : null;
 				const yearAgoTotal = salesYearAgo.status === 'fulfilled'
 					? parseFloat(salesYearAgo.value.data.totals?.totalSales) || 0 : null;
-
-				if (currentTotal !== null) {
-					setSalesStats({ currentTotal, currentCount, prevTotal, yearAgoTotal });
-				}
+				if (currentTotal !== null) setSalesStats({ currentTotal, currentCount, prevTotal, yearAgoTotal });
 
 				if (isAdmin) {
 					const statsRes = await api.get("/admin/stats");
@@ -93,6 +180,7 @@ const Dashboard = () => {
 		}
 	};
 
+	// ─── Helpers ──────────────────────────────────────────────────────────────
 	const calcChange = (current, previous) => {
 		if (previous === null || previous === 0) return null;
 		return ((current - previous) / previous * 100).toFixed(1);
@@ -113,58 +201,28 @@ const Dashboard = () => {
 		);
 	};
 
-	const getPriorityColor = (priority) => {
-		switch (priority) {
-			case "high": return "text-red-600 dark:text-red-400";
-			case "medium": return "text-yellow-600 dark:text-yellow-400";
-			case "low": return "text-green-600 dark:text-green-400";
-			default: return "text-gray-600 dark:text-gray-400";
-		}
-	};
+	const getPriorityColor = (p) => ({ high: "text-red-600 dark:text-red-400", medium: "text-yellow-600 dark:text-yellow-400", low: "text-green-600 dark:text-green-400" }[p] || "text-gray-600 dark:text-gray-400");
+	const getPriorityText = (p) => ({ high: "גבוהה", medium: "בינונית", low: "נמוכה" }[p] || p);
+	const getStatusText = (s) => ({ open: "פתוח", in_progress: "בטיפול", closed: "סגור" }[s] || s);
 
-	const getPriorityText = (priority) => {
-		switch (priority) {
-			case "high": return "גבוהה";
-			case "medium": return "בינונית";
-			case "low": return "נמוכה";
-			default: return priority;
-		}
-	};
-
-	const getStatusText = (status) => {
-		switch (status) {
-			case "open": return "פתוח";
-			case "in_progress": return "בטיפול";
-			case "closed": return "סגור";
-			default: return status;
-		}
-	};
-
-	const getRepairStatusClass = (color) => {
-		const map = {
-			red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-			yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-			green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-			blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-			orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-			purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-		};
-		return map[color] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-	};
+	const getRepairStatusClass = (color) => ({
+		red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+		yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+		green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+		blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+		orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+		purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+	}[color] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300');
 
 	const getActionText = (log) => {
 		let action = log.action;
-		if (action === "update" && log.details?.body?.status && Object.keys(log.details.body).length === 1) {
+		if (action === "update" && log.details?.body?.status && Object.keys(log.details.body).length === 1)
 			action = log.details.body.status === "open" ? "open" : "close";
-		}
-		const actions = { create: "יצר", update: "עדכן", delete: "מחק", login: "התחבר", open: "פתח", close: "סגר" };
-		return actions[action] || action;
+		return ({ create: "יצר", update: "עדכן", delete: "מחק", login: "התחבר", open: "פתח", close: "סגר" }[action] || action);
 	};
 
-	const getTableText = (table) => {
-		const tables = { customers: "לקוח", tasks: "משימה", users: "משתמש", categories: "קטגוריה", interests: "תחום עניין" };
-		return tables[table] || table;
-	};
+	const getTableText = (table) =>
+		({ customers: "לקוח", tasks: "משימה", users: "משתמש", categories: "קטגוריה", interests: "תחום עניין" }[table] || table);
 
 	const getEntityName = (log) => {
 		if (log.details) {
@@ -181,6 +239,13 @@ const Dashboard = () => {
 		return null;
 	};
 
+	// Projects summary for admin
+	const projectStatusCounts = myProjects.reduce((acc, p) => {
+		const label = p.status_label || 'פתוח';
+		acc[label] = (acc[label] || 0) + 1;
+		return acc;
+	}, {});
+
 	const now = new Date();
 	const monthName = now.toLocaleString('he-IL', { month: 'long' });
 
@@ -192,6 +257,10 @@ const Dashboard = () => {
 		);
 	}
 
+	const BadgeCount = ({ count }) => count > 0
+		? <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{count}</span>
+		: null;
+
 	return (
 		<div className="space-y-6">
 			{/* Welcome */}
@@ -200,70 +269,87 @@ const Dashboard = () => {
 				<p className="text-gray-600 dark:text-gray-400">סקירה כללית של הפעילות שלך</p>
 			</div>
 
-			{/* Stats - Admin only */}
-			{isAdmin && stats && (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-					<Link to="/admin" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-						<div className="flex items-center">
-							<Users className="w-8 h-8 text-primary-600" />
-							<div className="mr-4">
-								<p className="text-sm text-gray-600 dark:text-gray-400">משתמשים פעילים</p>
-								<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_users}</p>
-							</div>
-						</div>
-					</Link>
+			{/* Restore hidden sections */}
+			{restorableHidden.length > 0 && (
+				<div className="flex items-center gap-2 flex-wrap">
+					<span className="text-xs text-gray-400 dark:text-gray-500">מוסתרים:</span>
+					{restorableHidden.map(s => (
+						<button
+							key={s.id}
+							onClick={() => showSection(s.id)}
+							className="flex items-center gap-1 text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+						>
+							<Eye className="w-3 h-3" />
+							{s.label}
+						</button>
+					))}
+				</div>
+			)}
 
-					<Link to="/customers" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-						<div className="flex items-center">
-							<Users className="w-8 h-8 text-green-600" />
-							<div className="mr-4">
-								<p className="text-sm text-gray-600 dark:text-gray-400">לקוחות פעילים</p>
-								<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_customers}</p>
+			{/* Stats — Admin only */}
+			{isAdmin && stats && !isHidden('stats') && (
+				<div className="relative">
+					<button
+						onClick={() => hideSection('stats')}
+						className="absolute -top-2 left-0 z-10 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+						title="הסתר"
+					>
+						<EyeOff className="w-3.5 h-3.5" />
+					</button>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+						<Link to="/admin" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+							<div className="flex items-center">
+								<Users className="w-8 h-8 text-primary-600" />
+								<div className="mr-4">
+									<p className="text-sm text-gray-600 dark:text-gray-400">משתמשים פעילים</p>
+									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_users}</p>
+								</div>
 							</div>
-						</div>
-					</Link>
-
-					<Link to="/tasks" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-						<div className="flex items-center">
-							<CheckSquare className="w-8 h-8 text-yellow-600" />
-							<div className="mr-4">
-								<p className="text-sm text-gray-600 dark:text-gray-400">משימות פתוחות</p>
-								<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.open_tasks}</p>
+						</Link>
+						<Link to="/customers" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+							<div className="flex items-center">
+								<Users className="w-8 h-8 text-green-600" />
+								<div className="mr-4">
+									<p className="text-sm text-gray-600 dark:text-gray-400">לקוחות פעילים</p>
+									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_customers}</p>
+								</div>
 							</div>
-						</div>
-					</Link>
-
-					<Link to="/activity" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-						<div className="flex items-center">
-							<TrendingUp className="w-8 h-8 text-purple-600" />
-							<div className="mr-4">
-								<p className="text-sm text-gray-600 dark:text-gray-400">פעולות היום</p>
-								<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.actions_last_24h}</p>
+						</Link>
+						<Link to="/tasks" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+							<div className="flex items-center">
+								<CheckSquare className="w-8 h-8 text-yellow-600" />
+								<div className="mr-4">
+									<p className="text-sm text-gray-600 dark:text-gray-400">משימות פתוחות</p>
+									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.open_tasks}</p>
+								</div>
 							</div>
-						</div>
-					</Link>
+						</Link>
+						<Link to="/activity" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+							<div className="flex items-center">
+								<TrendingUp className="w-8 h-8 text-purple-600" />
+								<div className="mr-4">
+									<p className="text-sm text-gray-600 dark:text-gray-400">פעולות היום</p>
+									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.actions_last_24h}</p>
+								</div>
+							</div>
+						</Link>
+					</div>
 				</div>
 			)}
 
 			{/* משמרות החודש */}
-			{monthShifts && (
+			{monthShifts && !isHidden('shifts') && (
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-2">
-								<Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-								<h2 className="text-lg font-semibold text-gray-900 dark:text-white">משמרות {monthName}</h2>
-							</div>
-							<Link to="/attendance" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-								לדף נוכחות
-							</Link>
-						</div>
-					</div>
+					<SectionHeader
+						onHide={() => hideSection('shifts')}
+						icon={<Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						title={`משמרות ${monthName}`}
+						link="/attendance"
+						linkLabel="לדף נוכחות"
+					/>
 					<div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
 						<div className="text-center">
-							<p className="text-2xl font-bold text-gray-900 dark:text-white">
-								{parseFloat(monthShifts.totalHours).toFixed(1)}
-							</p>
+							<p className="text-2xl font-bold text-gray-900 dark:text-white">{parseFloat(monthShifts.totalHours).toFixed(1)}</p>
 							<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">שעות סה"כ</p>
 						</div>
 						<div className="text-center">
@@ -283,38 +369,127 @@ const Dashboard = () => {
 						<div className="px-6 pb-6">
 							<div className="bg-gray-50 dark:bg-gray-700/50 rounded-md px-4 py-3 flex justify-between items-center">
 								<span className="text-sm text-gray-600 dark:text-gray-400">שכר משוער</span>
-								<span className="font-semibold text-gray-900 dark:text-white">
-									{formatCurrency(monthShifts.estimatedSalary)}
-								</span>
+								<span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthShifts.estimatedSalary)}</span>
 							</div>
 						</div>
 					)}
 				</div>
 			)}
 
-			{/* מכירות החודש — not for freelancers */}
-			{!isFreelancer && salesStats !== null && (
+			{/* פרויקטים */}
+			{canSeeProjects && !isHidden('projects') && (
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-2">
-								<DollarSign className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-								<h2 className="text-lg font-semibold text-gray-900 dark:text-white">מכירות {monthName}</h2>
-							</div>
-							<Link to="/sales" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-								לדף מכירות
-							</Link>
+					<SectionHeader
+						onHide={() => hideSection('projects')}
+						icon={<FolderOpen className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						title="פרויקטים פעילים"
+						badge={myProjects.length > 0 && (
+							<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-blue-500 rounded-full">
+								{myProjects.length}
+							</span>
+						)}
+						link="/freelance-projects"
+						linkLabel="לדף פרויקטים"
+					/>
+					{myProjects.length === 0 ? (
+						<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין פרויקטים פעילים</div>
+					) : isFreelancer ? (
+						// Freelancer: full list
+						<div className="divide-y divide-gray-200 dark:divide-gray-700">
+							{myProjects.map(p => {
+								const label = p.status_label || 'פתוח';
+								const days = getDaysOpen(p);
+								return (
+									<div key={p.id} className="p-4 flex items-center justify-between gap-4">
+										<div className="flex-1 min-w-0">
+											<div className="flex items-center gap-2">
+												{p.project_code && (
+													<span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">#{p.project_code}</span>
+												)}
+												<span className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</span>
+											</div>
+											{p.description && (
+												<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.description}</p>
+											)}
+										</div>
+										<div className="flex items-center gap-2 shrink-0">
+											<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
+												{label}
+											</span>
+											<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+												{days === 0 ? 'היום' : `${days} ימים`}
+											</span>
+										</div>
+									</div>
+								);
+							})}
 						</div>
-					</div>
+					) : (
+						// Admin/Manager: summary + recent list
+						<div>
+							<div className="px-6 pt-4 pb-2 flex flex-wrap gap-2">
+								{Object.entries(projectStatusCounts).map(([label, count]) => (
+									<span key={label} className={`text-xs px-2.5 py-1 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
+										{label}: {count}
+									</span>
+								))}
+							</div>
+							<div className="divide-y divide-gray-200 dark:divide-gray-700">
+								{myProjects.slice(0, 6).map(p => {
+									const label = p.status_label || 'פתוח';
+									const days = getDaysOpen(p);
+									return (
+										<div key={p.id} className="px-6 py-3 flex items-center justify-between gap-4">
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2">
+													{p.project_code && (
+														<span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">#{p.project_code}</span>
+													)}
+													<span className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</span>
+												</div>
+												{p.freelancer_name && (
+													<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.freelancer_name}</p>
+												)}
+											</div>
+											<div className="flex items-center gap-2 shrink-0">
+												<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
+													{label}
+												</span>
+												<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+													{days === 0 ? 'היום' : `${days} ימים`}
+												</span>
+											</div>
+										</div>
+									);
+								})}
+								{myProjects.length > 6 && (
+									<div className="px-6 py-3 text-xs text-gray-400 dark:text-gray-500">
+										ועוד {myProjects.length - 6} פרויקטים...
+									</div>
+								)}
+							</div>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* מכירות החודש */}
+			{!isFreelancer && salesStats !== null && !isHidden('sales') && (
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+					<SectionHeader
+						onHide={() => hideSection('sales')}
+						icon={<DollarSign className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						title={`מכירות ${monthName}`}
+						link="/sales"
+						linkLabel="לדף מכירות"
+					/>
 					<div className="p-6">
 						<div className="flex items-end gap-3 mb-4">
 							<span className="text-3xl font-bold text-gray-900 dark:text-white">
 								{formatCurrency(salesStats.currentTotal)}
 							</span>
 							{salesStats.currentCount !== null && (
-								<span className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-									({salesStats.currentCount} מכירות)
-								</span>
+								<span className="text-sm text-gray-500 dark:text-gray-400 mb-1">({salesStats.currentCount} מכירות)</span>
 							)}
 						</div>
 						<div className="grid grid-cols-2 gap-4">
@@ -331,22 +506,15 @@ const Dashboard = () => {
 				</div>
 			)}
 
-			{/* My Tasks — not for freelancers */}
-			{!isFreelancer && (
+			{/* המשימות שלי */}
+			{!isFreelancer && !isHidden('tasks') && (
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-2">
-								<h2 className="text-lg font-semibold text-gray-900 dark:text-white">המשימות שלי</h2>
-								{myTasksCount > 0 && (
-									<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{myTasksCount}</span>
-								)}
-							</div>
-							<Link to="/tasks" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-								צפה בהכל
-							</Link>
-						</div>
-					</div>
+					<SectionHeader
+						onHide={() => hideSection('tasks')}
+						title="המשימות שלי"
+						badge={<BadgeCount count={myTasksCount} />}
+						link="/tasks"
+					/>
 					<div className="divide-y divide-gray-200 dark:divide-gray-700">
 						{myTasks.length === 0 ? (
 							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין משימות פתוחות</div>
@@ -370,23 +538,16 @@ const Dashboard = () => {
 				</div>
 			)}
 
-			{/* My Repairs — not for freelancers */}
-			{!isFreelancer && (
+			{/* התיקונים שלי */}
+			{!isFreelancer && !isHidden('repairs') && (
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-2">
-								<Wrench className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-								<h2 className="text-lg font-semibold text-gray-900 dark:text-white">התיקונים שלי</h2>
-								{myRepairsCount > 0 && (
-									<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{myRepairsCount}</span>
-								)}
-							</div>
-							<Link to="/repairs" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-								צפה בהכל
-							</Link>
-						</div>
-					</div>
+					<SectionHeader
+						onHide={() => hideSection('repairs')}
+						icon={<Wrench className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						title="התיקונים שלי"
+						badge={<BadgeCount count={myRepairsCount} />}
+						link="/repairs"
+					/>
 					<div className="divide-y divide-gray-200 dark:divide-gray-700">
 						{myRepairs.length === 0 ? (
 							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין בקשות תיקון פתוחות</div>
@@ -421,17 +582,14 @@ const Dashboard = () => {
 				</div>
 			)}
 
-			{/* Recent Activity — not for freelancers */}
-			{!isFreelancer && (
+			{/* פעילות אחרונה */}
+			{!isFreelancer && !isHidden('activity') && (
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-					<div className="p-6 border-b border-gray-200 dark:border-gray-700">
-						<div className="flex items-center justify-between">
-							<h2 className="text-lg font-semibold text-gray-900 dark:text-white">פעילות אחרונה שלי</h2>
-							<Link to="/activity" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-								צפה בהכל
-							</Link>
-						</div>
-					</div>
+					<SectionHeader
+						onHide={() => hideSection('activity')}
+						title="פעילות אחרונה שלי"
+						link="/activity"
+					/>
 					<div className="divide-y divide-gray-200 dark:divide-gray-700">
 						{recentActivity.length === 0 ? (
 							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין פעילות אחרונה</div>
@@ -458,11 +616,8 @@ const Dashboard = () => {
 												</div>
 												<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
 													{new Date(log.created_at).toLocaleString("he-IL", {
-														year: "numeric",
-														month: "long",
-														day: "numeric",
-														hour: "2-digit",
-														minute: "2-digit",
+														year: "numeric", month: "long", day: "numeric",
+														hour: "2-digit", minute: "2-digit",
 													})}
 												</p>
 											</div>
