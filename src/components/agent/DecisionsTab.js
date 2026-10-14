@@ -98,6 +98,14 @@ function parseReasons(raw) {
   return [];
 }
 
+const FOLLOWUP_CASE = {
+  1: 'לא נרשם בפי"ל',
+  2: 'Delivered → לא Published',
+  3: 'Presave לא הומר',
+  4: 'חסרים קישורי Spotify',
+  5: 'מק"טים חסרים ברצועות',
+};
+
 const DecisionCard = ({ d, onDone }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -153,6 +161,7 @@ const DecisionCard = ({ d, onDone }) => {
   const findings = r.findings || [];
   const reasons = parseReasons(r.reasons);
   const needsReview = !d.human_decision && d.trigger !== 'dry_run';
+  const isFollowup = d.task_key === 'crm_followup';
 
   return (
     <div className="rounded-lg border border-gray-200 dark:border-gray-700">
@@ -162,8 +171,13 @@ const DecisionCard = ({ d, onDone }) => {
       >
         <div className="flex items-center gap-2 flex-wrap">
           {open ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronLeft className="w-4 h-4 text-gray-400 shrink-0" />}
+          {isFollowup
+            ? <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">מעקב</Badge>
+            : <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">בדיקת ריליס</Badge>
+          }
           <span className="font-medium text-gray-900 dark:text-white" dir="ltr">{d.subject_id}</span>
-          {r.subject_title && <span className="text-gray-600 dark:text-gray-300">{r.subject_title}</span>}
+          {(r.subject_title || r.title) && <span className="text-gray-600 dark:text-gray-300">{r.subject_title || r.title}</span>}
+          {isFollowup && r.artist && <span className="text-gray-500 dark:text-gray-400 text-sm">· {r.artist}</span>}
           <DecisionBadge value={d.decision} />
           {d.confidence != null && (
             <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">ביטחון {Math.round(d.confidence * 100)}%</span>
@@ -173,14 +187,16 @@ const DecisionCard = ({ d, onDone }) => {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500 dark:text-gray-400" dir="ltr">{r.model} · {fmtDate(d.created_at)}</span>
-          <button
-            disabled={rereviewing || deleting}
-            onClick={handleReReview}
-            className="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded"
-            title="בדוק שוב (מחק ובצע בדיקה מחדש)"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+          {!isFollowup && (
+            <button
+              disabled={rereviewing || deleting}
+              onClick={handleReReview}
+              className="p-1 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded"
+              title="בדוק שוב (מחק ובצע בדיקה מחדש)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             disabled={deleting}
             onClick={handleDelete}
@@ -194,13 +210,22 @@ const DecisionCard = ({ d, onDone }) => {
 
       {open && (
         <div className="px-4 pb-4 space-y-0">
-          {reasons.length > 0 && (
-            <ul className="mt-1 text-sm text-gray-700 dark:text-gray-300 list-disc pr-5 space-y-0.5">
-              {reasons.map((x, i) => <li key={i}>{x}</li>)}
-            </ul>
+          {isFollowup ? (
+            <div className="mt-1 text-sm text-gray-700 dark:text-gray-300 space-y-1">
+              {r.case && <p className="font-medium">{FOLLOWUP_CASE[r.case] || `מקרה ${r.case}`}</p>}
+              {r.hours_elapsed != null && <p className="text-xs text-gray-500 dark:text-gray-400">עבר זמן: {r.hours_elapsed} שעות</p>}
+              {r.days_elapsed != null && <p className="text-xs text-gray-500 dark:text-gray-400">עבר זמן: {r.days_elapsed} ימים</p>}
+              {r.missing_count != null && <p className="text-xs text-gray-500 dark:text-gray-400">{r.missing_count} מתוך {r.track_count} רצועות ללא מק"ט</p>}
+            </div>
+          ) : (
+            reasons.length > 0 && (
+              <ul className="mt-1 text-sm text-gray-700 dark:text-gray-300 list-disc pr-5 space-y-0.5">
+                {reasons.map((x, i) => <li key={i}>{x}</li>)}
+              </ul>
+            )
           )}
-          {r.cover_content_issue && <p className="mt-2 text-sm text-red-600 dark:text-red-400">עטיפה: {r.cover_content_issue}</p>}
-          {findings.length > 0 && (
+          {!isFollowup && r.cover_content_issue && <p className="mt-2 text-sm text-red-600 dark:text-red-400">עטיפה: {r.cover_content_issue}</p>}
+          {!isFollowup && findings.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {findings.map((f, i) => (
                 <Badge key={i} className={f.severity === 'error' ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}>
