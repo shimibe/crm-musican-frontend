@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         // Silently fail - attendance feature might not be available yet
       }
 
-      return { success: true };
+      return { success: true, user: normalizedUser };
     } catch (error) {
       return {
         success: false,

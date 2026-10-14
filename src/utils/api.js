@@ -22,20 +22,27 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // רק טפל ב-401/403 אם זה לא בקשת התחברות או attendance check
     const isLoginRequest = error.config?.url?.includes('/auth/login');
-    const isAttendanceCheck = error.config?.url?.includes('/attendance/active-shift');
 
-    if ((error.response?.status === 401 || error.response?.status === 403) && !isLoginRequest && !isAttendanceCheck) {
-      // התחברות פגה תוקף או אין הרשאה
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+    if (!isLoginRequest) {
+      const status = error.response?.status;
+      const errorMsg = error.response?.data?.error || '';
 
-      // הצג הודעה למשתמש
-      alert('ההתחברות פגה תוקף. אנא התחבר מחדש.');
+      // 401 = no token at all → session expired
+      // 403 only if it's a real token error (not a role/permission denial)
+      const isTokenError =
+        status === 401 ||
+        (status === 403 &&
+          (errorMsg === 'Invalid or expired token' ||
+            errorMsg === 'User not found' ||
+            errorMsg === 'Account is inactive'));
 
-      // נקה את העמוד ונתב להתחברות
-      window.location.href = '/login';
+      if (isTokenError) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        alert('ההתחברות פגה תוקף. אנא התחבר מחדש.');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

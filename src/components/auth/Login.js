@@ -57,7 +57,7 @@ const Login = () => {
     setLoading(false);
 
     if (result.success) {
-      navigate('/');
+      navigate(result.user?.role === 'freelancer' ? '/attendance' : '/');
     } else {
       setError(result.error);
     }
