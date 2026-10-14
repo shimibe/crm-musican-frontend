@@ -242,6 +242,9 @@ const Settings = () => {
     }
   };
 
+  const isFreelancer = user?.role === 'freelancer';
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager';
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -301,6 +304,8 @@ const Settings = () => {
                     ? 'מנהל'
                     : user?.role === 'manager'
                     ? 'מנהל צוות'
+                    : user?.role === 'freelancer'
+                    ? 'פרילנסר'
                     : 'עובד'
                 }
                 disabled
@@ -373,7 +378,7 @@ const Settings = () => {
       </div>
 
       {/* Task Priority Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      {!isFreelancer && <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -457,10 +462,10 @@ const Settings = () => {
             שמור הגדרות
           </button>
         </form>
-      </div>
+      </div>}
 
-      {/* Commission Rate Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      {/* Commission Rate Settings — hidden for freelancers */}
+      {!isFreelancer && <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -481,15 +486,20 @@ const Settings = () => {
                 min="0"
                 max="100"
                 value={commissionRate}
-                onChange={(e) => setCommissionRate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                onChange={(e) => isAdminOrManager && setCommissionRate(e.target.value)}
+                disabled={!isAdminOrManager}
+                className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md ${
+                  isAdminOrManager
+                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                }`}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 אחוז העמלה המחושב אוטומטית על מכירות חדשות. ברירת מחדל: 5%
               </p>
             </div>
 
-            {(user?.role === 'admin' || user?.role === 'manager') && (
+            {isAdminOrManager && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   עובד ברירת מחדל לבונוסים
@@ -511,19 +521,21 @@ const Settings = () => {
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            שמור הגדרות
-          </button>
+          {isAdminOrManager && (
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              שמור הגדרות
+            </button>
+          )}
         </form>
-      </div>
+      </div>}
 
       {/* Auto Refresh Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      {!isFreelancer && <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -607,7 +619,7 @@ const Settings = () => {
             שמור הגדרות
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Email Notification Preferences */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -624,11 +636,11 @@ const Settings = () => {
         </div>
         <form onSubmit={handleEmailNotificationsSubmit} className="p-6 space-y-3">
           {[
-            { key: 'new_sale', label: 'מכירה חדשה' },
-            { key: 'new_task', label: 'משימה חדשה' },
+            { key: 'new_sale', label: 'מכירה חדשה', freelancerHidden: true },
+            { key: 'new_task', label: 'משימה חדשה', freelancerHidden: true },
             { key: 'shift_start', label: 'התחלת משמרת' },
             { key: 'shift_end', label: 'סיום משמרת' },
-          ].map(({ key, label }) => (
+          ].filter(item => !isFreelancer || !item.freelancerHidden).map(({ key, label }) => (
             <div key={key} className="flex items-center gap-3">
               <input
                 type="checkbox"
