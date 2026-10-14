@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, ChevronDown, ChevronUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
-const BUDGET_TYPE_LABELS = { amount: 'סכום (₪)', hours: 'שעות' };
 const EXCEED_ACTION_LABELS = { warn: 'אזהרה', block: 'חסימה' };
 
 const BudgetBar = ({ project }) => {
@@ -75,7 +74,6 @@ const FreelanceProjects = () => {
 
   const [projects, setProjects] = useState([]);
   const [freelancers, setFreelancers] = useState([]);
-  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [filterFreelancer, setFilterFreelancer] = useState('');
@@ -513,8 +511,6 @@ const FreelanceProjects = () => {
 };
 
 const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onArchive, onUnarchive, onDelete }) => {
-  const [expanded, setExpanded] = useState(false);
-
   const hoursUsed = parseFloat(project.hours_used || 0);
   const costUsed = parseFloat(project.cost_used || 0);
 

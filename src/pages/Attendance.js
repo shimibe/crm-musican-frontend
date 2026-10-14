@@ -649,7 +649,7 @@ const Attendance = () => {
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   עבודה מהבית
                 </th>
-                {(isFreelancer || (isAdmin || isManager) && selectedUserId) && (
+                {(isFreelancer || ((isAdmin || isManager) && selectedUserId)) && (
                   <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     פרויקט
                   </th>
@@ -755,7 +755,7 @@ const Attendance = () => {
                         className="w-4 h-4 text-primary-600 border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed"
                       />
                     </td>
-                    {(isFreelancer || (isAdmin || isManager) && selectedUserId) && (
+                    {(isFreelancer || ((isAdmin || isManager) && selectedUserId)) && (
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {(/** @type {any} */(shift)).project_name || '—'}
                       </td>
