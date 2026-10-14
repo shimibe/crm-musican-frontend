@@ -48,10 +48,6 @@ const AgentYoav = () => {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => {
-    const id = setInterval(reload, 15_000);
-    return () => clearInterval(id);
-  }, [reload]);
   useEffect(() => { try { localStorage.setItem('agentYoavTab', tab); } catch { /* ignore */ } }, [tab]);
 
   const s = overview?.settings;
