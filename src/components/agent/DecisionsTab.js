@@ -144,14 +144,9 @@ const DecisionCard = ({ d, onDone }) => {
     try {
       await api.delete(`/agent/decisions/${d.id}`);
       await api.post('/agent/tasks/release_review/run', { dry_run: false, params: { release_id: d.subject_id } });
-      onDone?.();
-      // Poll until the new decision appears (max 10 × 3s = 30s)
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        onDone?.();
-        if (attempts >= 10) { clearInterval(poll); setRereviewing(false); }
-      }, 3000);
+      // 2 refreshes × 6s
+      setTimeout(() => { onDone?.(); }, 6000);
+      setTimeout(() => { onDone?.(); setRereviewing(false); }, 12000);
     } catch (err) {
       alert(errMsg(err));
       setRereviewing(false);
