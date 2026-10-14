@@ -50,6 +50,7 @@ const Admin = () => {
     is_active: true,
     hourly_wage: 0,
     can_edit_attendance: false,
+    can_add_projects: true,
   });
 
   // Category modal states
@@ -250,6 +251,7 @@ const Admin = () => {
       is_active: user.is_active,
       hourly_wage: user.hourly_wage || 0,
       can_edit_attendance: user.can_edit_attendance || false,
+      can_add_projects: user.can_add_projects !== false,
     });
     setShowUserModal(true);
   };
@@ -266,6 +268,7 @@ const Admin = () => {
         is_active: userForm.is_active,
         hourly_wage: parseFloat(userForm.hourly_wage) || 0,
         can_edit_attendance: userForm.can_edit_attendance,
+        can_add_projects: userForm.can_add_projects,
       };
 
       if (editingUser) {
@@ -1256,6 +1259,7 @@ const Admin = () => {
                   <option value="employee">עובד</option>
                   <option value="manager">מנהל צוות</option>
                   <option value="admin">מנהל</option>
+                  <option value="freelancer">פרילנסר</option>
                 </select>
               </div>
               <div>
@@ -1292,6 +1296,19 @@ const Admin = () => {
                   />
                   <label className="mr-2 text-sm text-gray-700 dark:text-gray-300">
                     אפשר עריכת משמרות
+                  </label>
+                </div>
+              )}
+              {userForm.role === 'freelancer' && (
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={userForm.can_add_projects}
+                    onChange={(e) => setUserForm({ ...userForm, can_add_projects: e.target.checked })}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label className="mr-2 text-sm text-gray-700 dark:text-gray-300">
+                    אפשר יצירת פרויקטים
                   </label>
                 </div>
               )}

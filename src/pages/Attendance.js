@@ -17,6 +17,12 @@ const Attendance = () => {
   const [showManualModal, setShowManualModal] = useState(false);
   const [showWorkFromHomePrompt, setShowWorkFromHomePrompt] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
+
+  // Freelancer-specific
+  const isFreelancer = user?.role === 'freelancer';
+  /** @type {[Array<{id:string,name:string,status:string}>, Function]} */
+  const [freelanceProjects, setFreelanceProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [totals, setTotals] = useState({
     totalHours: 0,
     workFromHome: 0,
@@ -66,7 +72,19 @@ const Attendance = () => {
       loadUsers();
       loadActiveEmployees();
     }
+    if (isFreelancer) {
+      loadFreelanceProjects();
+    }
   }, [selectedMonth, selectedYear, selectedUserId]);
+
+  const loadFreelanceProjects = async () => {
+    try {
+      const res = await api.get('/freelance-projects?status=active');
+      setFreelanceProjects(res.data || []);
+    } catch (err) {
+      console.error('Error loading freelance projects:', err);
+    }
+  };
 
   const loadShifts = async () => {
     try {
@@ -126,12 +144,19 @@ const Attendance = () => {
   };
 
   const handleStartShift = () => {
+    if (isFreelancer && !selectedProjectId) {
+      alert('יש לבחור פרויקט לפני תחילת משמרת');
+      return;
+    }
     setShowWorkFromHomePrompt(true);
   };
 
   const confirmStartShift = async (workFromHome) => {
     try {
-      await api.post('/attendance/shifts/start', { work_from_home: workFromHome });
+      const body = isFreelancer && selectedProjectId
+        ? { work_from_home: workFromHome, project_id: selectedProjectId }
+        : { work_from_home: workFromHome };
+      await api.post('/attendance/shifts/start', body);
       setShowWorkFromHomePrompt(false);
       await checkActiveShift();
       // Trigger sidebar update by reloading the page
@@ -434,9 +459,37 @@ const Attendance = () => {
         </div>
       </div>
 
+      {/* Freelancer: project selector */}
+      {isFreelancer && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            פרויקט {!hasActiveShift && <span className="text-red-500">*</span>}
+          </label>
+          {freelanceProjects.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              אין פרויקטים פעילים.{' '}
+              <a href="/freelance-projects" className="text-blue-600 dark:text-blue-400 hover:underline">צור פרויקט</a>
+            </p>
+          ) : (
+            <select
+              value={hasActiveShift ? ((/** @type {any} */(activeShift))?.project_id || '') : selectedProjectId}
+              onChange={e => setSelectedProjectId(e.target.value)}
+              disabled={hasActiveShift}
+              className="w-full max-w-xs px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-60"
+            >
+              <option value="">בחר פרויקט...</option>
+              {freelanceProjects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          )}
+          {hasActiveShift && (/** @type {any} */(activeShift))?.project_name && (
+            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">משמרת פעילה: {(/** @type {any} */(activeShift)).project_name}</p>
+          )}
+        </div>
+      )}
+
       {/* Active Employees List (Manager/Admin Only) */}
-      {console.log("activeEmployees", activeEmployees)}
-      
       {(isAdmin || isManager) && activeEmployees.length > 0 && (
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <h3 className="font-medium text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
@@ -596,6 +649,11 @@ const Attendance = () => {
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   עבודה מהבית
                 </th>
+                {(isFreelancer || (isAdmin || isManager) && selectedUserId) && (
+                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    פרויקט
+                  </th>
+                )}
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                   פעולות
                 </th>
@@ -610,7 +668,7 @@ const Attendance = () => {
                 </tr>
               ) : shifts.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan="8" className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
                     לא נמצאו משמרות
                   </td>
                 </tr>
@@ -697,6 +755,11 @@ const Attendance = () => {
                         className="w-4 h-4 text-primary-600 border-gray-300 rounded cursor-pointer disabled:cursor-not-allowed"
                       />
                     </td>
+                    {(isFreelancer || (isAdmin || isManager) && selectedUserId) && (
+                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {(/** @type {any} */(shift)).project_name || '—'}
+                      </td>
+                    )}
                     <td className="px-3 py-4 whitespace-nowrap text-center text-sm">
                       {canEdit && (
                         <div className="flex justify-center gap-2">

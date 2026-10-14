@@ -6,7 +6,7 @@ import AutoRefreshIndicator from '../common/AutoRefreshIndicator';
 import api from '../../utils/api';
 import {
   Home, Users, CheckSquare, Settings, LogOut,
-  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench, Bot
+  Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench, Bot, FolderOpen
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -16,6 +16,7 @@ const Layout = ({ children }) => {
     return saved === 'true';
   });
   const { user, logout, isAdmin } = useAuth();
+  const isFreelancer = user?.role === 'freelancer';
   const { isDark, toggleDarkMode } = useDarkMode();
   const location = useLocation();
   const navigate = useNavigate();
@@ -158,26 +159,36 @@ const Layout = ({ children }) => {
     navigate('/login');
   };
 
-  const navigation = [
-    { name: 'דשבורד', href: '/', icon: Home },
-    { name: 'לקוחות', href: '/customers', icon: Users },
-    { name: 'משימות', href: '/tasks', icon: CheckSquare, badgeKey: 'tasks' },
-    { name: 'תיקונים', href: '/repairs', icon: Wrench, badgeKey: 'repairs' },
-    { name: 'מכירות', href: '/sales', icon: DollarSign },
-    { name: 'נוכחות', href: '/attendance', icon: Clock },
-    { name: 'פעילות', href: '/activity', icon: Activity },
-    { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
-  ];
+  // Freelancers see only attendance + projects pages
+  const navigation = isFreelancer
+    ? [
+        { name: 'נוכחות', href: '/attendance', icon: Clock },
+        { name: 'פרויקטים', href: '/freelance-projects', icon: FolderOpen },
+        { name: 'הגדרות', href: '/settings', icon: Settings },
+      ]
+    : [
+        { name: 'דשבורד', href: '/', icon: Home },
+        { name: 'לקוחות', href: '/customers', icon: Users },
+        { name: 'משימות', href: '/tasks', icon: CheckSquare, badgeKey: 'tasks' },
+        { name: 'תיקונים', href: '/repairs', icon: Wrench, badgeKey: 'repairs' },
+        { name: 'מכירות', href: '/sales', icon: DollarSign },
+        { name: 'נוכחות', href: '/attendance', icon: Clock },
+        { name: 'פעילות', href: '/activity', icon: Activity },
+        { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
+      ];
 
   // Add admin links if user is admin
   if (isAdmin) {
+    navigation.push({ name: 'פרויקטים', href: '/freelance-projects', icon: FolderOpen });
     navigation.push({ name: 'קמפיינים', href: '/campaigns', icon: Send, adminOnly: true });
     navigation.push({ name: 'חיוב אולפן', href: '/studio-billing', icon: Mic, adminOnly: true });
     navigation.push({ name: 'הסוכן יואב', href: '/agent', icon: Bot, adminOnly: true });
     navigation.push({ name: 'ניהול', href: '/admin', icon: Shield, adminOnly: true });
   }
 
-  navigation.push({ name: 'הגדרות', href: '/settings', icon: Settings });
+  if (!isFreelancer) {
+    navigation.push({ name: 'הגדרות', href: '/settings', icon: Settings });
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

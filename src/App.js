@@ -19,6 +19,7 @@ import Shortcuts from './pages/Shortcuts';
 import Sales from './pages/Sales';
 import StudioBilling from './pages/StudioBilling';
 import Attendance from './pages/Attendance';
+import FreelanceProjects from './pages/FreelanceProjects';
 import Repairs from './pages/Repairs';
 import AgentYoav from './pages/AgentYoav';
 
@@ -159,6 +160,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute>
             <Attendance />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/freelance-projects"
+        element={
+          <ProtectedRoute>
+            <FreelanceProjects />
           </ProtectedRoute>
         }
       />
