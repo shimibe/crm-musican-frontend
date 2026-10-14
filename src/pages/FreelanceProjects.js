@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle } from 'lucide-react';
+import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle, Phone, Mail } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
@@ -60,6 +60,7 @@ const BudgetWarning = ({ project }) => {
 const defaultForm = {
   name: '',
   description: '',
+  files_url: '',
   freelancer_id: '',
   budget_type: '',
   budget_limit: '',
@@ -159,6 +160,7 @@ const FreelanceProjects = () => {
     setForm({
       name: project.name || '',
       description: project.description || '',
+      files_url: project.files_url || '',
       freelancer_id: project.freelancer_id || '',
       budget_type: project.budget_type || '',
       budget_limit: project.budget_limit || '',
@@ -178,6 +180,7 @@ const FreelanceProjects = () => {
       const payload = {
         name: form.name.trim(),
         description: form.description.trim() || null,
+        files_url: form.files_url.trim() || null,
         budget_type: form.budget_type || null,
         budget_limit: form.budget_limit ? parseFloat(form.budget_limit) : null,
         budget_exceed_action: form.budget_exceed_action,
@@ -363,6 +366,17 @@ const FreelanceProjects = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">קישור לקבצי עבודה</label>
+                <input
+                  type="url"
+                  value={form.files_url}
+                  onChange={e => setForm(f => ({ ...f, files_url: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  placeholder="https://drive.google.com/... (אופציונלי)"
+                />
+              </div>
+
               {/* Admin fields */}
               {isAdmin && (
                 <>
@@ -523,7 +537,19 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{project.freelancer_name}</p>
           )}
           {project.customer_name && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{project.customer_name}</p>
+            <div className="mt-1 space-y-0.5">
+              <p className="text-xs text-blue-600 dark:text-blue-400">{project.customer_name}</p>
+              {project.customer_phone && (
+                <a href={`tel:${project.customer_phone}`} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                  <Phone className="w-3 h-3" />{project.customer_phone}
+                </a>
+              )}
+              {project.customer_email && (
+                <a href={`mailto:${project.customer_email}`} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                  <Mail className="w-3 h-3" />{project.customer_email}
+                </a>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -568,6 +594,20 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
 
       {project.description && (
         <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{project.description}</p>
+      )}
+
+      {project.files_url && (
+        <a
+          href={project.files_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          קבצי עבודה
+        </a>
       )}
 
       <BudgetBar project={project} />
