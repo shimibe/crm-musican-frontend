@@ -31,6 +31,7 @@ const Settings = () => {
     shift_end: user?.preferences?.email_notifications?.shift_end ?? true,
     new_project: user?.preferences?.email_notifications?.new_project ?? true,
     project_status: user?.preferences?.email_notifications?.project_status ?? false,
+    freelancer_project_status: user?.preferences?.email_notifications?.freelancer_project_status ?? true,
   });
   const [users, setUsers] = useState([]);
   const [passwordData, setPasswordData] = useState({
@@ -646,6 +647,7 @@ const Settings = () => {
             { key: 'shift_end', label: 'סיום משמרת' },
             { key: 'new_project', label: 'פרויקט חדש מוקצה', freelancerOnly: true },
             { key: 'project_status', label: 'עדכון סטטוס פרויקט', freelancerOnly: true },
+            { key: 'freelancer_project_status', label: 'עדכון סטטוס פרויקט (פרילנסר)', freelancerHidden: true },
           ].filter(item => {
             if (item.freelancerHidden && isFreelancer) return false;
             if (item.freelancerOnly && !isFreelancer) return false;

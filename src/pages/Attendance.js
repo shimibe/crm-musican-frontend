@@ -20,7 +20,7 @@ const Attendance = () => {
 
   // Freelancer-specific
   const isFreelancer = user?.role === 'freelancer';
-  /** @type {[Array<{id:string,name:string,status:string}>, Function]} */
+  /** @type {[Array<{id:string,name:string,status:string,project_code?:number}>, Function]} */
   const [freelanceProjects, setFreelanceProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [totals, setTotals] = useState({
@@ -479,7 +479,7 @@ const Attendance = () => {
             >
               <option value="">בחר פרויקט...</option>
               {freelanceProjects.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{p.project_code ? `#${p.project_code} ${p.name}` : p.name}</option>
               ))}
             </select>
           )}
