@@ -705,6 +705,12 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col gap-2">
+      {/* Project code */}
+      {project.project_code && (
+        <div className="text-2xl font-bold text-gray-200 dark:text-gray-600 leading-none select-none">
+          #{project.project_code}
+        </div>
+      )}
       {/* Top row: name + actions */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
