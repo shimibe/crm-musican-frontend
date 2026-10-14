@@ -1,11 +1,40 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle, Phone, Mail } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle, Phone, Mail, Clock, ChevronDown } from 'lucide-react';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
 const EXCEED_ACTION_LABELS = { warn: 'אזהרה', block: 'חסימה' };
 
+const STATUS_OPTIONS = ['פתוח', 'בעבודה', 'ממתין לאישור', 'הסתיים'];
+const STATUS_CONFIG = {
+  'פתוח':         { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', dot: 'bg-green-500' },
+  'בעבודה':       { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', dot: 'bg-blue-500' },
+  'ממתין לאישור': { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', dot: 'bg-amber-500' },
+  'הסתיים':       { badge: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400', dot: 'bg-gray-400' },
+};
+const getStatusConfig = (label) =>
+  STATUS_CONFIG[label] || { badge: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400', dot: 'bg-gray-400' };
+
+const getDaysOpen = (project) => {
+  const start = new Date(project.created_at);
+  const label = project.status_label || 'פתוח';
+  const end = label === 'הסתיים'
+    ? new Date(project.status_label_updated_at || Date.now())
+    : new Date();
+  return Math.max(0, Math.floor((end - start) / 86400000));
+};
+
+const formatDays = (days) => {
+  if (days === 0) return 'היום';
+  if (days === 1) return 'יום אחד';
+  return `${days} ימים`;
+};
+
+const formatDate = (dateStr) =>
+  new Date(dateStr).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+// ─── BudgetBar ────────────────────────────────────────────────────────────────
 const BudgetBar = ({ project }) => {
   if (!project.budget_type || !project.budget_limit) return null;
 
@@ -15,12 +44,7 @@ const BudgetBar = ({ project }) => {
   const limit = parseFloat(project.budget_limit);
   const pct = Math.min((used / limit) * 100, 100);
 
-  const color = pct >= 100
-    ? 'bg-red-500'
-    : pct >= 80
-      ? 'bg-yellow-400'
-      : 'bg-green-500';
-
+  const color = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-yellow-400' : 'bg-green-500';
   const label = project.budget_type === 'hours'
     ? `${used.toFixed(1)} / ${limit} שע'`
     : `₪${used.toFixed(0)} / ₪${limit.toFixed(0)}`;
@@ -38,14 +62,14 @@ const BudgetBar = ({ project }) => {
   );
 };
 
+// ─── BudgetWarning ────────────────────────────────────────────────────────────
 const BudgetWarning = ({ project }) => {
   if (!project.budget_type || !project.budget_limit || project.budget_exceed_action !== 'warn') return null;
 
   const used = project.budget_type === 'hours'
     ? parseFloat(project.hours_used || 0)
     : parseFloat(project.cost_used || 0);
-  const limit = parseFloat(project.budget_limit);
-  const pct = (used / limit) * 100;
+  const pct = (used / parseFloat(project.budget_limit)) * 100;
 
   if (pct < 80) return null;
 
@@ -57,10 +81,95 @@ const BudgetWarning = ({ project }) => {
   );
 };
 
+// ─── HistoryModal ─────────────────────────────────────────────────────────────
+const HistoryModal = ({ modal, onClose }) => {
+  const { project, history } = modal;
+
+  const enriched = history
+    ? history.map((entry, i) => {
+        const next = history[i + 1];
+        const endDate = next ? new Date(next.changed_at) : new Date();
+        const days = Math.floor((endDate - new Date(entry.changed_at)) / 86400000);
+        return { ...entry, days, isCurrent: !next };
+      })
+    : null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm"
+        onClick={e => e.stopPropagation()}
+        dir="rtl"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">היסטוריית סטטוסים</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{project.name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 max-h-96 overflow-y-auto">
+          {!enriched ? (
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : enriched.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">אין היסטוריה</p>
+          ) : (
+            <div>
+              {enriched.map((entry, i) => {
+                const cfg = getStatusConfig(entry.status_label);
+                return (
+                  <div key={entry.id} className="flex items-start gap-3">
+                    {/* Dot + connector */}
+                    <div className="flex flex-col items-center shrink-0 mt-1">
+                      <div className={`w-3 h-3 rounded-full ${cfg.dot}`} />
+                      {i < enriched.length - 1 && (
+                        <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1" style={{ minHeight: 28 }} />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className={`flex-1 ${i < enriched.length - 1 ? 'pb-4' : ''}`}>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                          {entry.status_label}
+                        </span>
+                        {entry.isCurrent && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">נוכחי</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {formatDate(entry.changed_at)}
+                        {entry.changed_by_name && (
+                          <span className="text-gray-400 dark:text-gray-500"> · {entry.changed_by_name}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {entry.isCurrent
+                          ? (entry.days > 0 ? `${formatDays(entry.days)} עד כה` : 'שונה היום')
+                          : `נשאר ${formatDays(entry.days)} בסטטוס זה`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── defaultForm ──────────────────────────────────────────────────────────────
 const defaultForm = {
   name: '',
   description: '',
   files_url: '',
+  status_label: 'פתוח',
   freelancer_id: '',
   budget_type: '',
   budget_limit: '',
@@ -69,6 +178,7 @@ const defaultForm = {
   show_customer_to_freelancer: false,
 };
 
+// ─── Main component ───────────────────────────────────────────────────────────
 const FreelanceProjects = () => {
   const { user, isAdmin } = useAuth();
   const isFreelancer = user?.role === 'freelancer';
@@ -79,6 +189,7 @@ const FreelanceProjects = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [filterFreelancer, setFilterFreelancer] = useState('');
   const [confirmDialog, setConfirmDialog] = useState(null);
+  const [historyModal, setHistoryModal] = useState(null);
 
   const [showModal, setShowModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -86,7 +197,6 @@ const FreelanceProjects = () => {
   const [saving, setSaving] = useState(false);
   const [canAddProjects, setCanAddProjects] = useState(true);
 
-  // Customer search for admin
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerResults, setCustomerResults] = useState([]);
   const [customerSearchTimeout, setCustomerSearchTimeout] = useState(null);
@@ -98,11 +208,7 @@ const FreelanceProjects = () => {
       if (isAdmin && filterFreelancer) params.set('freelancer_id', filterFreelancer);
       const res = await api.get(`/freelance-projects?${params}`);
       const all = res.data;
-      if (!showArchived) {
-        setProjects(all.filter(p => p.status === 'active'));
-      } else {
-        setProjects(all.filter(p => p.status === 'archived'));
-      }
+      setProjects(all.filter(p => showArchived ? p.status === 'archived' : p.status === 'active'));
     } catch (err) {
       console.error('Load projects error', err);
     }
@@ -119,7 +225,6 @@ const FreelanceProjects = () => {
         } catch {}
       }
       if (isFreelancer) {
-        // Check if this freelancer can add projects
         try {
           const meRes = await api.get(`/users/${user.id}`);
           setCanAddProjects(meRes.data.can_add_projects !== false);
@@ -130,9 +235,7 @@ const FreelanceProjects = () => {
     init();
   }, [isAdmin, isFreelancer, user, loadProjects]);
 
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
+  useEffect(() => { loadProjects(); }, [loadProjects]);
 
   const searchCustomers = (val) => {
     setCustomerSearch(val);
@@ -161,6 +264,7 @@ const FreelanceProjects = () => {
       name: project.name || '',
       description: project.description || '',
       files_url: project.files_url || '',
+      status_label: project.status_label || 'פתוח',
       freelancer_id: project.freelancer_id || '',
       budget_type: project.budget_type || '',
       budget_limit: project.budget_limit || '',
@@ -181,6 +285,7 @@ const FreelanceProjects = () => {
         name: form.name.trim(),
         description: form.description.trim() || null,
         files_url: form.files_url.trim() || null,
+        status_label: form.status_label,
         budget_type: form.budget_type || null,
         budget_limit: form.budget_limit ? parseFloat(form.budget_limit) : null,
         budget_exceed_action: form.budget_exceed_action,
@@ -230,6 +335,25 @@ const FreelanceProjects = () => {
       },
       onCancel: () => setConfirmDialog(null),
     });
+  };
+
+  const handleStatusChange = async (project, newStatus) => {
+    try {
+      await api.patch(`/freelance-projects/${project.id}`, { status_label: newStatus });
+      await loadProjects();
+    } catch (err) {
+      console.error('Status change error', err);
+    }
+  };
+
+  const openHistory = async (project) => {
+    setHistoryModal({ project, history: null });
+    try {
+      const res = await api.get(`/freelance-projects/${project.id}/status-history`);
+      setHistoryModal(prev => prev ? { ...prev, history: res.data } : null);
+    } catch {
+      setHistoryModal(prev => prev ? { ...prev, history: [] } : null);
+    }
   };
 
   const grouped = isAdmin
@@ -324,6 +448,8 @@ const FreelanceProjects = () => {
                   onArchive={handleArchive}
                   onUnarchive={handleUnarchive}
                   onDelete={handleDelete}
+                  onStatusChange={handleStatusChange}
+                  onHistory={openHistory}
                 />
               ))}
             </div>
@@ -331,10 +457,10 @@ const FreelanceProjects = () => {
         ))
       )}
 
-      {/* Modal */}
+      {/* Edit / Create modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {editingProject ? 'עריכת פרויקט' : 'פרויקט חדש'}
@@ -377,7 +503,32 @@ const FreelanceProjects = () => {
                 />
               </div>
 
-              {/* Admin fields */}
+              {/* Status label — editable by both */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">סטטוס</label>
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_OPTIONS.map(s => {
+                    const cfg = getStatusConfig(s);
+                    const selected = form.status_label === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, status_label: s }))}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                          selected
+                            ? `${cfg.badge} border-current ring-2 ring-offset-1 ring-current`
+                            : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Admin-only fields */}
               {isAdmin && (
                 <>
                   <div>
@@ -410,7 +561,7 @@ const FreelanceProjects = () => {
                     {form.budget_type && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          מגבלה {form.budget_type === 'hours' ? '(שע\')' : '(₪)'}
+                          מגבלה {form.budget_type === 'hours' ? "(שע')" : '(₪)'}
                         </label>
                         <input
                           type="number"
@@ -444,7 +595,6 @@ const FreelanceProjects = () => {
                     </div>
                   )}
 
-                  {/* Customer linking */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">קישור לקוח (אופציונלי)</label>
                     <div className="relative">
@@ -498,7 +648,10 @@ const FreelanceProjects = () => {
               )}
             </div>
             <div className="flex gap-2 p-4 border-t border-gray-200 dark:border-gray-700 justify-end">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
                 ביטול
               </button>
               <button
@@ -513,6 +666,10 @@ const FreelanceProjects = () => {
         </div>
       )}
 
+      {historyModal && (
+        <HistoryModal modal={historyModal} onClose={() => setHistoryModal(null)} />
+      )}
+
       {confirmDialog && (
         <ConfirmDialog
           message={confirmDialog.message}
@@ -524,12 +681,31 @@ const FreelanceProjects = () => {
   );
 };
 
-const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onArchive, onUnarchive, onDelete }) => {
+// ─── ProjectCard ──────────────────────────────────────────────────────────────
+const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onArchive, onUnarchive, onDelete, onStatusChange, onHistory }) => {
   const hoursUsed = parseFloat(project.hours_used || 0);
   const costUsed = parseFloat(project.cost_used || 0);
+  const statusLabel = project.status_label || 'פתוח';
+  const statusCfg = getStatusConfig(statusLabel);
+  const days = getDaysOpen(project);
+
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!showStatusDropdown) return;
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowStatusDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showStatusDropdown]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col gap-2">
+      {/* Top row: name + actions */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900 dark:text-white truncate">{project.name}</h3>
@@ -553,6 +729,14 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          {/* History button */}
+          <button
+            onClick={() => onHistory(project)}
+            className="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 rounded"
+            title="היסטוריית סטטוסים"
+          >
+            <Clock className="w-4 h-4" />
+          </button>
           {!showArchived && (
             <button
               onClick={() => onEdit(project)}
@@ -592,8 +776,45 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
         </div>
       </div>
 
+      {/* Status badge + days */}
+      <div className="flex items-center gap-2">
+        {/* Inline status dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => !showArchived && setShowStatusDropdown(v => !v)}
+            className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full transition-all ${statusCfg.badge} ${!showArchived ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+            title={!showArchived ? 'שנה סטטוס' : undefined}
+          >
+            {statusLabel}
+            {!showArchived && <ChevronDown className="w-3 h-3" />}
+          </button>
+          {showStatusDropdown && (
+            <div className="absolute top-full mt-1 right-0 z-20 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-max">
+              {STATUS_OPTIONS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setShowStatusDropdown(false);
+                    if (s !== statusLabel) onStatusChange(project, s);
+                  }}
+                  className={`w-full text-right px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-600 flex items-center gap-2 ${s === statusLabel ? 'font-semibold' : ''}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${getStatusConfig(s).dot}`} />
+                  <span className="text-gray-800 dark:text-gray-200">{s}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Days counter */}
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          {statusLabel === 'הסתיים' ? `הושלם אחרי ${formatDays(days)}` : formatDays(days)}
+        </span>
+      </div>
+
       {project.description && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{project.description}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{project.description}</p>
       )}
 
       {project.files_url && (
@@ -601,7 +822,7 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
           href={project.files_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs text-primary-600 dark:text-primary-400 hover:underline"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -614,7 +835,7 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
       <BudgetWarning project={project} />
 
       {/* Stats row */}
-      <div className="flex gap-3 mt-3 text-xs text-gray-500 dark:text-gray-400">
+      <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400">
         <span>{hoursUsed.toFixed(1)} שע'</span>
         {costUsed > 0 && <span>₪{costUsed.toFixed(0)}</span>}
         {project.budget_type && project.budget_limit && (
