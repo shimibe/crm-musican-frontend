@@ -29,6 +29,8 @@ const Settings = () => {
     new_task: user?.preferences?.email_notifications?.new_task ?? true,
     shift_start: user?.preferences?.email_notifications?.shift_start ?? true,
     shift_end: user?.preferences?.email_notifications?.shift_end ?? true,
+    new_project: user?.preferences?.email_notifications?.new_project ?? true,
+    project_status: user?.preferences?.email_notifications?.project_status ?? false,
   });
   const [users, setUsers] = useState([]);
   const [passwordData, setPasswordData] = useState({
@@ -62,6 +64,8 @@ const Settings = () => {
         new_task: user?.preferences?.email_notifications?.new_task ?? true,
         shift_start: user?.preferences?.email_notifications?.shift_start ?? true,
         shift_end: user?.preferences?.email_notifications?.shift_end ?? true,
+        new_project: user?.preferences?.email_notifications?.new_project ?? true,
+        project_status: user?.preferences?.email_notifications?.project_status ?? false,
       });
     }
   }, [user]);
@@ -640,7 +644,13 @@ const Settings = () => {
             { key: 'new_task', label: 'משימה חדשה', freelancerHidden: true },
             { key: 'shift_start', label: 'התחלת משמרת' },
             { key: 'shift_end', label: 'סיום משמרת' },
-          ].filter(item => !isFreelancer || !item.freelancerHidden).map(({ key, label }) => (
+            { key: 'new_project', label: 'פרויקט חדש מוקצה', freelancerOnly: true },
+            { key: 'project_status', label: 'עדכון סטטוס פרויקט', freelancerOnly: true },
+          ].filter(item => {
+            if (item.freelancerHidden && isFreelancer) return false;
+            if (item.freelancerOnly && !isFreelancer) return false;
+            return true;
+          }).map(({ key, label }) => (
             <div key={key} className="flex items-center gap-3">
               <input
                 type="checkbox"
