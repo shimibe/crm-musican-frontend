@@ -162,6 +162,7 @@ const Layout = ({ children }) => {
   // Freelancers see only attendance + projects pages
   const navigation = isFreelancer
     ? [
+        { name: 'דשבורד', href: '/', icon: Home },
         { name: 'נוכחות', href: '/attendance', icon: Clock },
         { name: 'פרויקטים', href: '/freelance-projects', icon: FolderOpen },
         { name: 'הגדרות', href: '/settings', icon: Settings },
