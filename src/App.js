@@ -4,24 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DarkModeProvider } from './contexts/DarkModeContext';
 import { AutoRefreshProvider } from './contexts/AutoRefreshContext';
 import Layout from './components/layout/Layout';
-
-const IS_FREELANCER_PORTAL = window.location.hostname === 'job.musican.me';
-
-const WrongPortalScreen = ({ onLogout }) => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" dir="rtl">
-    <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm">
-      <div className="text-4xl mb-4">🔒</div>
-      <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">גישה אסורה</h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-6">פורטל זה מיועד לפרילנסרים בלבד.</p>
-      <button
-        onClick={onLogout}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-      >
-        יציאה
-      </button>
-    </div>
-  </div>
-);
 import Login from './components/auth/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -40,6 +22,24 @@ import Attendance from './pages/Attendance';
 import FreelanceProjects from './pages/FreelanceProjects';
 import Repairs from './pages/Repairs';
 import AgentYoav from './pages/AgentYoav';
+
+const IS_FREELANCER_PORTAL = window.location.hostname === 'job.musican.me';
+
+const WrongPortalScreen = ({ onLogout }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" dir="rtl">
+    <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg max-w-sm">
+      <div className="text-4xl mb-4">🔒</div>
+      <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-2">גישה אסורה</h1>
+      <p className="text-gray-500 dark:text-gray-400 mb-6">פורטל זה מיועד לפרילנסרים בלבד.</p>
+      <button
+        onClick={onLogout}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        יציאה
+      </button>
+    </div>
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
