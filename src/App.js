@@ -21,7 +21,8 @@ import StudioBilling from './pages/StudioBilling';
 import Attendance from './pages/Attendance';
 import FreelanceProjects from './pages/FreelanceProjects';
 import Repairs from './pages/Repairs';
-import AgentYoav from './pages/AgentYoav';
+import AgentYoav  from './pages/AgentYoav';
+import AgentNitai from './pages/AgentNitai';
 
 const IS_FREELANCER_PORTAL = window.location.hostname === 'job.musican.me';
 
@@ -215,6 +216,14 @@ const AppContent = () => {
         element={
           <ProtectedRoute requireAdmin>
             <AgentYoav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing"
+        element={
+          <ProtectedRoute requireAdmin>
+            <AgentNitai />
           </ProtectedRoute>
         }
       />
