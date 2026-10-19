@@ -4,7 +4,9 @@ import { input, btnPrimary, btnGhost, btnDanger, errMsg } from './ui';
 
 const EMPTY = {
   name: '', description: '', provider: 'd-id',
-  did_source_url: '', heygen_avatar_id: '',
+  did_source_url: '', did_presenter_id: '',
+  did_background_url: '', did_background_color: '',
+  heygen_avatar_id: '',
   elevenlabs_voice_id: '', elevenlabs_model: 'eleven_multilingual_v2',
   provider_voice_id: 'he-IL-AvriNeural',
   thumbnail_url: '', is_active: true,
@@ -66,11 +68,41 @@ function CharacterModal({ character, onClose, onSaved }) {
           </div>
 
           {form.provider === 'd-id' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL תמונת מקור (D-ID)</label>
-              <input className={input} value={form.did_source_url || ''} onChange={(e) => set('did_source_url', e.target.value)} placeholder="https://cdn.example.com/character.jpg" dir="ltr" />
-              <p className="text-xs text-gray-500 mt-1">URL ציבורי וקבוע של תמונת הדמות (JPG/PNG, פנים ברורות, ≥512px)</p>
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Presenter ID <span className="text-gray-400 font-normal">(D-ID Studio)</span>
+                </label>
+                <input className={input} value={form.did_presenter_id || ''} onChange={(e) => set('did_presenter_id', e.target.value)} placeholder="rian-pbMoTzs7an" dir="ltr" />
+                <p className="text-xs text-gray-500 mt-1">
+                  מ-D-ID Studio → Presenters → העתק את ה-ID. כשמוגדר — גובר על תמונת מקור.
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  URL תמונת מקור <span className="text-gray-400 font-normal">(ללא Presenter ID)</span>
+                </label>
+                <input className={input} value={form.did_source_url || ''} onChange={(e) => set('did_source_url', e.target.value)} placeholder="https://cdn.example.com/character.jpg" dir="ltr" />
+                <p className="text-xs text-gray-500 mt-1">URL ציבורי וקבוע של תמונת הדמות (JPG/PNG, פנים ברורות, ≥512px)</p>
+              </div>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-3">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">רקע (אופציונלי — עוקף רקע ב-Presenter)</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">צבע רקע (hex)</label>
+                  <div className="flex gap-2 items-center">
+                    <input className={input} value={form.did_background_color || ''} onChange={(e) => set('did_background_color', e.target.value)} placeholder="#FFFFFF" dir="ltr" />
+                    {form.did_background_color && (
+                      <div className="w-8 h-8 rounded border border-gray-300 flex-shrink-0" style={{ background: form.did_background_color }} />
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">גובר על תמונת רקע אם שניהם מוגדרים</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL תמונת רקע</label>
+                  <input className={input} value={form.did_background_url || ''} onChange={(e) => set('did_background_url', e.target.value)} placeholder="https://..." dir="ltr" />
+                </div>
+              </div>
+            </>
           )}
 
           {form.provider === 'heygen' && (
@@ -333,7 +365,7 @@ function CharacterCard({ character: ch, onEdit, onPreview, onDelete, deleting })
       </div>
 
       <div className="p-3 flex items-center gap-2 flex-wrap">
-        {onPreview && ch.provider === 'd-id' && ch.did_source_url && (
+        {onPreview && ch.provider === 'd-id' && (ch.did_source_url || ch.did_presenter_id) && (
           <button
             className={btnGhost + ' text-xs py-1 px-2'}
             onClick={onPreview}
