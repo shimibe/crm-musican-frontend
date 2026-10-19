@@ -42,10 +42,7 @@ function PreviewModal({ postId, onClose }) {
             {data.image_url && (
               <img src={data.image_url} alt="post" className="w-full rounded-lg object-cover max-h-72" />
             )}
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">טקסט</p>
-              <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{data.text_content || '—'}</p>
-            </div>
+            <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{data.text_content || '—'}</p>
             <div className="flex flex-wrap gap-2">
               <PostStatusBadge value={data.status} />
               {(data.platforms || []).map((pl) => (
@@ -232,18 +229,19 @@ function GenerateImageModal({ post, onClose, onDone }) {
     : platforms.includes('youtube') ? 'wide'
     : 'landscape';
 
+  const [mode, setMode] = useState('auto');
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState(defaultSize);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const [finalPrompt, setFinalPrompt] = useState(null);
 
   const submit = async () => {
-    if (!prompt.trim()) return;
-    setBusy(true); setErr(null); setFinalPrompt(null);
+    if (mode === 'manual' && !prompt.trim()) return;
+    setBusy(true); setErr(null);
     try {
-      const r = await api.post(`/marketing/posts/${post.id}/generate-image`, { prompt, size });
-      if (r.data.final_prompt && r.data.final_prompt !== prompt.trim()) setFinalPrompt(r.data.final_prompt);
+      await api.post(`/marketing/posts/${post.id}/generate-image`,
+        mode === 'auto' ? { auto: true, size } : { prompt, size }
+      );
       onDone();
     } catch (e) {
       setErr(errMsg(e));
@@ -261,12 +259,27 @@ function GenerateImageModal({ post, onClose, onDone }) {
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="p-5 space-y-3">
-          <p className="text-sm text-gray-600 dark:text-gray-400">תאר את התמונה באנגלית — fal.ai Flux Pro יייצר אותה.</p>
-          <textarea
-            rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g.: A musician performing on stage in Jerusalem at night, concert lights, vibrant colors, professional photography"
-            className={input}
-          />
+          {/* Mode toggle */}
+          <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden text-sm">
+            {[['auto', '✨ אוטומטי'], ['manual', '✏️ ידני']].map(([val, label]) => (
+              <button key={val} onClick={() => setMode(val)}
+                className={`flex-1 py-1.5 transition-colors ${mode === val
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'auto'
+            ? <p className="text-sm text-gray-500 dark:text-gray-400">ניתאי יבנה את תיאור התמונה בעצמו לפי תוכן הפוסט.</p>
+            : <textarea
+                rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g.: A musician performing on stage in Jerusalem at night, concert lights, vibrant colors"
+                className={input}
+              />
+          }
+
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">גודל</label>
             <select value={size} onChange={(e) => setSize(e.target.value)}
@@ -280,7 +293,7 @@ function GenerateImageModal({ post, onClose, onDone }) {
           {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className={btnGhost}>ביטול</button>
-            <button onClick={submit} disabled={busy || !prompt.trim()} className={btnPrimary}>
+            <button onClick={submit} disabled={busy || (mode === 'manual' && !prompt.trim())} className={btnPrimary}>
               {busy ? '⏳ מייצר...' : '🖼️ צור תמונה'}
             </button>
           </div>
