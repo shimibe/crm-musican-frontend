@@ -29,7 +29,6 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         daily_summary_time: initSettings.daily_summary_time ?? '09:00',
         weekly_review_day: initSettings.weekly_review_day ?? 0,
         metrics_interval_minutes: initSettings.metrics_interval_minutes ?? 240,
-        canva_brand_template_id: initSettings.canva_brand_template_id ?? '',
         instagram_page_id: initSettings.instagram_page_id ?? '',
         facebook_page_id: initSettings.facebook_page_id ?? '',
         youtube_channel_id: initSettings.youtube_channel_id ?? '',
@@ -140,14 +139,9 @@ export default function SettingsTab({ settings: initSettings, reload }) {
 
       {/* ── Section 3: API keys ── */}
       <Section title="מפתחות API">
-        <div className="space-y-4">
-          <Field label="Canva Brand Template ID" hint="מזהה התבנית מ-Canva PRO שניתאי ישתמש בה ליצירת עיצובים">
-            <input type="text" value={form.canva_brand_template_id} onChange={(e) => set('canva_brand_template_id', e.target.value)}
-              placeholder="DAFxxxxxxx" className={input} />
-          </Field>
-          <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-            מפתח Canva Connect API מוגדר ב-.env (CANVA_ACCESS_TOKEN). HeyGen ו-RunwayML יתווספו ב-Phase 5–6.
-          </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-1">
+          <p><span className="font-medium text-gray-700 dark:text-gray-300">fal.ai Flux Pro</span> — יצירת תמונות לפוסטים. מוגדר ב-.env (<code className="font-mono">FAL_KEY</code>).</p>
+          <p>HeyGen ו-RunwayML יתווספו ב-Phase 5–6.</p>
         </div>
       </Section>
 
