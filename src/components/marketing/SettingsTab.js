@@ -32,10 +32,12 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         instagram_page_id: initSettings.instagram_page_id ?? '',
         facebook_page_id: initSettings.facebook_page_id ?? '',
         youtube_channel_id: initSettings.youtube_channel_id ?? '',
-        // Token fields — shown as blank if masked "***set***"
+        // Token/key fields — shown as blank if masked "***set***"
         instagram_access_token: '',
         facebook_access_token: '',
         tiktok_access_token: '',
+        heygen_api_key: '',
+        did_api_key: '',
       });
     }
   }, [initSettings]);
@@ -45,9 +47,9 @@ export default function SettingsTab({ settings: initSettings, reload }) {
   const save = async () => {
     setSaving(true); setErr(null); setSaved(false);
     try {
-      // Only send token fields if user typed something (empty = don't overwrite)
+      // Only send token/key fields if user typed something (empty = don't overwrite)
       const payload = { ...form };
-      for (const k of ['instagram_access_token','facebook_access_token','tiktok_access_token']) {
+      for (const k of ['instagram_access_token','facebook_access_token','tiktok_access_token','heygen_api_key','did_api_key']) {
         if (!payload[k]) delete payload[k];
       }
       await api.put('/marketing/settings', payload);
@@ -139,9 +141,18 @@ export default function SettingsTab({ settings: initSettings, reload }) {
 
       {/* ── Section 3: API keys ── */}
       <Section title="מפתחות API">
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-1">
-          <p><span className="font-medium text-gray-700 dark:text-gray-300">fal.ai Flux Pro</span> — יצירת תמונות לפוסטים. מוגדר ב-.env (<code className="font-mono">FAL_KEY</code>).</p>
-          <p>HeyGen ו-RunwayML יתווספו ב-Phase 5–6.</p>
+        <div className="space-y-4">
+          <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <span className="font-medium text-gray-700 dark:text-gray-300">fal.ai Flux Pro</span> — יצירת תמונות. מוגדר ב-.env (<code className="font-mono">FAL_KEY</code>).
+          </div>
+          <Field label={`HeyGen API Key${s.heygen_api_key === '***set***' ? ' (מוגדר — השאר ריק כדי לא לשנות)' : ''}`}>
+            <input type="password" value={form.heygen_api_key} onChange={(e) => set('heygen_api_key', e.target.value)}
+              placeholder={s.heygen_api_key === '***set***' ? '••••••••••••' : 'sk_...'} className={input} />
+          </Field>
+          <Field label={`D-ID API Key${s.did_api_key === '***set***' ? ' (מוגדר — השאר ריק כדי לא לשנות)' : ''}`}>
+            <input type="password" value={form.did_api_key} onChange={(e) => set('did_api_key', e.target.value)}
+              placeholder={s.did_api_key === '***set***' ? '••••••••••••' : 'Basic ...'} className={input} />
+          </Field>
         </div>
       </Section>
 

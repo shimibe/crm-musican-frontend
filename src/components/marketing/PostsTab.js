@@ -146,7 +146,7 @@ function ReviseModal({ postId, onClose, onDone }) {
 }
 
 // ── Create post modal ─────────────────────────────────────────────────────
-function CreatePostModal({ onClose, onDone, onCreated }) {
+function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
   const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '' });
   const [characters, setCharacters] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -167,14 +167,19 @@ function CreatePostModal({ onClose, onDone, onCreated }) {
     setSaving(true);
     setErr(null);
     try {
-      await api.post('/marketing/posts', {
+      const { data: saved } = await api.post('/marketing/posts', {
         ...form,
         scheduled_at: form.scheduled_at || undefined,
         image_url: form.image_url || undefined,
         character_id: form.character_id ? Number(form.character_id) : undefined,
         script_text: form.script_text || undefined,
       });
-      onCreated && onCreated(`📝 פוסט חדש: ${form.content_type === 'ugc_video' ? 'סרטון UGC' : form.content_type === 'chen_video' ? 'סרטון חן' : 'תמונה'}`);
+      const typeLabel = form.content_type === 'ugc_video' ? 'סרטון UGC' : form.content_type === 'chen_video' ? 'סרטון חן' : 'תמונה';
+      if (isVideo && form.script_text?.trim() && addVideoJob && saved?.id) {
+        addVideoJob(saved.id, `${typeLabel} #${saved.id}`, { script_text: form.script_text.trim() });
+      } else {
+        onCreated && onCreated(`📝 פוסט חדש: ${typeLabel}`);
+      }
       onDone();
     } catch (e) {
       setErr(errMsg(e));
@@ -585,7 +590,7 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
         {posts.map((p) => <PostCard key={p.id} post={p} onChanged={load} addVideoJob={addVideoJob} addImageJob={addImageJob} />)}
       </div>
 
-      {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} onCreated={onPostCreated} />}
+      {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} onCreated={onPostCreated} addVideoJob={addVideoJob} />}
     </div>
   );
 }
