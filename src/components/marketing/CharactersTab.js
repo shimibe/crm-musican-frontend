@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
-import { input, btnPrimary, btnGhost, btnDanger, errMsg } from './ui';
+import { input, btnPrimary, btnGhost, errMsg } from './ui';
 
 const EMPTY = {
   name: '', description: '', provider: 'd-id',
