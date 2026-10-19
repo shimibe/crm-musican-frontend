@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
-import { Play, Pause } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play } from 'lucide-react';
 import api from '../../utils/api';
-import { card, btnPrimary, btnGhost, Section, Empty, RUN_STATUS, fmtDate, fmtUsd, errMsg } from './ui';
+import { card, btnPrimary, btnGhost, Empty, RUN_STATUS, fmtDate, fmtUsd, errMsg } from './ui';
 
 const AUTONOMY_LABEL = { shadow: 'צל', approve: 'באישור', auto: 'אוטומטי' };
 
 function TaskRow({ task, onChanged }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ enabled: task.enabled, autonomy: task.autonomy, cron: task.cron || '' });
-  const [running, setRunning] = useState(false);
+  const [queued, setQueued] = useState(false);
   const [err, setErr] = useState(null);
+  const timersRef = useRef([]);
+
+  // Clean up timers on unmount
+  useEffect(() => () => timersRef.current.forEach(clearTimeout), []);
 
   const save = async () => {
     setErr(null);
@@ -23,14 +27,16 @@ function TaskRow({ task, onChanged }) {
   };
 
   const runNow = async (dry) => {
-    setRunning(true); setErr(null);
+    if (queued) return;
+    setQueued(true); setErr(null);
     try {
       await api.post(`/marketing/tasks/${task.key}/run`, { dry_run: dry });
-      onChanged();
+      // Reload at 5s (catches fast tasks) and 30s (catches LLM tasks)
+      timersRef.current.push(setTimeout(() => onChanged(), 5000));
+      timersRef.current.push(setTimeout(() => { onChanged(); setQueued(false); }, 30000));
     } catch (e) {
       setErr(errMsg(e));
-    } finally {
-      setRunning(false);
+      setQueued(false);
     }
   };
 
@@ -51,7 +57,10 @@ function TaskRow({ task, onChanged }) {
             {task.cron && <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">{task.cron}</span>}
           </div>
           {task.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{task.description}</p>}
-          {lr && (
+          {queued && (
+            <p className="text-xs mt-1 text-blue-500 dark:text-blue-400">⏳ נשלח לתור — מתרענן עוד רגע...</p>
+          )}
+          {!queued && lr && (
             <p className="text-xs mt-1">
               <span className={rsColor}>{rsLabel}</span>
               <span className="text-gray-400 dark:text-gray-500 ml-2">{fmtDate(lr.started_at)}</span>
@@ -62,8 +71,8 @@ function TaskRow({ task, onChanged }) {
           {err && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{err}</p>}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => runNow(true)} disabled={running} className={btnGhost} title="dry run">🔍</button>
-          <button onClick={() => runNow(false)} disabled={running} className={btnGhost} title="הרץ עכשיו">
+          <button onClick={() => runNow(true)} disabled={queued} className={btnGhost} title="dry run">🔍</button>
+          <button onClick={() => runNow(false)} disabled={queued} className={btnGhost} title="הרץ עכשיו">
             <Play className="w-3.5 h-3.5" />
           </button>
           <button onClick={() => setEditing((v) => !v)} className={btnGhost}>⚙️</button>
