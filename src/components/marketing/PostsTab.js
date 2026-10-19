@@ -343,8 +343,10 @@ function GenerateImageModal({ post, onClose, onDone }) {
   );
 }
 
+const VIDEO_TYPES = ['ugc_video', 'chen_video'];
+
 // ── Post card ─────────────────────────────────────────────────────────────
-function PostCard({ post, onChanged }) {
+function PostCard({ post, onChanged, addVideoJob }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text_content || '');
@@ -392,8 +394,12 @@ function PostCard({ post, onChanged }) {
           </div>
         </div>
 
+        {/* Video */}
+        {post.video_url && (
+          <video src={post.video_url} controls className="w-full max-h-56 rounded-lg mb-3 bg-black" />
+        )}
         {/* Image */}
-        {post.image_url && (
+        {!post.video_url && post.image_url && (
           <img src={post.image_url} alt="" className="w-full max-h-48 object-cover rounded-lg mb-3" />
         )}
 
@@ -455,9 +461,19 @@ function PostCard({ post, onChanged }) {
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
         )}
-        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && (
+        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && !VIDEO_TYPES.includes(post.content_type) && (
           <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost} title={post.image_url ? 'החלף תמונה' : 'צור תמונה'}>
             {post.image_url ? '🔄' : '🖼️'}
+          </button>
+        )}
+        {VIDEO_TYPES.includes(post.content_type) && post.script_text && !post.video_url && addVideoJob && (
+          <button
+            onClick={() => addVideoJob(post.id, `סרטון — ${post.content_type === 'chen_video' ? 'חן' : 'UGC'} #${post.id}`)}
+            disabled={busy}
+            className={btnPrimary}
+            title="יצירת סרטון עם הדמות"
+          >
+            🎬 צור סרטון
           </button>
         )}
       </div>
@@ -470,7 +486,7 @@ function PostCard({ post, onChanged }) {
 }
 
 // ── Main tab ───────────────────────────────────────────────────────────────
-export default function PostsTab() {
+export default function PostsTab({ addVideoJob }) {
   const [posts, setPosts] = useState([]);
   const [statusFilter, setStatusFilter] = useState('pending_review');
   const [loading, setLoading] = useState(false);
@@ -516,7 +532,7 @@ export default function PostsTab() {
       {!loading && posts.length === 0 && <Empty>אין פוסטים בסטטוס זה</Empty>}
 
       <div className="grid gap-4 md:grid-cols-2">
-        {posts.map((p) => <PostCard key={p.id} post={p} onChanged={load} />)}
+        {posts.map((p) => <PostCard key={p.id} post={p} onChanged={load} addVideoJob={addVideoJob} />)}
       </div>
 
       {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} />}

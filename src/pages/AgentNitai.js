@@ -10,6 +10,7 @@ import SettingsTab    from '../components/marketing/SettingsTab';
 import LogTab         from '../components/marketing/LogTab';
 import PlaceholderTab  from '../components/marketing/PlaceholderTab';
 import CharactersTab   from '../components/marketing/CharactersTab';
+import VideoQueue      from '../components/marketing/VideoQueue';
 
 const TABS = [
   ['overview',   'סקירה'],
@@ -34,6 +35,7 @@ const AgentNitai = () => {
   const [tasks, setTasks] = useState([]);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
+  const [videoJobs, setVideoJobs] = useState([]);
 
   const reload = useCallback(async () => {
     setTick((t) => t + 1);
@@ -45,6 +47,27 @@ const AgentNitai = () => {
     } catch (e) {
       setError(e?.response?.data?.error || e.message);
     }
+  }, []);
+
+  const addVideoJob = useCallback((postId, label) => {
+    const jobId = Date.now() + Math.random();
+    setVideoJobs((prev) => [...prev, { jobId, postId, label, status: 'generating' }]);
+    api.post(`/marketing/posts/${postId}/generate-video`, {}, { timeout: 720000 })
+      .then(({ data }) => {
+        setVideoJobs((prev) => prev.map((j) =>
+          j.jobId === jobId ? { ...j, status: 'done', video_url: data.video_url } : j
+        ));
+        reload();
+      })
+      .catch((err) => {
+        setVideoJobs((prev) => prev.map((j) =>
+          j.jobId === jobId ? { ...j, status: 'error', error: err.response?.data?.error || err.message } : j
+        ));
+      });
+  }, [reload]);
+
+  const dismissVideoJob = useCallback((jobId) => {
+    setVideoJobs((prev) => prev.filter((j) => j.jobId !== jobId));
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
@@ -114,7 +137,7 @@ const AgentNitai = () => {
 
       {/* Tab content */}
       {tab === 'overview'  && <OverviewTab  overview={overview} tasks={tasks} reload={reload} goTo={setTab} />}
-      {tab === 'posts'     && <PostsTab />}
+      {tab === 'posts'     && <PostsTab addVideoJob={addVideoJob} />}
       {tab === 'approvals' && <ApprovalsTab onChanged={reload} tick={tick} />}
       {tab === 'tasks'      && <TasksTab tasks={tasks} reload={reload} />}
       {tab === 'characters' && <CharactersTab reload={reload} />}
@@ -138,6 +161,8 @@ const AgentNitai = () => {
         <PlaceholderTab title="מעקב עלויות" phase="Phase 2" description="עלות חודשית (LLM + Canva + video + ads), טבלת עלות לפי פוסט, אומדנים לפני יצירה ולפני קמפיין." />
       )}
     </div>
+
+    <VideoQueue jobs={videoJobs} onDismiss={dismissVideoJob} />
   );
 };
 
