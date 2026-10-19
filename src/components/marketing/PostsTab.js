@@ -147,9 +147,18 @@ function ReviseModal({ postId, onClose, onDone }) {
 
 // ── Create post modal ─────────────────────────────────────────────────────
 function CreatePostModal({ onClose, onDone }) {
-  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post' });
+  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '' });
+  const [characters, setCharacters] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
+
+  const isVideo = form.content_type === 'ugc_video' || form.content_type === 'chen_video';
+
+  useEffect(() => {
+    if (isVideo && characters.length === 0) {
+      api.get('/marketing/characters').then(setCharacters).catch(() => {});
+    }
+  }, [isVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const togglePlatform = (pl) =>
     setForm((f) => ({ ...f, platforms: f.platforms.includes(pl) ? f.platforms.filter((p) => p !== pl) : [...f.platforms, pl] }));
@@ -162,6 +171,8 @@ function CreatePostModal({ onClose, onDone }) {
         ...form,
         scheduled_at: form.scheduled_at || undefined,
         image_url: form.image_url || undefined,
+        character_id: form.character_id ? Number(form.character_id) : undefined,
+        script_text: form.script_text || undefined,
       });
       onDone();
     } catch (e) {
@@ -172,22 +183,51 @@ function CreatePostModal({ onClose, onDone }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900 dark:text-white">יצירת פוסט ידני</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="p-5 space-y-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">סוג תוכן</label>
+            <select value={form.content_type} onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))} className={input}>
+              <option value="image_post">תמונה</option>
+              <option value="ugc_video">סרטון UGC (דמות AI)</option>
+              <option value="chen_video">סרטון חן</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">טקסט הפוסט *</label>
             <textarea rows={4} value={form.text_content} onChange={(e) => setForm((f) => ({ ...f, text_content: e.target.value }))}
               placeholder="כתוב את הטקסט שיפורסם..." className={input} />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">כתובת תמונה (URL)</label>
-            <input type="url" value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-              placeholder="https://..." className={input} />
-          </div>
+          {isVideo && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">דמות לסרטון</label>
+                <select value={form.character_id} onChange={(e) => setForm((f) => ({ ...f, character_id: e.target.value }))} className={input}>
+                  <option value="">ברירת מחדל</option>
+                  {characters.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.provider})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">טקסט לאמירה (script)</label>
+                <textarea rows={3} value={form.script_text} onChange={(e) => setForm((f) => ({ ...f, script_text: e.target.value }))}
+                  placeholder="הטקסט שהדמות תאמר בסרטון... (עד 500 תווים)" maxLength={500} className={input} />
+                <p className="text-xs text-gray-500 mt-1">{form.script_text.length}/500 תווים</p>
+              </div>
+            </>
+          )}
+          {!isVideo && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">כתובת תמונה (URL)</label>
+              <input type="url" value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
+                placeholder="https://..." className={input} />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">פלטפורמות לפרסום *</label>
             <div className="flex flex-wrap gap-2">

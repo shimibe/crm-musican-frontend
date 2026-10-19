@@ -6,9 +6,10 @@ import OverviewTab   from '../components/marketing/OverviewTab';
 import PostsTab      from '../components/marketing/PostsTab';
 import ApprovalsTab  from '../components/marketing/ApprovalsTab';
 import TasksTab      from '../components/marketing/TasksTab';
-import SettingsTab   from '../components/marketing/SettingsTab';
-import LogTab        from '../components/marketing/LogTab';
-import PlaceholderTab from '../components/marketing/PlaceholderTab';
+import SettingsTab    from '../components/marketing/SettingsTab';
+import LogTab         from '../components/marketing/LogTab';
+import PlaceholderTab  from '../components/marketing/PlaceholderTab';
+import CharactersTab   from '../components/marketing/CharactersTab';
 
 const TABS = [
   ['overview',   'סקירה'],
@@ -20,6 +21,7 @@ const TABS = [
   ['ads',        'מודעות'],
   ['costs',      'עלויות'],
   ['tasks',      'משימות'],
+  ['characters', 'דמויות'],
   ['settings',   'הגדרות'],
   ['log',        'לוג'],
 ];
@@ -114,8 +116,9 @@ const AgentNitai = () => {
       {tab === 'overview'  && <OverviewTab  overview={overview} tasks={tasks} reload={reload} goTo={setTab} />}
       {tab === 'posts'     && <PostsTab />}
       {tab === 'approvals' && <ApprovalsTab onChanged={reload} tick={tick} />}
-      {tab === 'tasks'     && <TasksTab tasks={tasks} reload={reload} />}
-      {tab === 'settings'  && <SettingsTab settings={s} reload={reload} />}
+      {tab === 'tasks'      && <TasksTab tasks={tasks} reload={reload} />}
+      {tab === 'characters' && <CharactersTab reload={reload} />}
+      {tab === 'settings'   && <SettingsTab settings={s} reload={reload} />}
       {tab === 'log'       && <LogTab tick={tick} />}
 
       {/* Placeholder tabs — future phases */}
