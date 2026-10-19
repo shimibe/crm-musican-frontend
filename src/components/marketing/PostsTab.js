@@ -146,7 +146,7 @@ function ReviseModal({ postId, onClose, onDone }) {
 }
 
 // ── Create post modal ─────────────────────────────────────────────────────
-function CreatePostModal({ onClose, onDone }) {
+function CreatePostModal({ onClose, onDone, onCreated }) {
   const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '' });
   const [characters, setCharacters] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -174,6 +174,7 @@ function CreatePostModal({ onClose, onDone }) {
         character_id: form.character_id ? Number(form.character_id) : undefined,
         script_text: form.script_text || undefined,
       });
+      onCreated && onCreated(`📝 פוסט חדש: ${form.content_type === 'ugc_video' ? 'סרטון UGC' : form.content_type === 'chen_video' ? 'סרטון חן' : 'תמונה'}`);
       onDone();
     } catch (e) {
       setErr(errMsg(e));
@@ -261,81 +262,138 @@ function CreatePostModal({ onClose, onDone }) {
   );
 }
 
-// ── Generate image modal ────────────────────────────────────────────────
-function GenerateImageModal({ post, onClose, onDone }) {
+// ── Generate media modal (image + video) ─────────────────────────────────
+function GenerateMediaModal({ post, onClose, onDone, addVideoJob, addImageJob }) {
+  const isVideoPost = VIDEO_TYPES.includes(post.content_type);
+  const [mediaType, setMediaType] = useState(isVideoPost ? 'video' : 'image');
+
+  // Image state
   const platforms = post.platforms || [];
   const defaultSize = platforms.includes('instagram') ? 'square'
     : platforms.includes('tiktok') ? 'portrait'
     : platforms.includes('youtube') ? 'wide'
     : 'landscape';
-
   const [mode, setMode] = useState('auto');
   const [prompt, setPrompt] = useState('');
   const [size, setSize] = useState(defaultSize);
-  const [busy, setBusy] = useState(false);
+
+  // Video state
+  const [characters, setCharacters] = useState([]);
+  const [charId, setCharId] = useState(post.character_id ? String(post.character_id) : '');
+  const [script, setScript] = useState(post.script_text || '');
+
   const [err, setErr] = useState(null);
 
-  const submit = async () => {
-    if (mode === 'manual' && !prompt.trim()) return;
-    setBusy(true); setErr(null);
-    try {
-      await api.post(`/marketing/posts/${post.id}/generate-image`,
-        mode === 'auto' ? { auto: true, size } : { prompt, size }
-      );
-      onDone();
-    } catch (e) {
-      setErr(errMsg(e));
-      setBusy(false);
+  useEffect(() => {
+    if (mediaType === 'video' && characters.length === 0) {
+      api.get('/marketing/characters').then(({ data }) => setCharacters(data)).catch(() => {});
     }
+  }, [mediaType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submitImage = () => {
+    if (mode === 'manual' && !prompt.trim()) return;
+    const body = mode === 'auto' ? { auto: true, size } : { prompt, size };
+    addImageJob && addImageJob(post.id, `תמונה — פוסט #${post.id}`, body);
+    onClose();
+  };
+
+  const submitVideo = () => {
+    if (!script.trim()) { setErr('יש להזין טקסט לאמירה'); return; }
+    if (addVideoJob) {
+      addVideoJob(post.id, `סרטון — ${post.content_type === 'chen_video' ? 'חן' : 'UGC'} #${post.id}`);
+    }
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 dark:text-white">
-            {post.image_url ? '🔄 החלפת תמונה' : '🖼️ יצירת תמונה'}
-          </h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white">יצירת מדיה לפוסט</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
         </div>
         <div className="p-5 space-y-3">
-          {/* Mode toggle */}
+          {/* Type toggle — show video option only for video post types */}
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden text-sm">
-            {[['auto', '✨ אוטומטי'], ['manual', '✏️ ידני']].map(([val, label]) => (
-              <button key={val} onClick={() => setMode(val)}
-                className={`flex-1 py-1.5 transition-colors ${mode === val
+            <button onClick={() => setMediaType('image')}
+              className={`flex-1 py-1.5 transition-colors ${mediaType === 'image'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
+              🖼️ תמונה
+            </button>
+            {isVideoPost && (
+              <button onClick={() => setMediaType('video')}
+                className={`flex-1 py-1.5 transition-colors ${mediaType === 'video'
                   ? 'bg-primary-600 text-white'
                   : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
-                {label}
+                🎬 סרטון
               </button>
-            ))}
+            )}
           </div>
 
-          {mode === 'auto'
-            ? <p className="text-sm text-gray-500 dark:text-gray-400">ניתאי יבנה את תיאור התמונה בעצמו לפי תוכן הפוסט.</p>
-            : <textarea
-                rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g.: A musician performing on stage in Jerusalem at night, concert lights, vibrant colors"
-                className={input}
-              />
-          }
+          {/* ── Image section ── */}
+          {mediaType === 'image' && <>
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden text-sm">
+              {[['auto', '✨ אוטומטי'], ['manual', '✏️ ידני']].map(([val, label]) => (
+                <button key={val} onClick={() => setMode(val)}
+                  className={`flex-1 py-1.5 transition-colors ${mode === val
+                    ? 'bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white font-medium'
+                    : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {mode === 'auto'
+              ? <p className="text-sm text-gray-500 dark:text-gray-400">ניתאי יבנה את תיאור התמונה בעצמו לפי תוכן הפוסט.</p>
+              : <textarea rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="e.g.: A musician performing on stage in Jerusalem at night, concert lights, vibrant colors"
+                  className={input} />
+            }
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">גודל</label>
+              <select value={size} onChange={(e) => setSize(e.target.value)}
+                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <option value="square">Square (Instagram feed)</option>
+                <option value="landscape">Landscape (Facebook)</option>
+                <option value="portrait">Portrait (Stories / TikTok)</option>
+                <option value="wide">Wide (YouTube thumbnail)</option>
+              </select>
+            </div>
+          </>}
 
-          <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">גודל</label>
-            <select value={size} onChange={(e) => setSize(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-              <option value="square">Square (Instagram feed)</option>
-              <option value="landscape">Landscape (Facebook)</option>
-              <option value="portrait">Portrait (Stories / TikTok)</option>
-              <option value="wide">Wide (YouTube thumbnail)</option>
-            </select>
-          </div>
+          {/* ── Video section ── */}
+          {mediaType === 'video' && <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">דמות</label>
+              <select value={charId} onChange={(e) => setCharId(e.target.value)} className={input}>
+                <option value="">ברירת מחדל</option>
+                {characters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.provider})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">טקסט לאמירה (script) *</label>
+              <textarea rows={4} value={script} onChange={(e) => setScript(e.target.value)}
+                placeholder="הטקסט שהדמות תאמר בסרטון... (עד 500 תווים)"
+                maxLength={500} className={input} />
+              <p className="text-xs text-gray-500 mt-1">{script.length}/500 · היצירה תתחיל ברקע (~2-3 דק׳)</p>
+            </div>
+          </>}
+
           {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className={btnGhost}>ביטול</button>
-            <button onClick={submit} disabled={busy || (mode === 'manual' && !prompt.trim())} className={btnPrimary}>
-              {busy ? '⏳ מייצר...' : '🖼️ צור תמונה'}
-            </button>
+            {mediaType === 'image' && (
+              <button onClick={submitImage} disabled={mode === 'manual' && !prompt.trim()} className={btnPrimary}>
+                {post.image_url ? '🔄 החלף תמונה' : '🖼️ צור תמונה'}
+              </button>
+            )}
+            {mediaType === 'video' && (
+              <button onClick={submitVideo} disabled={!script.trim()} className={btnPrimary}>
+                🎬 צור סרטון
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -346,7 +404,7 @@ function GenerateImageModal({ post, onClose, onDone }) {
 const VIDEO_TYPES = ['ugc_video', 'chen_video'];
 
 // ── Post card ─────────────────────────────────────────────────────────────
-function PostCard({ post, onChanged, addVideoJob }) {
+function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text_content || '');
@@ -461,32 +519,23 @@ function PostCard({ post, onChanged, addVideoJob }) {
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
         )}
-        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && !VIDEO_TYPES.includes(post.content_type) && (
-          <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost} title={post.image_url ? 'החלף תמונה' : 'צור תמונה'}>
-            {post.image_url ? '🔄' : '🖼️'}
-          </button>
-        )}
-        {VIDEO_TYPES.includes(post.content_type) && post.script_text && !post.video_url && addVideoJob && (
-          <button
-            onClick={() => addVideoJob(post.id, `סרטון — ${post.content_type === 'chen_video' ? 'חן' : 'UGC'} #${post.id}`)}
-            disabled={busy}
-            className={btnPrimary}
-            title="יצירת סרטון עם הדמות"
-          >
-            🎬 צור סרטון
+        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && (
+          <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost}
+            title={VIDEO_TYPES.includes(post.content_type) ? 'יצירת מדיה' : (post.image_url ? 'החלף תמונה' : 'צור תמונה')}>
+            {VIDEO_TYPES.includes(post.content_type) ? '🎬' : (post.image_url ? '🔄' : '🖼️')}
           </button>
         )}
       </div>
 
       {preview && <PreviewModal postId={post.id} onClose={() => setPreview(false)} />}
       {revise && <ReviseModal postId={post.id} onClose={() => setRevise(false)} onDone={() => { setRevise(false); onChanged(); }} />}
-      {generateImage && <GenerateImageModal post={post} onClose={() => setGenerateImage(false)} onDone={() => { setGenerateImage(false); onChanged(); }} />}
+      {generateImage && <GenerateMediaModal post={post} onClose={() => setGenerateImage(false)} onDone={() => { setGenerateImage(false); onChanged(); }} addVideoJob={addVideoJob} addImageJob={addImageJob} />}
     </div>
   );
 }
 
 // ── Main tab ───────────────────────────────────────────────────────────────
-export default function PostsTab({ addVideoJob }) {
+export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick }) {
   const [posts, setPosts] = useState([]);
   const [statusFilter, setStatusFilter] = useState('pending_review');
   const [loading, setLoading] = useState(false);
@@ -506,7 +555,7 @@ export default function PostsTab({ addVideoJob }) {
     }
   }, [statusFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, tick]);
 
   return (
     <div className="space-y-4">
@@ -532,10 +581,10 @@ export default function PostsTab({ addVideoJob }) {
       {!loading && posts.length === 0 && <Empty>אין פוסטים בסטטוס זה</Empty>}
 
       <div className="grid gap-4 md:grid-cols-2">
-        {posts.map((p) => <PostCard key={p.id} post={p} onChanged={load} addVideoJob={addVideoJob} />)}
+        {posts.map((p) => <PostCard key={p.id} post={p} onChanged={load} addVideoJob={addVideoJob} addImageJob={addImageJob} />)}
       </div>
 
-      {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} />}
+      {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} onCreated={onPostCreated} />}
     </div>
   );
 }

@@ -49,22 +49,31 @@ const AgentNitai = () => {
     }
   }, []);
 
-  const addVideoJob = useCallback((postId, label) => {
+  const addJob = useCallback((type, label, endpoint = null, body = {}, timeout = 90000) => {
     const jobId = Date.now() + Math.random();
-    setVideoJobs((prev) => [...prev, { jobId, postId, label, status: 'generating' }]);
-    api.post(`/marketing/posts/${postId}/generate-video`, {}, { timeout: 720000 })
-      .then(({ data }) => {
-        setVideoJobs((prev) => prev.map((j) =>
-          j.jobId === jobId ? { ...j, status: 'done', video_url: data.video_url } : j
-        ));
-        reload();
+    if (!endpoint) {
+      // Instant notification (post created etc.)
+      setVideoJobs((prev) => [...prev, { jobId, type, label, status: 'done' }]);
+      return;
+    }
+    setVideoJobs((prev) => [...prev, { jobId, type, label, status: 'generating' }]);
+    api.post(endpoint, body, { timeout })
+      .then(() => {
+        setVideoJobs((prev) => prev.map((j) => j.jobId === jobId ? { ...j, status: 'done' } : j));
+        setTick((t) => t + 1); // triggers PostsTab reload
       })
       .catch((err) => {
         setVideoJobs((prev) => prev.map((j) =>
           j.jobId === jobId ? { ...j, status: 'error', error: err.response?.data?.error || err.message } : j
         ));
       });
-  }, [reload]);
+  }, []);
+
+  const addVideoJob    = useCallback((postId, label) =>
+    addJob('video', label, `/marketing/posts/${postId}/generate-video`, {}, 720000), [addJob]);
+  const addImageJob    = useCallback((postId, label, body = {}) =>
+    addJob('image', label, `/marketing/posts/${postId}/generate-image`, body, 90000), [addJob]);
+  const addPostNotify  = useCallback((label) => addJob('post', label), [addJob]);
 
   const dismissVideoJob = useCallback((jobId) => {
     setVideoJobs((prev) => prev.filter((j) => j.jobId !== jobId));
@@ -138,7 +147,7 @@ const AgentNitai = () => {
 
       {/* Tab content */}
       {tab === 'overview'  && <OverviewTab  overview={overview} tasks={tasks} reload={reload} goTo={setTab} />}
-      {tab === 'posts'     && <PostsTab addVideoJob={addVideoJob} />}
+      {tab === 'posts'     && <PostsTab addVideoJob={addVideoJob} addImageJob={addImageJob} onPostCreated={addPostNotify} tick={tick} />}
       {tab === 'approvals' && <ApprovalsTab onChanged={reload} tick={tick} />}
       {tab === 'tasks'      && <TasksTab tasks={tasks} reload={reload} />}
       {tab === 'characters' && <CharactersTab reload={reload} />}

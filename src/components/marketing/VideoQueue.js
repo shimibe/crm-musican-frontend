@@ -1,5 +1,9 @@
 import React from 'react';
 
+const TYPE_ICON   = { video: '🎬', image: '🖼️', post: '📝' };
+const TYPE_LABEL  = { video: 'מייצר סרטון... (~2-3 דק׳)', image: 'מייצר תמונה... (~30 שניות)', post: '' };
+const DONE_LABEL  = { video: 'הסרטון מוכן — ממתין לאישור ✔', image: 'התמונה מוכנה — ממתין לאישור ✔', post: 'נוצר בהצלחה ✔' };
+
 function Spinner() {
   return (
     <svg className="animate-spin w-4 h-4 text-primary-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -24,23 +28,23 @@ export default function VideoQueue({ jobs, onDismiss }) {
             : job.status === 'error' ? 'bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-700'
             :                         'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}
         >
-          {job.status === 'generating' && <Spinner />}
-          {job.status === 'done'       && <span className="text-green-600 dark:text-green-400 flex-shrink-0 text-base">✓</span>}
-          {job.status === 'error'      && <span className="text-red-600 dark:text-red-400 flex-shrink-0 text-base">✗</span>}
+          <span className="text-lg flex-shrink-0">{TYPE_ICON[job.type] || '⚙️'}</span>
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{job.label}</p>
-            <p className="text-xs mt-0.5 truncate
-              text-gray-500 dark:text-gray-400
-              [.bg-green-50_&]:text-green-700 dark:[.bg-green-900\/40_&]:text-green-300
-              [.bg-red-50_&]:text-red-700   dark:[.bg-red-900\/40_&]:text-red-300">
-              {job.status === 'generating' && 'מייצר סרטון... (~2-3 דק׳)'}
-              {job.status === 'done'       && 'הסרטון מוכן — ממתין לאישור ✔'}
-              {job.status === 'error'      && (job.error?.slice(0, 80) || 'שגיאה ביצירת הסרטון')}
+            <p className="text-xs mt-0.5 truncate text-gray-500 dark:text-gray-400">
+              {job.status === 'generating' && (TYPE_LABEL[job.type] || 'מעבד...')}
+              {job.status === 'done'       && (DONE_LABEL[job.type] || 'הושלם ✔')}
+              {job.status === 'error'      && (job.error?.slice(0, 80) || 'שגיאה')}
             </p>
           </div>
 
-          <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">✕</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {job.status === 'generating' && <Spinner />}
+            {job.status === 'done'       && <span className="text-green-600 dark:text-green-400 text-sm">✓</span>}
+            {job.status === 'error'      && <span className="text-red-600 dark:text-red-400 text-sm">✗</span>}
+            <span className="text-xs text-gray-400 dark:text-gray-500">✕</span>
+          </div>
         </div>
       ))}
     </div>
