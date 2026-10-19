@@ -224,6 +224,72 @@ function CreatePostModal({ onClose, onDone }) {
   );
 }
 
+// ── Generate image modal ────────────────────────────────────────────────
+function GenerateImageModal({ post, onClose, onDone }) {
+  const platforms = post.platforms || [];
+  const defaultSize = platforms.includes('instagram') ? 'square'
+    : platforms.includes('tiktok') ? 'portrait'
+    : platforms.includes('youtube') ? 'wide'
+    : 'landscape';
+
+  const [prompt, setPrompt] = useState('');
+  const [size, setSize] = useState(defaultSize);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [finalPrompt, setFinalPrompt] = useState(null);
+
+  const submit = async () => {
+    if (!prompt.trim()) return;
+    setBusy(true); setErr(null); setFinalPrompt(null);
+    try {
+      const r = await api.post(`/marketing/posts/${post.id}/generate-image`, { prompt, size });
+      if (r.data.final_prompt && r.data.final_prompt !== prompt.trim()) setFinalPrompt(r.data.final_prompt);
+      onDone();
+    } catch (e) {
+      setErr(errMsg(e));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            {post.image_url ? '🔄 החלפת תמונה' : '🖼️ יצירת תמונה'}
+          </h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-sm text-gray-600 dark:text-gray-400">תאר את התמונה באנגלית — fal.ai Flux Pro יייצר אותה.</p>
+          <textarea
+            rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g.: A musician performing on stage in Jerusalem at night, concert lights, vibrant colors, professional photography"
+            className={input}
+          />
+          <div>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">גודל</label>
+            <select value={size} onChange={(e) => setSize(e.target.value)}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+              <option value="square">Square (Instagram feed)</option>
+              <option value="landscape">Landscape (Facebook)</option>
+              <option value="portrait">Portrait (Stories / TikTok)</option>
+              <option value="wide">Wide (YouTube thumbnail)</option>
+            </select>
+          </div>
+          {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className={btnGhost}>ביטול</button>
+            <button onClick={submit} disabled={busy || !prompt.trim()} className={btnPrimary}>
+              {busy ? '⏳ מייצר...' : '🖼️ צור תמונה'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Post card ─────────────────────────────────────────────────────────────
 function PostCard({ post, onChanged }) {
   const [expanded, setExpanded] = useState(false);
@@ -231,6 +297,7 @@ function PostCard({ post, onChanged }) {
   const [editText, setEditText] = useState(post.text_content || '');
   const [preview, setPreview] = useState(false);
   const [revise, setRevise] = useState(false);
+  const [generateImage, setGenerateImage] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -335,10 +402,16 @@ function PostCard({ post, onChanged }) {
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
         )}
+        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && (
+          <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost} title={post.image_url ? 'החלף תמונה' : 'צור תמונה'}>
+            {post.image_url ? '🔄' : '🖼️'}
+          </button>
+        )}
       </div>
 
       {preview && <PreviewModal postId={post.id} onClose={() => setPreview(false)} />}
       {revise && <ReviseModal postId={post.id} onClose={() => setRevise(false)} onDone={() => { setRevise(false); onChanged(); }} />}
+      {generateImage && <GenerateImageModal post={post} onClose={() => setGenerateImage(false)} onDone={() => { setGenerateImage(false); onChanged(); }} />}
     </div>
   );
 }
