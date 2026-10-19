@@ -6,7 +6,7 @@ const EMPTY = {
   name: '', description: '', provider: 'd-id',
   did_source_url: '', did_presenter_id: '',
   did_background_url: '', did_background_color: '',
-  heygen_avatar_id: '',
+  heygen_avatar_id: '', heygen_voice_id: '',
   elevenlabs_voice_id: '', elevenlabs_model: 'eleven_multilingual_v2',
   provider_voice_id: 'he-IL-AvriNeural',
   thumbnail_url: '', is_active: true,
@@ -106,10 +106,18 @@ function CharacterModal({ character, onClose, onSaved }) {
           )}
 
           {form.provider === 'heygen' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HeyGen Avatar ID</label>
-              <input className={input} value={form.heygen_avatar_id || ''} onChange={(e) => set('heygen_avatar_id', e.target.value)} dir="ltr" />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HeyGen Avatar ID</label>
+                <input className={input} value={form.heygen_avatar_id || ''} onChange={(e) => set('heygen_avatar_id', e.target.value)} placeholder="52630790137846feac999f937483b68a" dir="ltr" />
+                <p className="text-xs text-gray-500 mt-1">HeyGen → Avatars → לחץ על האווטאר → העתק את ה-ID</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HeyGen Voice ID</label>
+                <input className={input} value={form.heygen_voice_id || ''} onChange={(e) => set('heygen_voice_id', e.target.value)} placeholder="2ea7a177de574c55a26ec893a2532d96" dir="ltr" />
+                <p className="text-xs text-gray-500 mt-1">HeyGen → Voice Cloning → לחץ על הקול שלך → העתק את ה-ID</p>
+              </div>
+            </>
           )}
 
           <div>
