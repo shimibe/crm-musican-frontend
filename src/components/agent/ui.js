@@ -20,6 +20,10 @@ export const DECISION_LABEL = {
   ready: 'מוכן לשליחה', needs_fix: 'דורש תיקון', escalate: 'להחלטת מנהל', reject: 'לדחות',
   ok: 'בסדר', task_created: 'משימה נוצרה', artist_notified: 'הודעה נשלחה', escalated: 'נשלח למנהל',
 };
+export const TASK_DECISIONS = {
+  release_review: ['ready', 'needs_fix', 'escalate', 'reject', 'ok', 'artist_notified', 'task_created', 'escalated'],
+  crm_followup:   ['task_created', 'ok', 'escalated'],
+};
 export const DECISION_COLOR = {
   ready: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   needs_fix: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',

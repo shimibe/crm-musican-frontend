@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Check, X, BookmarkPlus, ChevronDown, ChevronLeft, Trash2, RotateCcw } from 'lucide-react';
 import api from '../../utils/api';
-import { Section, Empty, DecisionBadge, DECISION_LABEL, input, btnPrimary, btnGhost, fmtDate, errMsg, Badge } from './ui';
+import { Section, Empty, DecisionBadge, DECISION_LABEL, TASK_DECISIONS, input, btnPrimary, btnGhost, fmtDate, errMsg, Badge } from './ui';
 
-const ReviewBox = ({ d, onDone, initialVerdict }) => {
+const ReviewBox = ({ d, onDone, initialVerdict, taskKey }) => {
   const [verdict, setVerdict] = useState(initialVerdict ?? d.decision);
   const [note, setNote] = useState('');
   const [saveExample, setSaveExample] = useState(false);
@@ -56,7 +56,7 @@ const ReviewBox = ({ d, onDone, initialVerdict }) => {
           <Check className="w-4 h-4" /> יואב צדק
         </button>
         <span className="text-sm text-gray-500 dark:text-gray-400">או, ההחלטה הנכונה:</span>
-        {Object.keys(DECISION_LABEL).map((k) => (
+        {(TASK_DECISIONS[taskKey] || Object.keys(DECISION_LABEL)).map((k) => (
           <button
             key={k}
             onClick={() => setVerdict(k)}
@@ -253,9 +253,9 @@ const DecisionCard = ({ d, onDone }) => {
               <button onClick={() => setEditing(true)} className="text-xs text-primary-600 dark:text-primary-400 hover:underline mr-1">ערוך</button>
             </div>
           ) : editing ? (
-            <ReviewBox d={d} initialVerdict={d.human_decision} onDone={() => { setEditing(false); onDone?.(); }} />
+            <ReviewBox d={d} initialVerdict={d.human_decision} taskKey={d.task_key} onDone={() => { setEditing(false); onDone?.(); }} />
           ) : (
-            needsReview && <ReviewBox d={d} onDone={onDone} />
+            needsReview && <ReviewBox d={d} taskKey={d.task_key} onDone={onDone} />
           )}
         </div>
       )}
