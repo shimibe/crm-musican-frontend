@@ -300,7 +300,8 @@ function GenerateMediaModal({ post, onClose, onDone, addVideoJob, addImageJob })
   const submitVideo = () => {
     if (!script.trim()) { setErr('יש להזין טקסט לאמירה'); return; }
     if (addVideoJob) {
-      addVideoJob(post.id, `סרטון — ${post.content_type === 'chen_video' ? 'חן' : 'UGC'} #${post.id}`);
+      const label = `סרטון — ${post.content_type === 'chen_video' ? 'חן' : 'UGC'} #${post.id}`;
+      addVideoJob(post.id, label, { script_text: script.trim() });
     }
     onClose();
   };

@@ -69,8 +69,8 @@ const AgentNitai = () => {
       });
   }, []);
 
-  const addVideoJob    = useCallback((postId, label) =>
-    addJob('video', label, `/marketing/posts/${postId}/generate-video`, {}, 720000), [addJob]);
+  const addVideoJob    = useCallback((postId, label, body = {}) =>
+    addJob('video', label, `/marketing/posts/${postId}/generate-video`, body, 720000), [addJob]);
   const addImageJob    = useCallback((postId, label, body = {}) =>
     addJob('image', label, `/marketing/posts/${postId}/generate-image`, body, 90000), [addJob]);
   const addPostNotify  = useCallback((label) => addJob('post', label), [addJob]);
