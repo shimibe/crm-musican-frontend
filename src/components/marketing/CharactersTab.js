@@ -120,20 +120,23 @@ function CharacterModal({ character, onClose, onSaved }) {
             </>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ElevenLabs Voice ID</label>
-            <input className={input} value={form.elevenlabs_voice_id || ''} onChange={(e) => set('elevenlabs_voice_id', e.target.value)} placeholder="21m00Tcm4TlvDq8ikWAM" dir="ltr" />
-            <p className="text-xs text-gray-500 mt-1">מ-ElevenLabs Voice Library → Hebrew → העתק voice_id. ריק = קול Microsoft (he-IL-AvriNeural)</p>
-          </div>
-
-          {form.elevenlabs_voice_id && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ElevenLabs Model</label>
-              <select className={input} value={form.elevenlabs_model || 'eleven_multilingual_v2'} onChange={(e) => set('elevenlabs_model', e.target.value)}>
-                <option value="eleven_multilingual_v2">eleven_multilingual_v2 (מומלץ)</option>
-                <option value="eleven_turbo_v2_5">eleven_turbo_v2_5 (מהיר)</option>
-              </select>
-            </div>
+          {form.provider === 'd-id' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ElevenLabs Voice ID</label>
+                <input className={input} value={form.elevenlabs_voice_id || ''} onChange={(e) => set('elevenlabs_voice_id', e.target.value)} placeholder="21m00Tcm4TlvDq8ikWAM" dir="ltr" />
+                <p className="text-xs text-gray-500 mt-1">מ-ElevenLabs Voice Library → Hebrew → העתק voice_id. ריק = קול Microsoft (he-IL-AvriNeural)</p>
+              </div>
+              {form.elevenlabs_voice_id && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">ElevenLabs Model</label>
+                  <select className={input} value={form.elevenlabs_model || 'eleven_multilingual_v2'} onChange={(e) => set('elevenlabs_model', e.target.value)}>
+                    <option value="eleven_multilingual_v2">eleven_multilingual_v2 (מומלץ)</option>
+                    <option value="eleven_turbo_v2_5">eleven_turbo_v2_5 (מהיר)</option>
+                  </select>
+                </div>
+              )}
+            </>
           )}
 
           <div>
