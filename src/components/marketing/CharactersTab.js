@@ -135,7 +135,7 @@ function PreviewPlayer({ character, onClose }) {
 
   useEffect(() => {
     api.post(`/marketing/characters/${character.id}/preview`, {})
-      .then((data) => { setVideoUrl(data.video_url); setStatus('done'); })
+      .then(({ data }) => { setVideoUrl(data.video_url); setStatus('done'); })
       .catch((e) => { setErr(errMsg(e)); setStatus('error'); });
   }, [character.id]);
 
@@ -179,7 +179,7 @@ export default function CharactersTab({ reload: reloadParent }) {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await api.get('/marketing/characters?all=true');
+      const { data } = await api.get('/marketing/characters?all=true');
       setCharacters(data);
     } catch (e) {
       setErr(errMsg(e));

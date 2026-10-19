@@ -156,7 +156,7 @@ function CreatePostModal({ onClose, onDone }) {
 
   useEffect(() => {
     if (isVideo && characters.length === 0) {
-      api.get('/marketing/characters').then(setCharacters).catch(() => {});
+      api.get('/marketing/characters').then(({ data }) => setCharacters(data)).catch(() => {});
     }
   }, [isVideo]); // eslint-disable-line react-hooks/exhaustive-deps
 
