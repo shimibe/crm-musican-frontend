@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Megaphone, RefreshCw } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Megaphone, RefreshCw, X } from 'lucide-react';
 import api from '../utils/api';
 import { MODE_LABEL } from '../components/marketing/ui';
 import OverviewTab   from '../components/marketing/OverviewTab';
@@ -36,6 +36,8 @@ const AgentNitai = () => {
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
   const [videoJobs, setVideoJobs] = useState([]);
+  const [runToasts, setRunToasts] = useState([]);
+  const toastTimers = useRef({});
 
   const reload = useCallback(async () => {
     setTick((t) => t + 1);
@@ -78,6 +80,31 @@ const AgentNitai = () => {
   const dismissVideoJob = useCallback((jobId) => {
     setVideoJobs((prev) => prev.filter((j) => j.jobId !== jobId));
   }, []);
+
+  const dismissToast = useCallback((id) => {
+    clearTimeout(toastTimers.current[id]);
+    delete toastTimers.current[id];
+    setRunToasts((t) => t.filter((x) => x.id !== id));
+  }, []);
+
+  const addRunToast = useCallback((run) => {
+    setRunToasts((t) => [...t.filter((x) => x.id !== run.id), run]);
+    setTick((v) => v + 1); // refresh LogTab + PostsTab
+    clearTimeout(toastTimers.current[run.id]);
+    toastTimers.current[run.id] = setTimeout(() => dismissToast(run.id), 9000);
+  }, [dismissToast]);
+
+  // SSE: real-time run notifications
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const es = new EventSource(`/api/marketing/events?token=${encodeURIComponent(token)}`);
+    es.onmessage = (e) => {
+      try { addRunToast(JSON.parse(e.data)); } catch { /* ignore */ }
+    };
+    es.onerror = () => {}; // reconnect handled by browser automatically
+    return () => es.close();
+  }, [addRunToast]);
 
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => { try { localStorage.setItem('agentNitaiTab', tab); } catch { /* ignore */ } }, [tab]);
@@ -172,6 +199,32 @@ const AgentNitai = () => {
       )}
     </div>
 
+    {/* Run completion toasts */}
+    {runToasts.length > 0 && (
+      <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        {runToasts.map((t) => (
+          <div key={t.id} className={`pointer-events-auto flex items-start gap-3 rounded-xl shadow-lg px-4 py-3 text-sm border ${
+            t.status === 'succeeded'
+              ? 'bg-green-50 dark:bg-green-900/80 border-green-200 dark:border-green-700'
+              : t.status === 'failed'
+              ? 'bg-red-50 dark:bg-red-900/80 border-red-200 dark:border-red-700'
+              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+          }`}>
+            <span className="text-base leading-none mt-0.5 flex-shrink-0">
+              {t.status === 'succeeded' ? '✅' : t.status === 'failed' ? '❌' : '⚙️'}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 dark:text-white truncate">{t.task_key}</p>
+              {t.summary && <p className="text-gray-600 dark:text-gray-300 truncate mt-0.5">{t.summary}</p>}
+              {t.error   && <p className="text-red-600 dark:text-red-400 text-xs mt-0.5 line-clamp-2">{t.error}</p>}
+            </div>
+            <button onClick={() => dismissToast(t.id)} className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
     <VideoQueue jobs={videoJobs} onDismiss={dismissVideoJob} />
     </>
   );
