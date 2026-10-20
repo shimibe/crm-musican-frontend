@@ -32,6 +32,11 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         instagram_page_id: initSettings.instagram_page_id ?? '',
         facebook_page_id: initSettings.facebook_page_id ?? '',
         youtube_channel_id: initSettings.youtube_channel_id ?? '',
+        // Release settings
+        release_prerelease_days: initSettings.release_prerelease_days ?? 7,
+        release_weekly_max_items: initSettings.release_weekly_max_items ?? 4,
+        release_daily_prompt: initSettings.release_daily_prompt ?? '',
+        release_weekly_prompt: initSettings.release_weekly_prompt ?? '',
         // Token/key fields — shown as blank if masked "***set***"
         instagram_access_token: '',
         facebook_access_token: '',
@@ -156,7 +161,35 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         </div>
       </Section>
 
-      {/* ── Section 4: Frequency ── */}
+      {/* ── Section 4: Release content ── */}
+      <Section title="תוכן ריליסים">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="פוסטים שבועיים — מקסימום ריליסים">
+              <input type="number" min={1} max={10} value={form.release_weekly_max_items}
+                onChange={(e) => set('release_weekly_max_items', Number(e.target.value))} className={input} />
+            </Field>
+            <Field label="ימי קידום לפני שחרור">
+              <input type="number" min={0} max={30} value={form.release_prerelease_days}
+                onChange={(e) => set('release_prerelease_days', Number(e.target.value))} className={input} />
+            </Field>
+          </div>
+          <Field label="הוראות לניתאי — בחירת ריליס לפוסט יומי" hint="ריק = ניתאי בוחר לבד">
+            <textarea rows={3} value={form.release_daily_prompt}
+              onChange={(e) => set('release_daily_prompt', e.target.value)}
+              placeholder="למשל: העדף שירים בעברית, שים דגש על ריליסים של אמנים חדשים..."
+              className={input} />
+          </Field>
+          <Field label="הוראות לניתאי — בחירת ריליסים לפוסט שבועי" hint="ריק = ניתאי בוחר לבד">
+            <textarea rows={3} value={form.release_weekly_prompt}
+              onChange={(e) => set('release_weekly_prompt', e.target.value)}
+              placeholder="למשל: כלול לפחות ריליס אחד מכל ז'אנר, העדף שמות ידועים..."
+              className={input} />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ── Section 5: Frequency ── */}
       <Section title="תדירות פעילות">
         <div className="grid grid-cols-2 gap-4">
           <Field label="פוסטים בשבוע">
@@ -183,7 +216,7 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         </div>
       </Section>
 
-      {/* ── Section 5: Budget + contact ── */}
+      {/* ── Section 6: Budget + contact ── */}
       <Section title="תקציב ואיש קשר">
         <div className="grid grid-cols-2 gap-4">
           <Field label="תקציב יומי (USD)" hint={`כיום: ${fmtUsd(s.daily_budget_usd)}`}>

@@ -147,7 +147,7 @@ function ReviseModal({ postId, onClose, onDone }) {
 
 // ── Create post modal ─────────────────────────────────────────────────────
 function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
-  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '' });
+  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '', release_id: '' });
   const [characters, setCharacters] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -173,6 +173,7 @@ function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
         image_url: form.image_url || undefined,
         character_id: form.character_id ? Number(form.character_id) : undefined,
         script_text: form.script_text || undefined,
+        release_id: form.release_id || undefined,
       });
       const typeLabel = form.content_type === 'ugc_video' ? 'סרטון UGC' : form.content_type === 'chen_video' ? 'סרטון חן' : 'תמונה';
       if (isVideo && form.script_text?.trim() && addVideoJob && saved?.id) {
@@ -198,9 +199,11 @@ function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">סוג תוכן</label>
             <select value={form.content_type} onChange={(e) => setForm((f) => ({ ...f, content_type: e.target.value }))} className={input}>
-              <option value="image_post">תמונה</option>
-              <option value="ugc_video">סרטון UGC (דמות AI)</option>
-              <option value="chen_video">סרטון חן</option>
+              <option value="image_post">🖼️ תמונה</option>
+              <option value="release_announcement">🎵 הכרזת ריליס</option>
+              <option value="weekly_releases">📅 פוסט שבועי</option>
+              <option value="ugc_video">🎬 סרטון UGC (דמות AI)</option>
+              <option value="chen_video">🎬 סרטון חן</option>
             </select>
           </div>
           <div>
@@ -227,7 +230,15 @@ function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
               </div>
             </>
           )}
-          {!isVideo && (
+          {form.content_type === 'release_announcement' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">מזהה הפצה (release_id)</label>
+              <input type="text" value={form.release_id} onChange={(e) => setForm((f) => ({ ...f, release_id: e.target.value }))}
+                placeholder="12345" className={input} />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">תמונת העטיפה תישלף אוטומטית ממוזיקן</p>
+            </div>
+          )}
+          {!isVideo && form.content_type !== 'release_announcement' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">כתובת תמונה (URL)</label>
               <input type="url" value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
@@ -409,6 +420,68 @@ function GenerateMediaModal({ post, onClose, onDone, addVideoJob, addImageJob })
 
 const VIDEO_TYPES = ['ugc_video', 'chen_video'];
 
+const CONTENT_TYPE_META = {
+  release_announcement: { icon: '🎵', label: 'ריליס' },
+  weekly_releases:      { icon: '📅', label: 'שבועי' },
+  image_post:           { icon: '🖼️', label: 'תמונה' },
+  ugc_video:            { icon: '🎬', label: 'UGC' },
+  chen_video:           { icon: '🎬', label: 'חן' },
+};
+
+// ── Manual release trigger modal ──────────────────────────────────────────
+function ManualReleaseModal({ onClose, onDone }) {
+  const [releaseIds, setReleaseIds] = useState('');
+  const [instruction, setInstruction] = useState('');
+  const [running, setRunning] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const submit = async () => {
+    const ids = releaseIds.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) { setErr('יש להזין לפחות מזהה הפצה אחד'); return; }
+    setRunning(true); setErr(null);
+    try {
+      await api.post('/marketing/tasks/content_creation/run', {
+        params: { release_ids: ids, ...(instruction.trim() ? { instruction: instruction.trim() } : {}) },
+      });
+      onDone('🎵 ניתאי מייצר פוסטי ריליסים...');
+      onClose();
+    } catch (e) {
+      setErr(errMsg(e));
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 dark:text-white">🎵 פרסום הפצות ידנית</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-gray-400" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">מזהי הפצות <span className="text-gray-400 font-normal">(שורה לכל אחד)</span></label>
+            <textarea rows={4} value={releaseIds} onChange={(e) => setReleaseIds(e.target.value)}
+              placeholder={"12345\n12346"} className={input} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">הוראות לניתאי <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
+            <textarea rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)}
+              placeholder="למשל: התמקד ביזמות של האמן, הדגש שיצאה גרסת רמיקס..." className={input} />
+          </div>
+          {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
+          <div className="flex justify-end gap-2">
+            <button onClick={onClose} className={btnGhost}>ביטול</button>
+            <button onClick={submit} disabled={running || !releaseIds.trim()} className={btnPrimary}>
+              {running ? 'מריץ...' : '▶ הפעל ניתאי'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Post card ─────────────────────────────────────────────────────────────
 function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const [expanded, setExpanded] = useState(false);
@@ -444,6 +517,14 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
             <PostStatusBadge value={post.status} />
+            {CONTENT_TYPE_META[post.content_type] && (
+              <span className="text-xs px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                {CONTENT_TYPE_META[post.content_type].icon} {CONTENT_TYPE_META[post.content_type].label}
+              </span>
+            )}
+            {post.release_id && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">#{post.release_id}</span>
+            )}
             {(post.platforms || []).map((pl) => (
               <span key={pl} className="text-xs text-gray-500 dark:text-gray-400">{PLATFORM_EMOJI[pl]} {PLATFORM_LABEL[pl]}</span>
             ))}
@@ -525,7 +606,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
         )}
-        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && (
+        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && post.content_type !== 'release_announcement' && (
           <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost}
             title={VIDEO_TYPES.includes(post.content_type) ? 'יצירת מדיה' : (post.image_url ? 'החלף תמונה' : 'צור תמונה')}>
             {VIDEO_TYPES.includes(post.content_type) ? '🎬' : (post.image_url ? '🔄' : '🖼️')}
@@ -547,6 +628,7 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [manualRelease, setManualRelease] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -577,9 +659,12 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
               }`}>{label}</button>
           ))}
         </div>
-        <button onClick={() => setCreating(true)} className={btnPrimary}>
-          <Plus className="w-4 h-4" />פוסט ידני
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setManualRelease(true)} className={btnGhost}>🎵 הפצה ידנית</button>
+          <button onClick={() => setCreating(true)} className={btnPrimary}>
+            <Plus className="w-4 h-4" />פוסט ידני
+          </button>
+        </div>
       </div>
 
       {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
@@ -591,6 +676,7 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
       </div>
 
       {creating && <CreatePostModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); }} onCreated={onPostCreated} addVideoJob={addVideoJob} />}
+      {manualRelease && <ManualReleaseModal onClose={() => setManualRelease(false)} onDone={(msg) => { setManualRelease(false); onPostCreated?.(msg); }} />}
     </div>
   );
 }
