@@ -432,6 +432,7 @@ const CONTENT_TYPE_META = {
 function ManualReleaseModal({ onClose, onDone }) {
   const [releaseIds, setReleaseIds] = useState('');
   const [instruction, setInstruction] = useState('');
+  const [contentType, setContentType] = useState('release_announcement');
   const [running, setRunning] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -441,9 +442,13 @@ function ManualReleaseModal({ onClose, onDone }) {
     setRunning(true); setErr(null);
     try {
       await api.post('/marketing/tasks/content_creation/run', {
-        params: { release_ids: ids, ...(instruction.trim() ? { instruction: instruction.trim() } : {}) },
+        params: {
+          release_ids: ids,
+          content_type: contentType,
+          ...(instruction.trim() ? { instruction: instruction.trim() } : {}),
+        },
       });
-      onDone('🎵 ניתאי מייצר פוסטי ריליסים...');
+      onDone(contentType === 'ugc_video' ? '🎬 ניתאי כותב תסריט UGC...' : '🎵 ניתאי מייצר פוסטי ריליסים...');
       onClose();
     } catch (e) {
       setErr(errMsg(e));
@@ -460,6 +465,13 @@ function ManualReleaseModal({ onClose, onDone }) {
         </div>
         <div className="p-5 space-y-4">
           <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">סוג פוסט</label>
+            <select value={contentType} onChange={(e) => setContentType(e.target.value)} className={input}>
+              <option value="release_announcement">🎵 פוסט הכרזה (release_announcement)</option>
+              <option value="ugc_video">🎬 תסריט UGC — ניתאי כותב, אתה מצלם</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">מזהי הפצות <span className="text-gray-400 font-normal">(שורה לכל אחד)</span></label>
             <textarea rows={4} value={releaseIds} onChange={(e) => setReleaseIds(e.target.value)}
               placeholder={"12345\n12346"} className={input} />
@@ -467,7 +479,7 @@ function ManualReleaseModal({ onClose, onDone }) {
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">הוראות לניתאי <span className="text-gray-400 font-normal">(אופציונלי)</span></label>
             <textarea rows={3} value={instruction} onChange={(e) => setInstruction(e.target.value)}
-              placeholder="למשל: התמקד ביזמות של האמן, הדגש שיצאה גרסת רמיקס..." className={input} />
+              placeholder={contentType === 'ugc_video' ? 'למשל: תסריט שיווקי, 30 שניות, טון נלהב' : 'למשל: התמקד ביזמות של האמן, הדגש שיצאה גרסת רמיקס...'} className={input} />
           </div>
           {err && <p className="text-sm text-red-600 dark:text-red-400">{err}</p>}
           <div className="flex justify-end gap-2">
@@ -490,6 +502,8 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const [preview, setPreview] = useState(false);
   const [revise, setRevise] = useState(false);
   const [generateImage, setGenerateImage] = useState(false);
+  const [replaceUrl, setReplaceUrl] = useState(false);
+  const [newVideoUrl, setNewVideoUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -508,6 +522,12 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const saveEdit = () => act(async () => {
     await api.put(`/marketing/posts/${post.id}`, { text_content: editText });
     setEditing(false);
+  });
+  const saveVideoUrl = () => act(async () => {
+    if (!newVideoUrl.trim()) return;
+    await api.put(`/marketing/posts/${post.id}`, { video_url: newVideoUrl.trim() });
+    setReplaceUrl(false);
+    setNewVideoUrl('');
   });
 
   return (
@@ -542,6 +562,22 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {/* Video */}
         {post.video_url && (
           <video src={post.video_url} controls className="w-full max-h-56 rounded-lg mb-3 bg-black" />
+        )}
+        {/* Replace video URL (HeyGen edited version) */}
+        {VIDEO_TYPES.includes(post.content_type) && ['draft','pending_review','approved'].includes(post.status) && (
+          replaceUrl ? (
+            <div className="flex gap-2 mb-3">
+              <input type="url" value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)}
+                placeholder="הדבק URL חדש מ-HeyGen..." className={`${input} flex-1 text-sm`} autoFocus />
+              <button onClick={saveVideoUrl} disabled={busy || !newVideoUrl.trim()} className={btnSuccess}>שמור</button>
+              <button onClick={() => { setReplaceUrl(false); setNewVideoUrl(''); }} className={btnGhost}>ביטול</button>
+            </div>
+          ) : (
+            <button onClick={() => setReplaceUrl(true)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 block">
+              🔗 {post.video_url ? 'החלף URL סרטון (גרסה חדשה מ-HeyGen)' : 'הדבק URL סרטון מ-HeyGen'}
+            </button>
+          )
         )}
         {/* Image */}
         {!post.video_url && post.image_url && (
