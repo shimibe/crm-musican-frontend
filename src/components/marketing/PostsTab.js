@@ -525,7 +525,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   });
   const saveVideoUrl = () => act(async () => {
     if (!newVideoUrl.trim()) return;
-    await api.put(`/marketing/posts/${post.id}`, { video_url: newVideoUrl.trim() });
+    await api.post(`/marketing/posts/${post.id}/set-heygen-video`, { video_id: newVideoUrl.trim() });
     setReplaceUrl(false);
     setNewVideoUrl('');
   });
@@ -566,16 +566,22 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {/* Replace video URL (HeyGen edited version) */}
         {VIDEO_TYPES.includes(post.content_type) && ['draft','pending_review','approved'].includes(post.status) && (
           replaceUrl ? (
-            <div className="flex gap-2 mb-3">
-              <input type="url" value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)}
-                placeholder="הדבק URL חדש מ-HeyGen..." className={`${input} flex-1 text-sm`} autoFocus />
-              <button onClick={saveVideoUrl} disabled={busy || !newVideoUrl.trim()} className={btnSuccess}>שמור</button>
-              <button onClick={() => { setReplaceUrl(false); setNewVideoUrl(''); }} className={btnGhost}>ביטול</button>
+            <div className="space-y-1 mb-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                העתק את <b>Video ID</b> מ-HeyGen: בדשבורד → פתח את הסרטון → העתק את הקוד מה-URL<br/>
+                <span className="font-mono text-gray-400">app.heygen.com/videos/<b>VIDEO_ID_HERE</b></span>
+              </p>
+              <div className="flex gap-2">
+                <input type="text" value={newVideoUrl} onChange={(e) => setNewVideoUrl(e.target.value)}
+                  placeholder="הדבק Video ID כאן..." className={`${input} flex-1 text-sm`} autoFocus />
+                <button onClick={saveVideoUrl} disabled={busy || !newVideoUrl.trim()} className={btnSuccess}>שמור</button>
+                <button onClick={() => { setReplaceUrl(false); setNewVideoUrl(''); }} className={btnGhost}>ביטול</button>
+              </div>
             </div>
           ) : (
             <button onClick={() => setReplaceUrl(true)}
               className="text-xs text-blue-600 dark:text-blue-400 hover:underline mb-3 block">
-              🔗 {post.video_url ? 'החלף URL סרטון (גרסה חדשה מ-HeyGen)' : 'הדבק URL סרטון מ-HeyGen'}
+              🔗 {post.video_url ? 'החלף סרטון (גרסה חדשה מ-HeyGen)' : 'חבר סרטון מ-HeyGen'}
             </button>
           )
         )}
