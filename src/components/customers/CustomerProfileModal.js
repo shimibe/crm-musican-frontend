@@ -112,6 +112,24 @@ const CustomerProfileModal = ({ show, onClose, customer, defaultTab = 'summary' 
 
     api.get('/interests').then(r => setAvailableInterests(r.data.interests || [])).catch(() => {});
     api.get('/credit-types').then(r => setCreditTypes(r.data || [])).catch(() => {});
+
+    // Always fetch full customer data so phone/email/etc. are available
+    // even when this modal is opened from pages that only pass { id, name }
+    api.get(`/customers/${customer.id}`)
+      .then(r => {
+        const c = r.data;
+        setForm({
+          name:          c.name || '',
+          phone:         c.phone || '',
+          email:         c.email || '',
+          category:      c.category || 'musician',
+          status:        c.status || 'active',
+          service_level: c.service_level || 'none',
+          notes:         c.notes || '',
+          interests:     (c.interests || []).map(i => (typeof i === 'object' ? i.id : i)),
+        });
+      })
+      .catch(() => {});
   }, [show, customer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Computed ──────────────────────────────────────────────────────────────
@@ -126,7 +144,7 @@ const CustomerProfileModal = ({ show, onClose, customer, defaultTab = 'summary' 
   const fmtDate = (s) => s ? new Date(s).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   const fmtDateTime = (s) => s ? new Date(s).toLocaleString('he-IL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
-  const svcLevel = SERVICE_LEVEL_MAP[customer?.service_level || 'none'] || SERVICE_LEVEL_MAP.none;
+  const svcLevel = SERVICE_LEVEL_MAP[form.service_level || 'none'] || SERVICE_LEVEL_MAP.none;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -233,8 +251,8 @@ const CustomerProfileModal = ({ show, onClose, customer, defaultTab = 'summary' 
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <span className="text-xl font-bold text-gray-900 dark:text-white">{customer.name}</span>
-              {(customer.service_level && customer.service_level !== 'none') && (
+              <span className="text-xl font-bold text-gray-900 dark:text-white">{form.name || customer.name}</span>
+              {(form.service_level && form.service_level !== 'none') && (
                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${svcLevel.cls}`}>
                   {svcLevel.label}
                 </span>
@@ -280,36 +298,36 @@ const CustomerProfileModal = ({ show, onClose, customer, defaultTab = 'summary' 
                 <div className="grid grid-cols-5 gap-4">
                   {/* Contact info */}
                   <div className="col-span-3 space-y-2 text-sm">
-                    {customer.phone && (
+                    {form.phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <a href={`sip:${customer.phone.replace(/\s|-/g, '')}`} className="text-primary-600 dark:text-primary-400 hover:underline">
-                          {customer.phone}
+                        <a href={`sip:${form.phone.replace(/\s|-/g, '')}`} className="text-primary-600 dark:text-primary-400 hover:underline">
+                          {form.phone}
                         </a>
                       </div>
                     )}
-                    {customer.email && (
+                    {form.email && (
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <a href={`mailto:${customer.email}`} className="text-primary-600 dark:text-primary-400 hover:underline">
-                          {customer.email}
+                        <a href={`mailto:${form.email}`} className="text-primary-600 dark:text-primary-400 hover:underline">
+                          {form.email}
                         </a>
                       </div>
                     )}
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                        customer.category === 'studio'
+                        form.category === 'studio'
                           ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
                           : 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
                       }`}>
-                        {customer.category === 'studio' ? 'אולפן' : 'מוזיקאי'}
+                        {form.category === 'studio' ? 'אולפן' : 'מוזיקאי'}
                       </span>
                       <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                        customer.status === 'active'
+                        form.status === 'active'
                           ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                           : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
-                        {customer.status === 'active' ? 'פעיל' : 'לא פעיל'}
+                        {form.status === 'active' ? 'פעיל' : 'לא פעיל'}
                       </span>
                     </div>
                   </div>
@@ -336,23 +354,26 @@ const CustomerProfileModal = ({ show, onClose, customer, defaultTab = 'summary' 
                 </div>
 
                 {/* Notes preview */}
-                {customer.notes && (
+                {form.notes && (
                   <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 line-clamp-3">
-                    {customer.notes}
+                    {form.notes}
                   </p>
                 )}
 
                 {/* Interests */}
-                {customer.interests && customer.interests.length > 0 && (
+                {form.interests && form.interests.length > 0 && availableInterests.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {customer.interests.map(i => (
-                      <span
-                        key={typeof i === 'object' ? i.id : i}
-                        className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300"
-                      >
-                        {typeof i === 'object' ? i.name : i}
-                      </span>
-                    ))}
+                    {form.interests.map(id => {
+                      const interest = availableInterests.find(i => i.id === id);
+                      return interest ? (
+                        <span
+                          key={id}
+                          className="px-2 py-0.5 text-xs rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300"
+                        >
+                          {interest.name}
+                        </span>
+                      ) : null;
+                    })}
                   </div>
                 )}
 
