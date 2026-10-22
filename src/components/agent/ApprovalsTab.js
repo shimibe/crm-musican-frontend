@@ -90,11 +90,12 @@ const ApprovalsTab = ({ onChanged, tick }) => {
     }
   };
 
-  // Group approvals by release (subject_id). Null subject_id → group '__other'.
+  // Group approvals by release. Use proposed.params.release_id (most reliable),
+  // fall back to subject_id from the run, or '__other' if neither is set.
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of rows) {
-      const key = a.subject_id || '__other';
+      const key = a.proposed?.params?.release_id || a.subject_id || '__other';
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(a);
     }
