@@ -13,9 +13,10 @@ const STATUS = {
 };
 
 // Tools whose params can be edited before approving.
-// Key = tool name, value = array of editable param field names shown as textareas.
+// Each entry: { key, type } — type 'text' = plain textarea, type 'json' = formatted JSON textarea.
 const EDITABLE_TOOLS = {
-  'musican.save_fix_note': ['note'],
+  'musican.save_fix_note':       [{ key: 'note',    type: 'text' }],
+  'musican.update_release_data': [{ key: 'changes', type: 'json' }],
 };
 
 const ApprovalsTab = ({ onChanged, tick }) => {
@@ -40,9 +41,17 @@ const ApprovalsTab = ({ onChanged, tick }) => {
       const editedFields = edits[id];
       let override_params = undefined;
       if (approve && editedFields && proposed?.params) {
-        // Only send override if something actually changed
-        const merged = { ...proposed.params, ...editedFields };
-        const changed = Object.keys(editedFields).some((k) => editedFields[k] !== proposed.params[k]);
+        const toolFields = EDITABLE_TOOLS[proposed.tool] || [];
+        const merged = { ...proposed.params };
+        let changed = false;
+        for (const field of toolFields) {
+          const { key, type } = field;
+          const rawEdit = editedFields[key];
+          if (rawEdit === undefined) continue;
+          const parsed = type === 'json' ? JSON.parse(rawEdit) : rawEdit;
+          if (JSON.stringify(parsed) !== JSON.stringify(proposed.params[key])) changed = true;
+          merged[key] = parsed;
+        }
         if (changed) override_params = { tool: proposed.tool, params: merged };
       }
       await api.post(`/agent/approvals/${id}/decide`, { approve, override_params });
@@ -91,7 +100,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
             const [label, cls] = STATUS[a.status] || [a.status, ''];
             const isFailed = a.status === 'failed';
             const isPending = a.status === 'pending';
-            const editableFields = isPending && a.proposed?.tool ? EDITABLE_TOOLS[a.proposed.tool] : null;
+            const editableFields = isPending && a.proposed?.tool ? (EDITABLE_TOOLS[a.proposed.tool] || null) : null;
 
             return (
               <div
@@ -113,17 +122,23 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                 {/* Editable params (e.g. save_fix_note) — shown instead of raw JSON */}
                 {editableFields ? (
                   <div className="mt-3 space-y-2">
-                    {editableFields.map((key) => (
-                      <div key={key}>
-                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
-                        <textarea
-                          rows={4}
-                          className={`${input} resize-y`}
-                          value={edits[a.id]?.[key] ?? (a.proposed?.params?.[key] || '')}
-                          onChange={(e) => setEdit(a.id, key, e.target.value)}
-                        />
-                      </div>
-                    ))}
+                    {editableFields.map((field) => {
+                      const key = field.key;
+                      const isJson = field.type === 'json';
+                      const rawVal = a.proposed?.params?.[key];
+                      const defaultVal = isJson ? JSON.stringify(rawVal, null, 2) : (rawVal || '');
+                      return (
+                        <div key={key}>
+                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
+                          <textarea
+                            rows={isJson ? 12 : 4}
+                            className={`${input} resize-y${isJson ? ' font-mono text-xs' : ''}`}
+                            value={edits[a.id]?.[key] ?? defaultVal}
+                            onChange={(e) => setEdit(a.id, key, e.target.value)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : a.proposed ? (
                   <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
