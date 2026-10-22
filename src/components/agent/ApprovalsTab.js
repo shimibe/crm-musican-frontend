@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg, input } from './ui';
@@ -77,6 +77,116 @@ const ApprovalsTab = ({ onChanged, tick }) => {
     }
   };
 
+  const dismiss = async (id) => {
+    setBusy(id);
+    try {
+      await api.post(`/agent/approvals/${id}/dismiss`);
+      await load();
+      onChanged?.();
+    } catch (e) {
+      alert(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Group approvals by release (subject_id). Null subject_id → group '__other'.
+  const groups = useMemo(() => {
+    const map = new Map();
+    for (const a of rows) {
+      const key = a.subject_id || '__other';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(a);
+    }
+    return [...map.entries()];
+  }, [rows]);
+
+  const renderCard = (a) => {
+    const [label, cls] = STATUS[a.status] || [a.status, ''];
+    const isFailed = a.status === 'failed';
+    const isPending = a.status === 'pending';
+    const editableFields = isPending && a.proposed?.tool ? (EDITABLE_TOOLS[a.proposed.tool] || null) : null;
+
+    return (
+      <div
+        key={a.id}
+        className={`p-4 rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700'}`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Badge className={a.kind === 'intervention' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300'}>
+              {a.kind === 'intervention' ? 'התערבות' : 'פעולה'}
+            </Badge>
+            <span className="font-medium text-gray-900 dark:text-white">{a.title}</span>
+            <Badge className={cls}>{label}</Badge>
+          </div>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(a.created_at)}</span>
+        </div>
+        {a.details && <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{a.details}</p>}
+
+        {/* Editable params (e.g. save_fix_note) — shown instead of raw JSON */}
+        {editableFields ? (
+          <div className="mt-3 space-y-2">
+            {editableFields.map((field) => {
+              const key = field.key;
+              const isJson = field.type === 'json';
+              const rawVal = a.proposed?.params?.[key];
+              const defaultVal = isJson ? JSON.stringify(rawVal, null, 2) : (rawVal || '');
+              return (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
+                  <textarea
+                    rows={isJson ? 12 : 4}
+                    className={`${input} resize-y${isJson ? ' font-mono text-xs' : ''}`}
+                    value={edits[a.id]?.[key] ?? defaultVal}
+                    onChange={(e) => setEdit(a.id, key, e.target.value)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : a.proposed ? (
+          <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
+            {JSON.stringify(a.proposed, null, 2)}
+          </pre>
+        ) : null}
+
+        {isFailed && (
+          <div className="mt-2 flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>הפעולה נכשלה בביצוע — ייתכן שהתיקון ב-Wix טרם פורסם</span>
+          </div>
+        )}
+        {isPending ? (
+          <div className="mt-3 flex gap-2">
+            {a.kind === 'action' ? (
+              <>
+                <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
+                <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
+              </>
+            ) : (
+              <>
+                <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
+                <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
+              </>
+            )}
+          </div>
+        ) : isFailed ? (
+          <div className="mt-3 flex gap-2">
+            <button disabled={busy === a.id} onClick={() => retry(a.id)} className={btnPrimary}>
+              <RefreshCw className="w-4 h-4" /> נסה שוב
+            </button>
+            <button disabled={busy === a.id} onClick={() => dismiss(a.id)} className={btnGhost}>
+              <X className="w-4 h-4" /> בטל
+            </button>
+          </div>
+        ) : (
+          a.decided_by && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Section
       title="אישורים והתערבויות"
@@ -95,89 +205,19 @@ const ApprovalsTab = ({ onChanged, tick }) => {
       {rows.length === 0 ? (
         <Empty>אין כרגע בקשות</Empty>
       ) : (
-        <div className="space-y-3">
-          {rows.map((a) => {
-            const [label, cls] = STATUS[a.status] || [a.status, ''];
-            const isFailed = a.status === 'failed';
-            const isPending = a.status === 'pending';
-            const editableFields = isPending && a.proposed?.tool ? (EDITABLE_TOOLS[a.proposed.tool] || null) : null;
-
-            return (
-              <div
-                key={a.id}
-                className={`p-4 rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700'}`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge className={a.kind === 'intervention' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300'}>
-                      {a.kind === 'intervention' ? 'התערבות' : 'פעולה'}
-                    </Badge>
-                    <span className="font-medium text-gray-900 dark:text-white">{a.title}</span>
-                    <Badge className={cls}>{label}</Badge>
-                  </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(a.created_at)}</span>
+        <div className="space-y-6">
+          {groups.map(([key, items]) => (
+            <div key={key}>
+              {key !== '__other' && (
+                <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">
+                  ריליס #{key}
                 </div>
-                {a.details && <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{a.details}</p>}
-
-                {/* Editable params (e.g. save_fix_note) — shown instead of raw JSON */}
-                {editableFields ? (
-                  <div className="mt-3 space-y-2">
-                    {editableFields.map((field) => {
-                      const key = field.key;
-                      const isJson = field.type === 'json';
-                      const rawVal = a.proposed?.params?.[key];
-                      const defaultVal = isJson ? JSON.stringify(rawVal, null, 2) : (rawVal || '');
-                      return (
-                        <div key={key}>
-                          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
-                          <textarea
-                            rows={isJson ? 12 : 4}
-                            className={`${input} resize-y${isJson ? ' font-mono text-xs' : ''}`}
-                            value={edits[a.id]?.[key] ?? defaultVal}
-                            onChange={(e) => setEdit(a.id, key, e.target.value)}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : a.proposed ? (
-                  <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
-                    {JSON.stringify(a.proposed, null, 2)}
-                  </pre>
-                ) : null}
-
-                {isFailed && (
-                  <div className="mt-2 flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>הפעולה נכשלה בביצוע — ייתכן שהתיקון ב-Wix טרם פורסם</span>
-                  </div>
-                )}
-                {isPending ? (
-                  <div className="mt-3 flex gap-2">
-                    {a.kind === 'action' ? (
-                      <>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
-                      </>
-                    ) : (
-                      <>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
-                      </>
-                    )}
-                  </div>
-                ) : isFailed ? (
-                  <div className="mt-3 flex gap-2">
-                    <button disabled={busy === a.id} onClick={() => retry(a.id)} className={btnPrimary}>
-                      <RefreshCw className="w-4 h-4" /> נסה שוב
-                    </button>
-                  </div>
-                ) : (
-                  a.decided_by && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
-                )}
+              )}
+              <div className="space-y-3">
+                {items.map(renderCard)}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </Section>
