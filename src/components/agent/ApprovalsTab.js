@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Check, X, RefreshCw, AlertCircle } from 'lucide-react';
+import { Check, X, RefreshCw, AlertCircle, ChevronDown, ChevronLeft } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg, input } from './ui';
 
@@ -12,19 +12,123 @@ const STATUS = {
   failed: ['נכשל', 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'],
 };
 
-// Tools whose params can be edited before approving.
-// Each entry: { key, type } — type 'text' = plain textarea, type 'json' = formatted JSON textarea.
 const EDITABLE_TOOLS = {
   'musican.save_fix_note':       [{ key: 'note',    type: 'text' }],
   'musican.update_release_data': [{ key: 'changes', type: 'json' }],
 };
 
+// Parse "ריליס 174 · Artist – Title" → { artist, title }
+function parseReleaseDetails(details) {
+  if (!details) return {};
+  const m = details.match(/^ריליס \S+ · (.+?) – (.+)$/);
+  if (m) return { artist: m[1].trim(), title: m[2].trim() };
+  return {};
+}
+
+// ── Single approval card ────────────────────────────────────────────────────
+const ApprovalCard = ({ a, hideDetails, onDecide, onRetry, onDismiss, busy, edits, setEdit }) => {
+  const [open, setOpen] = useState(false);
+  const [label, cls] = STATUS[a.status] || [a.status, ''];
+  const isFailed  = a.status === 'failed';
+  const isPending = a.status === 'pending';
+  const editableFields = isPending && a.proposed?.tool ? (EDITABLE_TOOLS[a.proposed.tool] || null) : null;
+  const hasBody = editableFields || a.proposed || (!hideDetails && a.details);
+
+  return (
+    <div className={`rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
+      {/* ── Header row — always visible ── */}
+      <button
+        className="w-full p-3 flex items-center gap-2 text-right hover:bg-gray-50 dark:hover:bg-gray-700/30 rounded-lg"
+        onClick={() => hasBody && setOpen((v) => !v)}
+        style={{ cursor: hasBody ? 'pointer' : 'default' }}
+      >
+        {hasBody
+          ? (open ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronLeft className="w-4 h-4 text-gray-400 shrink-0" />)
+          : <span className="w-4 h-4 shrink-0" />
+        }
+        <Badge className={a.kind === 'intervention' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300'}>
+          {a.kind === 'intervention' ? 'התערבות' : 'פעולה'}
+        </Badge>
+        <span className="font-medium text-gray-900 dark:text-white flex-1 text-right">{a.title}</span>
+        <Badge className={cls}>{label}</Badge>
+        <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmtDate(a.created_at)}</span>
+      </button>
+
+      {/* ── Expandable body ── */}
+      {open && hasBody && (
+        <div className="px-4 pb-3 pt-1 border-t border-gray-100 dark:border-gray-700/50">
+          {!hideDetails && a.details && (
+            <p className="mb-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{a.details}</p>
+          )}
+          {editableFields ? (
+            <div className="space-y-2">
+              {editableFields.map((field) => {
+                const key = field.key;
+                const isJson = field.type === 'json';
+                const rawVal = a.proposed?.params?.[key];
+                const defaultVal = isJson ? JSON.stringify(rawVal, null, 2) : (rawVal || '');
+                return (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
+                    <textarea
+                      rows={isJson ? 12 : 4}
+                      className={`${input} resize-y${isJson ? ' font-mono text-xs' : ''}`}
+                      value={edits[a.id]?.[key] ?? defaultVal}
+                      onChange={(e) => setEdit(a.id, key, e.target.value)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ) : a.proposed ? (
+            <pre className="text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
+              {JSON.stringify(a.proposed, null, 2)}
+            </pre>
+          ) : null}
+        </div>
+      )}
+
+      {/* ── Action buttons — always visible ── */}
+      <div className="px-4 pb-3">
+        {isFailed && (
+          <div className="flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400 mb-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>הפעולה נכשלה — ייתכן שהתיקון ב-Wix טרם פורסם</span>
+          </div>
+        )}
+        {isPending ? (
+          <div className="flex gap-2">
+            {a.kind === 'action' ? (
+              <>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
+              </>
+            ) : (
+              <>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
+              </>
+            )}
+          </div>
+        ) : isFailed ? (
+          <div className="flex gap-2">
+            <button disabled={busy === a.id} onClick={() => onRetry(a.id)} className={btnPrimary}><RefreshCw className="w-4 h-4" /> נסה שוב</button>
+            <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className={btnGhost}><X className="w-4 h-4" /> בטל</button>
+          </div>
+        ) : (
+          a.decided_by && <p className="text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Main tab ────────────────────────────────────────────────────────────────
 const ApprovalsTab = ({ onChanged, tick }) => {
-  const [rows, setRows] = useState([]);
+  const [rows, setRows]     = useState([]);
   const [status, setStatus] = useState('active');
-  const [busy, setBusy] = useState(null);
-  // { [approvalId]: { [paramKey]: editedValue } }
-  const [edits, setEdits] = useState({});
+  const [busy, setBusy]     = useState(null);
+  const [edits, setEdits]   = useState({});
 
   const load = useCallback(async () => {
     const { data } = await api.get('/agent/approvals', { params: { status } });
@@ -39,7 +143,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
     setBusy(id);
     try {
       const editedFields = edits[id];
-      let override_params = undefined;
+      let override_params;
       if (approve && editedFields && proposed?.params) {
         const toolFields = EDITABLE_TOOLS[proposed.tool] || [];
         const merged = { ...proposed.params };
@@ -55,43 +159,23 @@ const ApprovalsTab = ({ onChanged, tick }) => {
         if (changed) override_params = { tool: proposed.tool, params: merged };
       }
       await api.post(`/agent/approvals/${id}/decide`, { approve, override_params });
-      await load();
-      onChanged?.();
-    } catch (e) {
-      alert(errMsg(e));
-    } finally {
-      setBusy(null);
-    }
+      await load(); onChanged?.();
+    } catch (e) { alert(errMsg(e)); } finally { setBusy(null); }
   };
 
   const retry = async (id) => {
     setBusy(id);
-    try {
-      await api.post(`/agent/approvals/${id}/retry`);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      alert(errMsg(e));
-    } finally {
-      setBusy(null);
-    }
+    try { await api.post(`/agent/approvals/${id}/retry`); await load(); onChanged?.(); }
+    catch (e) { alert(errMsg(e)); } finally { setBusy(null); }
   };
 
   const dismiss = async (id) => {
     setBusy(id);
-    try {
-      await api.post(`/agent/approvals/${id}/dismiss`);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      alert(errMsg(e));
-    } finally {
-      setBusy(null);
-    }
+    try { await api.post(`/agent/approvals/${id}/dismiss`); await load(); onChanged?.(); }
+    catch (e) { alert(errMsg(e)); } finally { setBusy(null); }
   };
 
-  // Group approvals by release. Use proposed.params.release_id (most reliable),
-  // fall back to subject_id from the run, or '__other' if neither is set.
+  // Group by release_id; __other for approvals without one
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of rows) {
@@ -101,92 +185,6 @@ const ApprovalsTab = ({ onChanged, tick }) => {
     }
     return [...map.entries()];
   }, [rows]);
-
-  const renderCard = (a) => {
-    const [label, cls] = STATUS[a.status] || [a.status, ''];
-    const isFailed = a.status === 'failed';
-    const isPending = a.status === 'pending';
-    const editableFields = isPending && a.proposed?.tool ? (EDITABLE_TOOLS[a.proposed.tool] || null) : null;
-
-    return (
-      <div
-        key={a.id}
-        className={`p-4 rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700'}`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Badge className={a.kind === 'intervention' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300'}>
-              {a.kind === 'intervention' ? 'התערבות' : 'פעולה'}
-            </Badge>
-            <span className="font-medium text-gray-900 dark:text-white">{a.title}</span>
-            <Badge className={cls}>{label}</Badge>
-          </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(a.created_at)}</span>
-        </div>
-        {a.details && <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{a.details}</p>}
-
-        {/* Editable params (e.g. save_fix_note) — shown instead of raw JSON */}
-        {editableFields ? (
-          <div className="mt-3 space-y-2">
-            {editableFields.map((field) => {
-              const key = field.key;
-              const isJson = field.type === 'json';
-              const rawVal = a.proposed?.params?.[key];
-              const defaultVal = isJson ? JSON.stringify(rawVal, null, 2) : (rawVal || '');
-              return (
-                <div key={key}>
-                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
-                  <textarea
-                    rows={isJson ? 12 : 4}
-                    className={`${input} resize-y${isJson ? ' font-mono text-xs' : ''}`}
-                    value={edits[a.id]?.[key] ?? defaultVal}
-                    onChange={(e) => setEdit(a.id, key, e.target.value)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        ) : a.proposed ? (
-          <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
-            {JSON.stringify(a.proposed, null, 2)}
-          </pre>
-        ) : null}
-
-        {isFailed && (
-          <div className="mt-2 flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>הפעולה נכשלה בביצוע — ייתכן שהתיקון ב-Wix טרם פורסם</span>
-          </div>
-        )}
-        {isPending ? (
-          <div className="mt-3 flex gap-2">
-            {a.kind === 'action' ? (
-              <>
-                <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
-                <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
-              </>
-            ) : (
-              <>
-                <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
-                <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
-              </>
-            )}
-          </div>
-        ) : isFailed ? (
-          <div className="mt-3 flex gap-2">
-            <button disabled={busy === a.id} onClick={() => retry(a.id)} className={btnPrimary}>
-              <RefreshCw className="w-4 h-4" /> נסה שוב
-            </button>
-            <button disabled={busy === a.id} onClick={() => dismiss(a.id)} className={btnGhost}>
-              <X className="w-4 h-4" /> בטל
-            </button>
-          </div>
-        ) : (
-          a.decided_by && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
-        )}
-      </div>
-    );
-  };
 
   return (
     <Section
@@ -207,18 +205,40 @@ const ApprovalsTab = ({ onChanged, tick }) => {
         <Empty>אין כרגע בקשות</Empty>
       ) : (
         <div className="space-y-6">
-          {groups.map(([key, items]) => (
-            <div key={key}>
-              {key !== '__other' && (
-                <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2 px-1">
-                  ריליס #{key}
+          {groups.map(([key, items]) => {
+            const isRelease = key !== '__other';
+            // Extract artist + title from the first approval details in this group
+            const { artist, title } = isRelease
+              ? parseReleaseDetails(items.find((a) => a.details)?.details)
+              : {};
+
+            return (
+              <div key={key}>
+                {isRelease && (
+                  <div className="flex items-baseline gap-2 mb-2 px-1">
+                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tabular-nums">#{key}</span>
+                    {title && <span className="font-semibold text-gray-800 dark:text-gray-100">{title}</span>}
+                    {artist && <span className="text-sm text-gray-500 dark:text-gray-400">{artist}</span>}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  {items.map((a) => (
+                    <ApprovalCard
+                      key={a.id}
+                      a={a}
+                      hideDetails={isRelease}
+                      onDecide={decide}
+                      onRetry={retry}
+                      onDismiss={dismiss}
+                      busy={busy}
+                      edits={edits}
+                      setEdit={setEdit}
+                    />
+                  ))}
                 </div>
-              )}
-              <div className="space-y-3">
-                {items.map(renderCard)}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Section>
