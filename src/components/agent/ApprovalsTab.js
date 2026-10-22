@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '../../utils/api';
-import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg } from './ui';
+import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg, input } from './ui';
 
 const STATUS = {
   pending: ['ממתין', 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'],
@@ -12,10 +12,18 @@ const STATUS = {
   failed: ['נכשל', 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'],
 };
 
+// Tools whose params can be edited before approving.
+// Key = tool name, value = array of editable param field names shown as textareas.
+const EDITABLE_TOOLS = {
+  'musican.save_fix_note': ['note'],
+};
+
 const ApprovalsTab = ({ onChanged, tick }) => {
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState('active');
   const [busy, setBusy] = useState(null);
+  // { [approvalId]: { [paramKey]: editedValue } }
+  const [edits, setEdits] = useState({});
 
   const load = useCallback(async () => {
     const { data } = await api.get('/agent/approvals', { params: { status } });
@@ -23,10 +31,21 @@ const ApprovalsTab = ({ onChanged, tick }) => {
   }, [status, tick]);
   useEffect(() => { load(); }, [load]);
 
-  const decide = async (id, approve) => {
+  const setEdit = (id, key, value) =>
+    setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
+
+  const decide = async (id, approve, proposed) => {
     setBusy(id);
     try {
-      await api.post(`/agent/approvals/${id}/decide`, { approve });
+      const editedFields = edits[id];
+      let override_params = undefined;
+      if (approve && editedFields && proposed?.params) {
+        // Only send override if something actually changed
+        const merged = { ...proposed.params, ...editedFields };
+        const changed = Object.keys(editedFields).some((k) => editedFields[k] !== proposed.params[k]);
+        if (changed) override_params = { tool: proposed.tool, params: merged };
+      }
+      await api.post(`/agent/approvals/${id}/decide`, { approve, override_params });
       await load();
       onChanged?.();
     } catch (e) {
@@ -71,6 +90,9 @@ const ApprovalsTab = ({ onChanged, tick }) => {
           {rows.map((a) => {
             const [label, cls] = STATUS[a.status] || [a.status, ''];
             const isFailed = a.status === 'failed';
+            const isPending = a.status === 'pending';
+            const editableFields = isPending && a.proposed?.tool ? EDITABLE_TOOLS[a.proposed.tool] : null;
+
             return (
               <div
                 key={a.id}
@@ -87,28 +109,45 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                   <span className="text-xs text-gray-500 dark:text-gray-400">{fmtDate(a.created_at)}</span>
                 </div>
                 {a.details && <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{a.details}</p>}
-                {a.proposed && (
+
+                {/* Editable params (e.g. save_fix_note) — shown instead of raw JSON */}
+                {editableFields ? (
+                  <div className="mt-3 space-y-2">
+                    {editableFields.map((key) => (
+                      <div key={key}>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{key}</label>
+                        <textarea
+                          rows={4}
+                          className={`${input} resize-y`}
+                          value={edits[a.id]?.[key] ?? (a.proposed?.params?.[key] || '')}
+                          onChange={(e) => setEdit(a.id, key, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : a.proposed ? (
                   <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-2 rounded overflow-x-auto" dir="ltr">
                     {JSON.stringify(a.proposed, null, 2)}
                   </pre>
-                )}
+                ) : null}
+
                 {isFailed && (
                   <div className="mt-2 flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>הפעולה נכשלה בביצוע — ייתכן שהתיקון ב-Wix טרם פורסם</span>
                   </div>
                 )}
-                {a.status === 'pending' ? (
+                {isPending ? (
                   <div className="mt-3 flex gap-2">
                     {a.kind === 'action' ? (
                       <>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, true)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, false)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
+                        <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
+                        <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
                       </>
                     ) : (
                       <>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, true)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
-                        <button disabled={busy === a.id} onClick={() => decide(a.id, false)} className={btnGhost}>התעלם</button>
+                        <button disabled={busy === a.id} onClick={() => decide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
+                        <button disabled={busy === a.id} onClick={() => decide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
                       </>
                     )}
                   </div>
