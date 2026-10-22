@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '../../utils/api';
-import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, fmtDate, errMsg } from './ui';
+import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg } from './ui';
 
 const STATUS = {
   pending: ['ממתין', 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'],
@@ -14,7 +14,7 @@ const STATUS = {
 
 const ApprovalsTab = ({ onChanged, tick }) => {
   const [rows, setRows] = useState([]);
-  const [status, setStatus] = useState('pending');
+  const [status, setStatus] = useState('active');
   const [busy, setBusy] = useState(null);
 
   const load = useCallback(async () => {
@@ -36,12 +36,27 @@ const ApprovalsTab = ({ onChanged, tick }) => {
     }
   };
 
+  const retry = async (id) => {
+    setBusy(id);
+    try {
+      await api.post(`/agent/approvals/${id}/retry`);
+      await load();
+      onChanged?.();
+    } catch (e) {
+      alert(errMsg(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <Section
       title="אישורים והתערבויות"
       actions={
         <select className="text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-gray-100 px-2 py-1" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="pending">ממתינים</option>
+          <option value="active">ממתינים + נכשלו</option>
+          <option value="pending">ממתינים בלבד</option>
+          <option value="failed">נכשלו בלבד</option>
           <option value="all">הכול</option>
         </select>
       }
@@ -55,8 +70,12 @@ const ApprovalsTab = ({ onChanged, tick }) => {
         <div className="space-y-3">
           {rows.map((a) => {
             const [label, cls] = STATUS[a.status] || [a.status, ''];
+            const isFailed = a.status === 'failed';
             return (
-              <div key={a.id} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div
+                key={a.id}
+                className={`p-4 rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700'}`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Badge className={a.kind === 'intervention' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300'}>
@@ -73,6 +92,12 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                     {JSON.stringify(a.proposed, null, 2)}
                   </pre>
                 )}
+                {isFailed && (
+                  <div className="mt-2 flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>הפעולה נכשלה בביצוע — ייתכן שהתיקון ב-Wix טרם פורסם</span>
+                  </div>
+                )}
                 {a.status === 'pending' ? (
                   <div className="mt-3 flex gap-2">
                     {a.kind === 'action' ? (
@@ -86,6 +111,12 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                         <button disabled={busy === a.id} onClick={() => decide(a.id, false)} className={btnGhost}>התעלם</button>
                       </>
                     )}
+                  </div>
+                ) : isFailed ? (
+                  <div className="mt-3 flex gap-2">
+                    <button disabled={busy === a.id} onClick={() => retry(a.id)} className={btnPrimary}>
+                      <RefreshCw className="w-4 h-4" /> נסה שוב
+                    </button>
                   </div>
                 ) : (
                   a.decided_by && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
