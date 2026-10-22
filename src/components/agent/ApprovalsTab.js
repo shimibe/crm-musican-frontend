@@ -100,20 +100,20 @@ const ApprovalCard = ({ a, hideDetails, onDecide, onRetry, onDismiss, busy, edit
           <div className="flex gap-2">
             {a.kind === 'action' ? (
               <>
-                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> אשר ובצע</button>
-                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className={btnDanger}><X className="w-4 h-4" /> דחה</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> אשר ובצע</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"><X className="w-3.5 h-3.5" /> דחה</button>
               </>
             ) : (
               <>
-                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className={btnSuccess}><Check className="w-4 h-4" /> טופל</button>
-                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className={btnGhost}>התעלם</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> טופל</button>
+                <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">התעלם</button>
               </>
             )}
           </div>
         ) : isFailed ? (
           <div className="flex gap-2">
-            <button disabled={busy === a.id} onClick={() => onRetry(a.id)} className={btnPrimary}><RefreshCw className="w-4 h-4" /> נסה שוב</button>
-            <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className={btnGhost}><X className="w-4 h-4" /> בטל</button>
+            <button disabled={busy === a.id} onClick={() => onRetry(a.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"><RefreshCw className="w-3.5 h-3.5" /> נסה שוב</button>
+            <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"><X className="w-3.5 h-3.5" /> בטל</button>
           </div>
         ) : (
           a.decided_by && <p className="text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
@@ -215,8 +215,8 @@ const ApprovalsTab = ({ onChanged, tick }) => {
             return (
               <div key={key}>
                 {isRelease && (
-                  <div className="flex items-baseline gap-2 mb-2 px-1">
-                    <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 tabular-nums">#{key}</span>
+                  <div className="flex items-baseline gap-3 mb-2 px-1">
+                    <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 tabular-nums leading-none">#{key}</span>
                     {title && <span className="font-semibold text-gray-800 dark:text-gray-100">{title}</span>}
                     {artist && <span className="text-sm text-gray-500 dark:text-gray-400">{artist}</span>}
                   </div>
