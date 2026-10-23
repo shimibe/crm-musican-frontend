@@ -39,16 +39,26 @@ const Repairs = () => {
   const [profileCustomer, setProfileCustomer] = useState(null);
 
   // Server-side filters
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterAssigned, setFilterAssigned] = useState('');
-  const [filterMine, setFilterMine] = useState(false);
-  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState(() => localStorage.getItem('repairs_filterStatus') ?? '');
+  const [filterType, setFilterType] = useState(() => localStorage.getItem('repairs_filterType') ?? '');
+  const [filterAssigned, setFilterAssigned] = useState(() => localStorage.getItem('repairs_filterAssigned') ?? '');
+  const [filterMine, setFilterMine] = useState(() => localStorage.getItem('repairs_filterMine') === 'true');
+  const [search, setSearch] = useState(() => localStorage.getItem('repairs_search') ?? '');
 
   // Client-side sort & display
-  const [sortField, setSortField] = useState('created_at');
-  const [sortDir, setSortDir] = useState('desc');
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [sortField, setSortField] = useState(() => localStorage.getItem('repairs_sortField') ?? 'created_at');
+  const [sortDir, setSortDir] = useState(() => localStorage.getItem('repairs_sortDir') ?? 'desc');
+  const [showCompleted, setShowCompleted] = useState(() => localStorage.getItem('repairs_showCompleted') === 'true');
+
+  // Persist filters & sort to localStorage
+  useEffect(() => { localStorage.setItem('repairs_filterStatus', filterStatus); }, [filterStatus]);
+  useEffect(() => { localStorage.setItem('repairs_filterType', filterType); }, [filterType]);
+  useEffect(() => { localStorage.setItem('repairs_filterAssigned', filterAssigned); }, [filterAssigned]);
+  useEffect(() => { localStorage.setItem('repairs_filterMine', String(filterMine)); }, [filterMine]);
+  useEffect(() => { localStorage.setItem('repairs_search', search); }, [search]);
+  useEffect(() => { localStorage.setItem('repairs_sortField', sortField); }, [sortField]);
+  useEffect(() => { localStorage.setItem('repairs_sortDir', sortDir); }, [sortDir]);
+  useEffect(() => { localStorage.setItem('repairs_showCompleted', String(showCompleted)); }, [showCompleted]);
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -183,11 +193,16 @@ const Repairs = () => {
       }
 
       if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+        const numCmp = sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+        if (numCmp !== 0) return numCmp;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
 
       const cmp = String(aVal).localeCompare(String(bVal), 'he');
-      return sortDir === 'asc' ? cmp : -cmp;
+      const primary = sortDir === 'asc' ? cmp : -cmp;
+      if (primary !== 0) return primary;
+      // Secondary sort: newest first by created_at
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
     return list;
