@@ -4,6 +4,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import GoogleSignInButton from './GoogleSignInButton';
 import api from '../../utils/api';
 
+const MusicNote = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M9 3v10.55A4 4 0 1 0 11 17V7h4V3H9z"/>
+  </svg>
+);
+
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -78,89 +84,110 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0b0e1a] px-4 py-12">
+      {/* Subtle radial glow behind the card */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0"
+        aria-hidden="true"
+        style={{
+          background: 'radial-gradient(ellipse 60% 50% at 50% 40%, rgba(99,102,241,0.08) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className="relative z-10 w-full max-w-sm">
+        {/* Brand mark */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary-600 text-white mb-4 shadow-lg shadow-primary-500/30">
+            <MusicNote />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             CRM Musican
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          </h1>
+          <p className="mt-1 text-sm text-slate-400 dark:text-slate-500">
             התחבר למערכת
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          )}
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="username" className="sr-only">
-                שם משתמש
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="שם משתמש"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                סיסמה
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="סיסמה"
-              />
-            </div>
-          </div>
 
-          <div>
+        {/* Card */}
+        <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-xl shadow-slate-200/60 dark:shadow-none p-7">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="username" className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                  שם משתמש
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow"
+                  placeholder="שם משתמש"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                  סיסמה
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow"
+                  placeholder="סיסמה"
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 px-4 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 rounded-xl shadow-sm shadow-primary-600/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-[#111827] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'מתחבר...' : 'התחבר'}
+              {loading ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  מתחבר...
+                </span>
+              ) : 'התחבר'}
             </button>
+
+            <div className="text-center">
+              <Link
+                to="/forgot-password"
+                className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
+              >
+                שכחתי סיסמה
+              </Link>
+            </div>
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-100 dark:border-slate-700/50" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="px-3 bg-white dark:bg-[#111827] text-xs text-slate-400 dark:text-slate-500">
+                או
+              </span>
+            </div>
           </div>
 
-          <div className="text-center">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              שכחתי סיסמה
-            </Link>
-          </div>
-        </form>
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
-              או
-            </span>
-          </div>
+          {/* Google Sign-In Button */}
+          <GoogleSignInButton onClick={handleGoogleSignIn} loading={googleLoading} />
         </div>
-
-        {/* Google Sign-In Button */}
-        <GoogleSignInButton onClick={handleGoogleSignIn} loading={googleLoading} />
       </div>
     </div>
   );

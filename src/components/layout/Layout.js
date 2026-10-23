@@ -9,6 +9,12 @@ import {
   Moon, Sun, Menu, X, Shield, Activity, Send, Link2, ChevronRight, ChevronLeft, DollarSign, Mic, Clock, Wrench, Bot, FolderOpen, Megaphone
 } from 'lucide-react';
 
+const MusicNote = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M9 3v10.55A4 4 0 1 0 11 17V7h4V3H9z"/>
+  </svg>
+);
+
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -51,10 +57,7 @@ const Layout = ({ children }) => {
       }
     };
 
-    // Check immediately
     checkStudioTimer();
-
-    // Check every second
     const interval = setInterval(checkStudioTimer, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -73,37 +76,28 @@ const Layout = ({ children }) => {
           const startTime = new Date(shift.start_time).getTime();
           setShiftElapsedTime(Date.now() - startTime);
 
-          // Save to sessionStorage
           sessionStorage.setItem('attendance_hasActiveShift', 'true');
           sessionStorage.setItem('attendance_shiftStartTime', startTime.toString());
           sessionStorage.setItem('attendance_workFromHome', shift.work_from_home ? 'true' : 'false');
         } else {
           setShiftElapsedTime(0);
-
-          // Clear sessionStorage
           sessionStorage.removeItem('attendance_hasActiveShift');
           sessionStorage.removeItem('attendance_shiftStartTime');
           sessionStorage.removeItem('attendance_workFromHome');
         }
       } catch (error) {
-        // Silently fail - endpoint might not be available yet
         setHasActiveShift(false);
       }
     };
 
-    // Check if we have cached data in sessionStorage
     const cachedHasShift = sessionStorage.getItem('attendance_hasActiveShift') === 'true';
     const cachedStartTime = sessionStorage.getItem('attendance_shiftStartTime');
 
     if (cachedHasShift && cachedStartTime) {
-      // Use cached data for immediate display
       setHasActiveShift(true);
       setShiftElapsedTime(Date.now() - parseInt(cachedStartTime));
-
-      // Still verify with server in background
       checkActiveShift();
     } else {
-      // No cache - check with server
       checkActiveShift();
     }
   }, []);
@@ -111,11 +105,9 @@ const Layout = ({ children }) => {
   // Update elapsed time every second when shift is active
   useEffect(() => {
     if (!hasActiveShift) return;
-
     const interval = setInterval(() => {
       setShiftElapsedTime(prev => prev + 1000);
     }, 1000);
-
     return () => clearInterval(interval);
   }, [hasActiveShift]);
 
@@ -178,7 +170,6 @@ const Layout = ({ children }) => {
         { name: 'קיצורים', href: '/shortcuts', icon: Link2 },
       ];
 
-  // Add admin links if user is admin
   if (isAdmin) {
     navigation.push({ name: 'פרויקטים', href: '/freelance-projects', icon: FolderOpen });
     navigation.push({ name: 'קמפיינים', href: '/campaigns', icon: Send, adminOnly: true });
@@ -193,191 +184,195 @@ const Layout = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0b0e1a]">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-gray-600 bg-opacity-75 z-20 lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 right-0 z-30 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 right-0 z-30 bg-white dark:bg-[#080c14] border-l border-slate-200 dark:border-[#1a1f2e] transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        } ${sidebarCollapsed ? 'w-20' : 'w-64'}`}
+        } ${sidebarCollapsed ? 'w-[72px]' : 'w-64'} flex flex-col`}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700">
-            {!sidebarCollapsed && (
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        {/* Logo */}
+        <div className={`flex items-center h-16 px-4 border-b border-slate-200 dark:border-[#1a1f2e] shrink-0 ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2 min-w-0">
+              <MusicNote className="w-5 h-5 text-primary-600 dark:text-primary-400 shrink-0" />
+              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-white truncate">
                 CRM Musican
-              </h1>
-            )}
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`hidden lg:block text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 ${sidebarCollapsed ? 'mx-auto' : ''}`}
-              title={sidebarCollapsed ? 'הרחב תפריט' : 'קפל תפריט'}
-            >
-              {sidebarCollapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-            </button>
+              </span>
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-md"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className={`hidden lg:flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors ${sidebarCollapsed ? '' : ''}`}
+            title={sidebarCollapsed ? 'הרחב תפריט' : 'קפל תפריט'}
+          >
+            {sidebarCollapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Auto Refresh Indicator */}
+        {!sidebarCollapsed && (
+          <div className="border-b border-slate-200 dark:border-[#1a1f2e] shrink-0">
+            <AutoRefreshIndicator />
           </div>
+        )}
 
-          {/* Auto Refresh Indicator */}
-          {!sidebarCollapsed && (
-            <div className="border-b border-gray-200 dark:border-gray-700">
-              <AutoRefreshIndicator />
+        {/* Studio Timer Indicator - Admin Only */}
+        {isAdmin && studioTimerActive && !sidebarCollapsed && (
+          <div className="px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border-b border-slate-200 dark:border-[#1a1f2e] shrink-0">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block shrink-0" />
+              <span className="font-medium text-emerald-700 dark:text-emerald-400 tabular-nums">
+                סשן אולפן פעיל: {formatStudioTime(studioElapsedTime)}
+              </span>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Studio Timer Indicator - Admin Only */}
-          {isAdmin && studioTimerActive && !sidebarCollapsed && (
-            <div className="px-4 py-3 bg-green-50 dark:bg-green-900/20 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-green-600 dark:text-green-400">🟢</span>
-                <span className="font-medium text-green-700 dark:text-green-300">
-                  סשן אולפן פעיל: {formatStudioTime(studioElapsedTime)}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Attendance Shift Indicator */}
-          {!sidebarCollapsed && (
-            <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 ${
-              hasActiveShift || isAdmin
-                ? 'bg-green-50 dark:bg-green-900/20'
-                : 'bg-yellow-50 dark:bg-yellow-900/20'
-            }`}>
-              <div className="flex items-center gap-2 text-sm">
-                {hasActiveShift ? (
-                  <>
-                    <span className="text-green-600 dark:text-green-400">🟢</span>
-                    <span className="font-medium text-green-700 dark:text-green-300">
-                      משמרת פעילה: {formatShiftTime(shiftElapsedTime)}
-                    </span>
-                  </>
-                ) : isAdmin ? (
-                  <>
-                    <span className="text-green-600 dark:text-green-400">✳️</span>
-                    <span className="font-medium text-green-700 dark:text-green-300">
-                      מנהל מחובר
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
-                    <span className="font-medium text-yellow-700 dark:text-yellow-300">
-                      לא במשמרת
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* User info */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {user?.fullName}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {user?.role === 'admin' ? 'מנהל' : user?.role === 'manager' ? 'מנהל צוות' : 'עובד'}
-              </p>
-            </div>
-          )}
-
-          {/* Navigation */}
-          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.href;
-              const badge = item.badgeKey ? navBadges[item.badgeKey] || 0 : 0;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md ${
-                    isActive
-                      ? 'bg-primary-100 dark:bg-primary-900 text-primary-900 dark:text-primary-100'
-                      : item.adminOnly
-                      ? 'text-gray-500 dark:text-gray-500 bg-gray-100/60 dark:bg-black/20 hover:bg-gray-200/60 dark:hover:bg-black/30'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                  title={sidebarCollapsed ? item.name : ''}
-                >
-                  <div className="relative flex-shrink-0">
-                    <Icon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
-                    {sidebarCollapsed && badge > 0 && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                    )}
-                  </div>
-                  {!sidebarCollapsed && <span className="flex-1">{item.name}</span>}
-                  {!sidebarCollapsed && badge > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-            <button
-              onClick={toggleDarkMode}
-              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700`}
-              title={sidebarCollapsed ? (isDark ? 'מצב בהיר' : 'מצב כהה') : ''}
-            >
-              {isDark ? (
+        {/* Attendance Shift Indicator */}
+        {!sidebarCollapsed && (
+          <div className={`px-4 py-2.5 border-b border-slate-200 dark:border-[#1a1f2e] shrink-0 ${
+            hasActiveShift || isAdmin
+              ? 'bg-emerald-50 dark:bg-emerald-500/10'
+              : 'bg-amber-50 dark:bg-amber-500/10'
+          }`}>
+            <div className="flex items-center gap-2 text-sm">
+              {hasActiveShift ? (
                 <>
-                  <Sun className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
-                  {!sidebarCollapsed && 'מצב בהיר'}
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block shrink-0" />
+                  <span className="font-medium text-emerald-700 dark:text-emerald-400 tabular-nums">
+                    משמרת פעילה: {formatShiftTime(shiftElapsedTime)}
+                  </span>
+                </>
+              ) : isAdmin ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-primary-500 inline-block shrink-0" />
+                  <span className="font-medium text-primary-700 dark:text-primary-400">
+                    מנהל מחובר
+                  </span>
                 </>
               ) : (
                 <>
-                  <Moon className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
-                  {!sidebarCollapsed && 'מצב כהה'}
+                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shrink-0" />
+                  <span className="font-medium text-amber-700 dark:text-amber-400">
+                    לא במשמרת
+                  </span>
                 </>
               )}
-            </button>
-            <button
-              onClick={handleLogout}
-              className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-red-700 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20`}
-              title={sidebarCollapsed ? 'התנתק' : ''}
-            >
-              <LogOut className={`w-5 h-5 ${!sidebarCollapsed ? 'ml-3' : ''}`} />
-              {!sidebarCollapsed && 'התנתק'}
-            </button>
+            </div>
           </div>
+        )}
+
+        {/* User info */}
+        {!sidebarCollapsed && (
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-[#1a1f2e] shrink-0">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug">
+              {user?.fullName}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              {user?.role === 'admin' ? 'מנהל' : user?.role === 'manager' ? 'מנהל צוות' : 'עובד'}
+            </p>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.href;
+            const badge = item.badgeKey ? navBadges[item.badgeKey] || 0 : 0;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 font-semibold'
+                    : item.adminOnly
+                    ? 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-600 dark:hover:text-slate-300'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                onClick={() => setSidebarOpen(false)}
+                title={sidebarCollapsed ? item.name : ''}
+              >
+                <div className="relative shrink-0">
+                  <Icon className={`w-[18px] h-[18px] ${!sidebarCollapsed ? 'ml-2.5' : ''}`} />
+                  {sidebarCollapsed && badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  )}
+                </div>
+                {!sidebarCollapsed && <span className="flex-1 truncate">{item.name}</span>}
+                {!sidebarCollapsed && badge > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer */}
+        <div className="px-2 py-3 border-t border-slate-200 dark:border-[#1a1f2e] space-y-0.5 shrink-0">
+          <button
+            onClick={toggleDarkMode}
+            className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors`}
+            title={sidebarCollapsed ? (isDark ? 'מצב בהיר' : 'מצב כהה') : ''}
+          >
+            {isDark ? (
+              <>
+                <Sun className={`w-[18px] h-[18px] ${!sidebarCollapsed ? 'ml-2.5' : ''}`} />
+                {!sidebarCollapsed && 'מצב בהיר'}
+              </>
+            ) : (
+              <>
+                <Moon className={`w-[18px] h-[18px] ${!sidebarCollapsed ? 'ml-2.5' : ''}`} />
+                {!sidebarCollapsed && 'מצב כהה'}
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleLogout}
+            className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''} w-full px-3 py-2 text-sm font-medium text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors`}
+            title={sidebarCollapsed ? 'התנתק' : ''}
+          >
+            <LogOut className={`w-[18px] h-[18px] ${!sidebarCollapsed ? 'ml-2.5' : ''}`} />
+            {!sidebarCollapsed && 'התנתק'}
+          </button>
         </div>
       </aside>
 
       {/* Main content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:mr-20' : 'lg:mr-64'}`}>
-        {/* Top bar */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
-          <div className="flex items-center justify-between h-16 px-4">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:mr-[72px]' : 'lg:mr-64'}`}>
+        {/* Top bar — mobile only */}
+        <header className="bg-white dark:bg-[#080c14] border-b border-slate-200 dark:border-[#1a1f2e] lg:hidden">
+          <div className="flex items-center justify-between h-14 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-md"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              CRM Musican
-            </h1>
+            <div className="flex items-center gap-2">
+              <MusicNote className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              <span className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
+                CRM Musican
+              </span>
+            </div>
           </div>
         </header>
 

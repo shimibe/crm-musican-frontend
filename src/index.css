@@ -1,16 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Direction ────────────────────────────────────────── */
 * {
   direction: rtl;
 }
 
+/* ── Base ─────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Rubik', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+}
+
+html.dark body {
+  background-color: #0b0e1a;
+}
+
+/* ── Text selection ───────────────────────────────────── */
+::selection {
+  background-color: #818cf8;
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background-color: #818cf8;
+  color: #ffffff;
+}
+
+/* ── Focus ring ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Custom scrollbar (WebKit) ────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ── Scrollbar (Firefox) ──────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+html.dark * {
+  scrollbar-color: #334155 transparent;
+}
+
+/* ── Caret ────────────────────────────────────────────── */
+input, textarea {
+  caret-color: #4f46e5;
+}
+
+/* ── Numeric tabular figures ──────────────────────────── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

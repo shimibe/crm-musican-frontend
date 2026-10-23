@@ -19,10 +19,10 @@ const SECTION_DEFS = [
 ];
 
 const PROJECT_STATUS_BADGE = {
-	'פתוח':         'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-	'בעבודה':       'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-	'ממתין לאישור': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-	'הסתיים':       'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+	'פתוח':         'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+	'בעבודה':       'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400',
+	'ממתין לאישור': 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+	'הסתיים':       'bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400',
 };
 
 const getDaysOpen = (project) => {
@@ -36,25 +36,25 @@ const getDaysOpen = (project) => {
 
 // ─── SectionHeader ────────────────────────────────────────────────────────────
 const SectionHeader = ({ onHide, icon, title, badge, link, linkLabel }) => (
-	<div className="p-6 border-b border-gray-200 dark:border-gray-700">
+	<div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700/50">
 		<div className="flex items-center justify-between">
 			<div className="flex items-center gap-2">
-				{icon}
-				<h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+				{icon && <span className="text-primary-500 dark:text-primary-400">{icon}</span>}
+				<h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100">{title}</h2>
 				{badge}
 			</div>
 			<div className="flex items-center gap-2">
 				{link && (
-					<Link to={link} className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+					<Link to={link} className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium">
 						{linkLabel || 'צפה בהכל'}
 					</Link>
 				)}
 				<button
 					onClick={onHide}
-					className="p-1 text-gray-300 hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400 rounded transition-colors"
+					className="p-1 text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 rounded-md transition-colors"
 					title="הסתר"
 				>
-					<EyeOff className="w-4 h-4" />
+					<EyeOff className="w-3.5 h-3.5" />
 				</button>
 			</div>
 		</div>
@@ -190,29 +190,34 @@ const Dashboard = () => {
 		new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(amount);
 
 	const ChangeChip = ({ value }) => {
-		if (value === null) return <span className="text-xs text-gray-400">אין נתון</span>;
+		if (value === null) return <span className="text-xs text-slate-400">אין נתון</span>;
 		const num = parseFloat(value);
 		const isUp = num >= 0;
 		return (
-			<span className={`inline-flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-				{isUp ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+			<span className={`inline-flex items-center gap-0.5 text-sm font-semibold tabular-nums ${isUp ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
+				{isUp ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
 				{Math.abs(num)}%
 			</span>
 		);
 	};
 
-	const getPriorityColor = (p) => ({ high: "text-red-600 dark:text-red-400", medium: "text-yellow-600 dark:text-yellow-400", low: "text-green-600 dark:text-green-400" }[p] || "text-gray-600 dark:text-gray-400");
-	const getPriorityText = (p) => ({ high: "גבוהה", medium: "בינונית", low: "נמוכה" }[p] || p);
+	const getPriorityColor = (p) => ({
+		high:   "text-red-500 dark:text-red-400",
+		medium: "text-amber-500 dark:text-amber-400",
+		low:    "text-emerald-600 dark:text-emerald-400",
+		urgent: "text-red-600 dark:text-red-300 font-bold",
+	}[p] || "text-slate-400");
+	const getPriorityText = (p) => ({ high: "גבוהה", medium: "בינונית", low: "נמוכה", urgent: "דחוף" }[p] || p);
 	const getStatusText = (s) => ({ open: "פתוח", in_progress: "בטיפול", closed: "סגור" }[s] || s);
 
 	const getRepairStatusClass = (color) => ({
-		red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-		yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-		green: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-		blue: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-		orange: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-		purple: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-	}[color] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300');
+		red:    'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400',
+		yellow: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
+		green:  'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+		blue:   'bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400',
+		orange: 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400',
+		purple: 'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400',
+	}[color] || 'bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-400');
 
 	const getActionText = (log) => {
 		let action = log.action;
@@ -251,8 +256,9 @@ const Dashboard = () => {
 
 	if (loading) {
 		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="text-gray-500 dark:text-gray-400">טוען...</div>
+			<div className="flex flex-col items-center justify-center h-64 gap-3">
+				<div className="w-8 h-8 rounded-full border-[3px] border-slate-200 dark:border-slate-700 border-t-primary-600 animate-spin" />
+				<span className="text-sm text-slate-400 dark:text-slate-500">טוען...</span>
 			</div>
 		);
 	}
@@ -261,23 +267,31 @@ const Dashboard = () => {
 		? <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full">{count}</span>
 		: null;
 
+	// Shared card class
+	const card = "bg-white dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-700/50";
+	const rowHover = "hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors";
+
 	return (
-		<div className="space-y-6">
+		<div className="space-y-5 max-w-4xl">
 			{/* Welcome */}
-			<div>
-				<h1 className="text-2xl font-bold text-gray-900 dark:text-white">שלום, {user?.fullName}</h1>
-				<p className="text-gray-600 dark:text-gray-400">סקירה כללית של הפעילות שלך</p>
+			<div className="pt-1">
+				<h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+					שלום, {user?.fullName}
+				</h1>
+				<p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
+					סקירה כללית של הפעילות שלך
+				</p>
 			</div>
 
 			{/* Restore hidden sections */}
 			{restorableHidden.length > 0 && (
 				<div className="flex items-center gap-2 flex-wrap">
-					<span className="text-xs text-gray-400 dark:text-gray-500">מוסתרים:</span>
+					<span className="text-xs text-slate-400 dark:text-slate-500">מוסתרים:</span>
 					{restorableHidden.map(s => (
 						<button
 							key={s.id}
 							onClick={() => showSection(s.id)}
-							className="flex items-center gap-1 text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+							className="flex items-center gap-1 text-xs px-2.5 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
 						>
 							<Eye className="w-3 h-3" />
 							{s.label}
@@ -291,47 +305,27 @@ const Dashboard = () => {
 				<div className="relative">
 					<button
 						onClick={() => hideSection('stats')}
-						className="absolute -top-2 left-0 z-10 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+						className="absolute -top-1 left-0 z-10 flex items-center gap-1 text-xs text-slate-300 hover:text-slate-500 dark:text-slate-600 dark:hover:text-slate-400 transition-colors"
 						title="הסתר"
 					>
 						<EyeOff className="w-3.5 h-3.5" />
 					</button>
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
-						<Link to="/admin" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-							<div className="flex items-center">
-								<Users className="w-8 h-8 text-primary-600" />
-								<div className="mr-4">
-									<p className="text-sm text-gray-600 dark:text-gray-400">משתמשים פעילים</p>
-									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_users}</p>
-								</div>
-							</div>
+					<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
+						<Link to="/admin" className={`${card} p-5 hover:border-primary-300 dark:hover:border-primary-600/50 transition-colors`}>
+							<p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">משתמשים פעילים</p>
+							<p className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{stats.active_users}</p>
 						</Link>
-						<Link to="/customers" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-							<div className="flex items-center">
-								<Users className="w-8 h-8 text-green-600" />
-								<div className="mr-4">
-									<p className="text-sm text-gray-600 dark:text-gray-400">לקוחות פעילים</p>
-									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_customers}</p>
-								</div>
-							</div>
+						<Link to="/customers" className={`${card} p-5 hover:border-primary-300 dark:hover:border-primary-600/50 transition-colors`}>
+							<p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">לקוחות פעילים</p>
+							<p className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{stats.active_customers}</p>
 						</Link>
-						<Link to="/tasks" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-							<div className="flex items-center">
-								<CheckSquare className="w-8 h-8 text-yellow-600" />
-								<div className="mr-4">
-									<p className="text-sm text-gray-600 dark:text-gray-400">משימות פתוחות</p>
-									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.open_tasks}</p>
-								</div>
-							</div>
+						<Link to="/tasks" className={`${card} p-5 hover:border-primary-300 dark:hover:border-primary-600/50 transition-colors`}>
+							<p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">משימות פתוחות</p>
+							<p className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{stats.open_tasks}</p>
 						</Link>
-						<Link to="/activity" className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-							<div className="flex items-center">
-								<TrendingUp className="w-8 h-8 text-purple-600" />
-								<div className="mr-4">
-									<p className="text-sm text-gray-600 dark:text-gray-400">פעולות היום</p>
-									<p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.actions_last_24h}</p>
-								</div>
-							</div>
+						<Link to="/activity" className={`${card} p-5 hover:border-primary-300 dark:hover:border-primary-600/50 transition-colors`}>
+							<p className="text-xs font-medium text-slate-400 dark:text-slate-500 mb-2">פעולות היום</p>
+							<p className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{stats.actions_last_24h}</p>
 						</Link>
 					</div>
 				</div>
@@ -339,37 +333,37 @@ const Dashboard = () => {
 
 			{/* משמרות החודש */}
 			{monthShifts && !isHidden('shifts') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('shifts')}
-						icon={<Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						icon={<Clock className="w-4 h-4" />}
 						title={`משמרות ${monthName}`}
 						link="/attendance"
 						linkLabel="לדף נוכחות"
 					/>
-					<div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-						<div className="text-center">
-							<p className="text-2xl font-bold text-gray-900 dark:text-white">{parseFloat(monthShifts.totalHours).toFixed(1)}</p>
-							<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">שעות סה"כ</p>
+					<div className="p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
+						<div>
+							<p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{parseFloat(monthShifts.totalHours).toFixed(1)}</p>
+							<p className="text-xs text-slate-400 dark:text-slate-500 mt-1">שעות סה"כ</p>
 						</div>
-						<div className="text-center">
-							<p className="text-2xl font-bold text-gray-900 dark:text-white">{monthShifts.totalDays}</p>
-							<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ימי עבודה</p>
+						<div>
+							<p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">{monthShifts.totalDays}</p>
+							<p className="text-xs text-slate-400 dark:text-slate-500 mt-1">ימי עבודה</p>
 						</div>
-						<div className="text-center">
-							<p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{monthShifts.workFromOffice}</p>
-							<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ימי משרד</p>
+						<div>
+							<p className="text-2xl font-bold text-primary-600 dark:text-primary-400 tabular-nums">{monthShifts.workFromOffice}</p>
+							<p className="text-xs text-slate-400 dark:text-slate-500 mt-1">ימי משרד</p>
 						</div>
-						<div className="text-center">
-							<p className="text-2xl font-bold text-green-600 dark:text-green-400">{monthShifts.workFromHome}</p>
-							<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">ימי בית</p>
+						<div>
+							<p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{monthShifts.workFromHome}</p>
+							<p className="text-xs text-slate-400 dark:text-slate-500 mt-1">ימי בית</p>
 						</div>
 					</div>
 					{monthShifts.estimatedSalary > 0 && (
-						<div className="px-6 pb-6">
-							<div className="bg-gray-50 dark:bg-gray-700/50 rounded-md px-4 py-3 flex justify-between items-center">
-								<span className="text-sm text-gray-600 dark:text-gray-400">שכר משוער</span>
-								<span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(monthShifts.estimatedSalary)}</span>
+						<div className="px-5 pb-5">
+							<div className="bg-slate-50 dark:bg-white/[0.03] rounded-lg px-4 py-3 flex justify-between items-center border border-slate-100 dark:border-slate-700/30">
+								<span className="text-xs text-slate-500 dark:text-slate-400">שכר משוער</span>
+								<span className="text-sm font-semibold text-slate-800 dark:text-white tabular-nums">{formatCurrency(monthShifts.estimatedSalary)}</span>
 							</div>
 						</div>
 					)}
@@ -378,13 +372,13 @@ const Dashboard = () => {
 
 			{/* פרויקטים */}
 			{canSeeProjects && !isHidden('projects') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('projects')}
-						icon={<FolderOpen className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						icon={<FolderOpen className="w-4 h-4" />}
 						title="פרויקטים פעילים"
 						badge={myProjects.length > 0 && (
-							<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-blue-500 rounded-full">
+							<span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-primary-500 rounded-full">
 								{myProjects.length}
 							</span>
 						)}
@@ -392,31 +386,30 @@ const Dashboard = () => {
 						linkLabel="לדף פרויקטים"
 					/>
 					{myProjects.length === 0 ? (
-						<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין פרויקטים פעילים</div>
+						<div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">אין פרויקטים פעילים</div>
 					) : isFreelancer ? (
-						// Freelancer: full list
-						<div className="divide-y divide-gray-200 dark:divide-gray-700">
+						<div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 							{myProjects.map(p => {
 								const label = p.status_label || 'פתוח';
 								const days = getDaysOpen(p);
 								return (
-									<div key={p.id} className="p-4 flex items-center justify-between gap-4">
+									<div key={p.id} className={`px-5 py-3.5 flex items-center justify-between gap-4 ${rowHover}`}>
 										<div className="flex-1 min-w-0">
 											<div className="flex items-center gap-2">
 												{p.project_code && (
-													<span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">#{p.project_code}</span>
+													<span className="text-xs font-mono text-slate-400 dark:text-slate-500 shrink-0">#{p.project_code}</span>
 												)}
-												<span className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</span>
+												<span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{p.name}</span>
 											</div>
 											{p.description && (
-												<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{p.description}</p>
+												<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">{p.description}</p>
 											)}
 										</div>
 										<div className="flex items-center gap-2 shrink-0">
 											<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
 												{label}
 											</span>
-											<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+											<span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap">
 												{days === 0 ? 'היום' : `${days} ימים`}
 											</span>
 										</div>
@@ -425,37 +418,36 @@ const Dashboard = () => {
 							})}
 						</div>
 					) : (
-						// Admin/Manager: summary + recent list
 						<div>
-							<div className="px-6 pt-4 pb-2 flex flex-wrap gap-2">
+							<div className="px-5 pt-4 pb-2 flex flex-wrap gap-1.5">
 								{Object.entries(projectStatusCounts).map(([label, count]) => (
 									<span key={label} className={`text-xs px-2.5 py-1 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
 										{label}: {count}
 									</span>
 								))}
 							</div>
-							<div className="divide-y divide-gray-200 dark:divide-gray-700">
+							<div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 								{myProjects.slice(0, 6).map(p => {
 									const label = p.status_label || 'פתוח';
 									const days = getDaysOpen(p);
 									return (
-										<div key={p.id} className="px-6 py-3 flex items-center justify-between gap-4">
+										<div key={p.id} className={`px-5 py-3 flex items-center justify-between gap-4 ${rowHover}`}>
 											<div className="flex-1 min-w-0">
 												<div className="flex items-center gap-2">
 													{p.project_code && (
-														<span className="text-xs font-mono text-gray-400 dark:text-gray-500 shrink-0">#{p.project_code}</span>
+														<span className="text-xs font-mono text-slate-400 dark:text-slate-500 shrink-0">#{p.project_code}</span>
 													)}
-													<span className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</span>
+													<span className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{p.name}</span>
 												</div>
 												{p.freelancer_name && (
-													<p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.freelancer_name}</p>
+													<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{p.freelancer_name}</p>
 												)}
 											</div>
 											<div className="flex items-center gap-2 shrink-0">
 												<span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROJECT_STATUS_BADGE[label] || PROJECT_STATUS_BADGE['פתוח']}`}>
 													{label}
 												</span>
-												<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+												<span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap">
 													{days === 0 ? 'היום' : `${days} ימים`}
 												</span>
 											</div>
@@ -463,7 +455,7 @@ const Dashboard = () => {
 									);
 								})}
 								{myProjects.length > 6 && (
-									<div className="px-6 py-3 text-xs text-gray-400 dark:text-gray-500">
+									<div className="px-5 py-3 text-xs text-slate-400 dark:text-slate-500">
 										ועוד {myProjects.length - 6} פרויקטים...
 									</div>
 								)}
@@ -475,30 +467,30 @@ const Dashboard = () => {
 
 			{/* מכירות החודש */}
 			{!isFreelancer && salesStats !== null && !isHidden('sales') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('sales')}
-						icon={<DollarSign className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						icon={<DollarSign className="w-4 h-4" />}
 						title={`מכירות ${monthName}`}
 						link="/sales"
 						linkLabel="לדף מכירות"
 					/>
-					<div className="p-6">
-						<div className="flex items-end gap-3 mb-4">
-							<span className="text-3xl font-bold text-gray-900 dark:text-white">
+					<div className="p-5">
+						<div className="flex items-end gap-2.5 mb-4">
+							<span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
 								{formatCurrency(salesStats.currentTotal)}
 							</span>
 							{salesStats.currentCount !== null && (
-								<span className="text-sm text-gray-500 dark:text-gray-400 mb-1">({salesStats.currentCount} מכירות)</span>
+								<span className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">({salesStats.currentCount} מכירות)</span>
 							)}
 						</div>
-						<div className="grid grid-cols-2 gap-4">
-							<div className="bg-gray-50 dark:bg-gray-700/50 rounded-md px-4 py-3">
-								<p className="text-xs text-gray-500 dark:text-gray-400 mb-1">לעומת החודש הקודם</p>
+						<div className="grid grid-cols-2 gap-3">
+							<div className="bg-slate-50 dark:bg-white/[0.03] rounded-lg px-4 py-3 border border-slate-100 dark:border-slate-700/30">
+								<p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">לעומת החודש הקודם</p>
 								<ChangeChip value={calcChange(salesStats.currentTotal, salesStats.prevTotal)} />
 							</div>
-							<div className="bg-gray-50 dark:bg-gray-700/50 rounded-md px-4 py-3">
-								<p className="text-xs text-gray-500 dark:text-gray-400 mb-1">לעומת {monthName} אשתקד</p>
+							<div className="bg-slate-50 dark:bg-white/[0.03] rounded-lg px-4 py-3 border border-slate-100 dark:border-slate-700/30">
+								<p className="text-xs text-slate-400 dark:text-slate-500 mb-1.5">לעומת {monthName} אשתקד</p>
 								<ChangeChip value={calcChange(salesStats.currentTotal, salesStats.yearAgoTotal)} />
 							</div>
 						</div>
@@ -508,27 +500,32 @@ const Dashboard = () => {
 
 			{/* המשימות שלי */}
 			{!isFreelancer && !isHidden('tasks') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('tasks')}
+						icon={<CheckSquare className="w-4 h-4" />}
 						title="המשימות שלי"
 						badge={<BadgeCount count={myTasksCount} />}
 						link="/tasks"
 					/>
-					<div className="divide-y divide-gray-200 dark:divide-gray-700">
+					<div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{myTasks.length === 0 ? (
-							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין משימות פתוחות</div>
+							<div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">אין משימות פתוחות</div>
 						) : (
 							myTasks.map((task) => (
-								<div key={task.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-									<div className="flex items-center justify-between">
-										<div className="flex-1">
-											<h3 className="text-sm font-medium text-gray-900 dark:text-white">{task.title}</h3>
-											{task.customer_name && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">לקוח: {task.customer_name}</p>}
+								<div key={task.id} className={`px-5 py-3.5 ${rowHover}`}>
+									<div className="flex items-center justify-between gap-4">
+										<div className="flex-1 min-w-0">
+											<h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{task.title}</h3>
+											{task.customer_name && (
+												<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">לקוח: {task.customer_name}</p>
+											)}
 										</div>
-										<div className="flex items-center gap-2">
-											<span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>{getPriorityText(task.priority)}</span>
-											<span className="text-xs text-gray-500 dark:text-gray-400">{getStatusText(task.status)}</span>
+										<div className="flex items-center gap-2 shrink-0">
+											<span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
+												{getPriorityText(task.priority)}
+											</span>
+											<span className="text-xs text-slate-400 dark:text-slate-500">{getStatusText(task.status)}</span>
 										</div>
 									</div>
 								</div>
@@ -540,38 +537,38 @@ const Dashboard = () => {
 
 			{/* התיקונים שלי */}
 			{!isFreelancer && !isHidden('repairs') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('repairs')}
-						icon={<Wrench className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
+						icon={<Wrench className="w-4 h-4" />}
 						title="התיקונים שלי"
 						badge={<BadgeCount count={myRepairsCount} />}
 						link="/repairs"
 					/>
-					<div className="divide-y divide-gray-200 dark:divide-gray-700">
+					<div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{myRepairs.length === 0 ? (
-							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין בקשות תיקון פתוחות</div>
+							<div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">אין בקשות תיקון פתוחות</div>
 						) : (
 							myRepairs.map((repair) => (
-								<div key={repair.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+								<div key={repair.id} className={`px-5 py-3.5 ${rowHover}`}>
 									<div className="flex items-center justify-between gap-4">
 										<div className="flex-1 min-w-0">
-											<p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+											<p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
 												{repair.details ? repair.details.substring(0, 60) + (repair.details.length > 60 ? '...' : '') : repair.type_name || 'ללא פירוט'}
 											</p>
-											<div className="flex items-center gap-3 mt-1 flex-wrap">
-												{repair.type_name && <span className="text-xs text-gray-500 dark:text-gray-400">{repair.type_name}</span>}
-												{repair.customer_name && <span className="text-xs text-gray-500 dark:text-gray-400">לקוח: {repair.customer_name}</span>}
+											<div className="flex items-center gap-3 mt-0.5 flex-wrap">
+												{repair.type_name && <span className="text-xs text-slate-400 dark:text-slate-500">{repair.type_name}</span>}
+												{repair.customer_name && <span className="text-xs text-slate-400 dark:text-slate-500">לקוח: {repair.customer_name}</span>}
 											</div>
 										</div>
-										<div className="flex items-center gap-2 flex-shrink-0">
+										<div className="flex items-center gap-2 shrink-0">
 											{repair.status_name && (
 												<span className={`text-xs font-medium px-2 py-0.5 rounded-full ${getRepairStatusClass(repair.status_color)}`}>
 													{repair.status_name}
 												</span>
 											)}
 											{repair.days_open != null && (
-												<span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{repair.days_open} ימים</span>
+												<span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums whitespace-nowrap">{repair.days_open} ימים</span>
 											)}
 										</div>
 									</div>
@@ -584,37 +581,40 @@ const Dashboard = () => {
 
 			{/* פעילות אחרונה */}
 			{!isFreelancer && !isHidden('activity') && (
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+				<div className={card}>
 					<SectionHeader
 						onHide={() => hideSection('activity')}
+						icon={<Activity className="w-4 h-4" />}
 						title="פעילות אחרונה שלי"
 						link="/activity"
 					/>
-					<div className="divide-y divide-gray-200 dark:divide-gray-700">
+					<div className="divide-y divide-slate-100 dark:divide-slate-700/50">
 						{recentActivity.length === 0 ? (
-							<div className="p-6 text-center text-gray-500 dark:text-gray-400">אין פעילות אחרונה</div>
+							<div className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">אין פעילות אחרונה</div>
 						) : (
 							recentActivity.map((log) => {
 								const entityName = getEntityName(log);
 								return (
-									<div key={log.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700">
+									<div key={log.id} className={`px-5 py-3.5 ${rowHover}`}>
 										<div className="flex items-start gap-3">
-											<Activity className="w-5 h-5 text-primary-600 dark:text-primary-400 mt-0.5" />
-											<div className="flex-1">
-												<div className="flex items-center gap-2 flex-wrap">
+											<div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-500/10 flex items-center justify-center shrink-0 mt-0.5">
+												<Activity className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+											</div>
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-1.5 flex-wrap text-sm">
 													{log.via_api && log.api_token_name ? (
 														<>
-															<span className="font-medium text-gray-900 dark:text-white">{log.api_token_name}</span>
-															<span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">API</span>
+															<span className="font-semibold text-slate-800 dark:text-slate-100">{log.api_token_name}</span>
+															<span className="px-1.5 py-0.5 text-xs bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400 rounded font-medium">API</span>
 														</>
 													) : (
-														<span className="font-medium text-gray-900 dark:text-white">{log.full_name || log.username || "משתמש לא ידוע"}</span>
+														<span className="font-semibold text-slate-800 dark:text-slate-100">{log.full_name || log.username || "משתמש לא ידוע"}</span>
 													)}
-													<span className="text-gray-600 dark:text-gray-400">{getActionText(log)}</span>
-													{log.table_name && <span className="text-gray-600 dark:text-gray-400">{getTableText(log.table_name)}</span>}
-													{entityName && <span className="text-primary-600 dark:text-primary-400 font-medium">"{entityName}"</span>}
+													<span className="text-slate-500 dark:text-slate-400">{getActionText(log)}</span>
+													{log.table_name && <span className="text-slate-500 dark:text-slate-400">{getTableText(log.table_name)}</span>}
+													{entityName && <span className="text-primary-600 dark:text-primary-400 font-medium truncate">"{entityName}"</span>}
 												</div>
-												<p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+												<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
 													{new Date(log.created_at).toLocaleString("he-IL", {
 														year: "numeric", month: "long", day: "numeric",
 														hour: "2-digit", minute: "2-digit",
