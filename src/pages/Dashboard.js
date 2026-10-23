@@ -272,7 +272,7 @@ const Dashboard = () => {
 	const rowHover = "hover:bg-slate-50/70 dark:hover:bg-white/[0.03] transition-colors";
 
 	return (
-		<div className="space-y-5 max-w-4xl">
+		<div className="space-y-5 max-w-4xl mx-auto">
 			{/* Welcome */}
 			<div className="pt-1">
 				<h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
