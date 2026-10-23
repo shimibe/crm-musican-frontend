@@ -60,6 +60,23 @@ const Repairs = () => {
   useEffect(() => { localStorage.setItem('repairs_sortDir', sortDir); }, [sortDir]);
   useEffect(() => { localStorage.setItem('repairs_showCompleted', String(showCompleted)); }, [showCompleted]);
 
+  const [collapsedGroups, setCollapsedGroups] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('repairs_collapsedGroups') || '[]')); }
+    catch { return new Set(); }
+  });
+  useEffect(() => {
+    localStorage.setItem('repairs_collapsedGroups', JSON.stringify([...collapsedGroups]));
+  }, [collapsedGroups]);
+
+  /** @param {string} typeName */
+  const toggleGroup = (typeName) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      next.has(typeName) ? next.delete(typeName) : next.add(typeName);
+      return next;
+    });
+  };
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingRepair, setEditingRepair] = useState(null);
@@ -652,7 +669,10 @@ const Repairs = () => {
                         </tr>
                       )}
                       {/* Group header */}
-                      <tr className="bg-gray-100 dark:bg-gray-700/80 border-b-0">
+                      <tr
+                        className="bg-gray-100 dark:bg-gray-700/80 border-b-0 cursor-pointer select-none hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => toggleGroup(typeName)}
+                      >
                         <td colSpan={9} className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
                             <FaWrench className="w-3 h-3 text-gray-500 dark:text-gray-400" />
@@ -662,11 +682,16 @@ const Repairs = () => {
                             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded-full">
                               {items.length}
                             </span>
+                            <span className="mr-auto text-gray-400 dark:text-gray-500">
+                              {collapsedGroups.has(typeName)
+                                ? <ChevronDown className="w-4 h-4" />
+                                : <ChevronUp className="w-4 h-4" />}
+                            </span>
                           </div>
                         </td>
                       </tr>
                       {/* Group rows */}
-                      {items.map(repair => renderRepairRow(repair))}
+                      {!collapsedGroups.has(typeName) && items.map(renderRepairRow)}
                     </React.Fragment>
                   ))
                 ) : (
