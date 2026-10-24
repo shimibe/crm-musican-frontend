@@ -51,6 +51,7 @@ const Admin = () => {
     hourly_wage: 0,
     can_edit_attendance: false,
     can_add_projects: true,
+    email_notifications_new_task: true,
   });
 
   // Category modal states
@@ -252,6 +253,7 @@ const Admin = () => {
       hourly_wage: user.hourly_wage || 0,
       can_edit_attendance: user.can_edit_attendance || false,
       can_add_projects: user.can_add_projects !== false,
+      email_notifications_new_task: user.preferences?.email_notifications?.new_task !== false,
     });
     setShowUserModal(true);
   };
@@ -269,6 +271,7 @@ const Admin = () => {
         hourly_wage: parseFloat(userForm.hourly_wage) || 0,
         can_edit_attendance: userForm.can_edit_attendance,
         can_add_projects: userForm.can_add_projects,
+        email_notifications_new_task: userForm.email_notifications_new_task,
       };
 
       if (editingUser) {
@@ -1312,6 +1315,17 @@ const Admin = () => {
                   </label>
                 </div>
               )}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={userForm.email_notifications_new_task}
+                  onChange={(e) => setUserForm({ ...userForm, email_notifications_new_task: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label className="mr-2 text-sm text-gray-700 dark:text-gray-300">
+                  קבל מיילים על משימות חדשות
+                </label>
+              </div>
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
