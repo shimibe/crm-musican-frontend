@@ -11,6 +11,7 @@ const SettingsTab = ({ settings, reload }) => {
         daily_budget_usd: settings.daily_budget_usd,
         monthly_budget_usd: settings.monthly_budget_usd,
         manager_email: settings.manager_email || '',
+        manager_email_enabled: settings.manager_email_enabled !== false,
         telegram_chat_id: settings.telegram_chat_id || '',
       });
   }, [settings]);
@@ -39,6 +40,14 @@ const SettingsTab = ({ settings, reload }) => {
         </Field>
         <Field label="מייל מנהל" hint="סיכום יומי ודוחות שיחות">
           <input type="email" className={input} dir="ltr" value={f.manager_email ?? ''} onChange={set('manager_email')} />
+          <label className="flex items-center gap-2 mt-2 cursor-pointer select-none text-sm">
+            <input
+              type="checkbox"
+              checked={f.manager_email_enabled ?? true}
+              onChange={(e) => setF({ ...f, manager_email_enabled: e.target.checked })}
+            />
+            <span>שליחת מיילים מופעלת</span>
+          </label>
         </Field>
         <Field label="Telegram chat ID" hint="בקשות אישור והתערבות, עם כפתורים">
           <input className={input} dir="ltr" value={f.telegram_chat_id ?? ''} onChange={set('telegram_chat_id')} />
