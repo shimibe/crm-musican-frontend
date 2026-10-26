@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Bot, RefreshCw } from 'lucide-react';
+import { Bot, RefreshCw, Play } from 'lucide-react';
 import api from '../utils/api';
 import { MODE_LABEL } from '../components/agent/ui';
 import OverviewTab from '../components/agent/OverviewTab';
@@ -53,6 +53,19 @@ const AgentYoav = () => {
   const s = overview?.settings;
   const counts = { decisions: overview?.unreviewed_decisions, approvals: overview?.pending_approvals };
 
+  const [runBusy, setRunBusy] = useState(null);
+  const runTask = useCallback(async (key) => {
+    setRunBusy(key);
+    try {
+      await api.post(`/agent/tasks/${key}/run`, {});
+      setTimeout(reload, 800);
+    } catch (e) {
+      alert(e?.response?.data?.error || e.message);
+    } finally {
+      setRunBusy(null);
+    }
+  }, [reload]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -70,9 +83,29 @@ const AgentYoav = () => {
             )}
           </div>
         </div>
-        <button onClick={reload} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" title="רענון">
-          <RefreshCw className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            disabled={!!runBusy}
+            onClick={() => runTask('release_review')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50"
+            title="הרצת בדיקת ריליסים"
+          >
+            {runBusy === 'release_review' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+            בדיקת ריליסים
+          </button>
+          <button
+            disabled={!!runBusy}
+            onClick={() => runTask('crm_followup')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+            title="הרצת ניטור ריליסים"
+          >
+            {runBusy === 'crm_followup' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+            ניטור ריליסים
+          </button>
+          <button onClick={reload} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" title="רענון">
+            <RefreshCw className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {s?.global_mode === 'shadow' && (

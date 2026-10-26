@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Check, X, RefreshCw, AlertCircle, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Check, X, RefreshCw, AlertCircle, ChevronDown, ChevronLeft, Play } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg, input } from './ui';
 
@@ -26,7 +26,7 @@ function parseReleaseDetails(details) {
 }
 
 // ── Single approval card ────────────────────────────────────────────────────
-const ApprovalCard = ({ a, hideDetails, onDecide, onRetry, onDismiss, busy, edits, setEdit }) => {
+const ApprovalCard = ({ a, hideDetails, onDecide, onExecute, onRetry, onDismiss, busy, edits, setEdit }) => {
   const [open, setOpen] = useState(false);
   const [label, cls] = STATUS[a.status] || [a.status, ''];
   const isFailed  = a.status === 'failed';
@@ -105,6 +105,7 @@ const ApprovalCard = ({ a, hideDetails, onDecide, onRetry, onDismiss, busy, edit
               </>
             ) : (
               <>
+                <button disabled={busy === a.id} onClick={() => onExecute(a.id, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-primary-500 text-primary-700 dark:text-primary-400 dark:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 disabled:opacity-50"><Play className="w-3.5 h-3.5" /> בצע פעולה</button>
                 <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> טופל</button>
                 <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">התעלם</button>
               </>
@@ -139,7 +140,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
   const setEdit = (id, key, value) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
 
-  const decide = async (id, approve, proposed) => {
+  const decide = async (id, approve, proposed, execute = false) => {
     setBusy(id);
     try {
       const editedFields = edits[id];
@@ -158,10 +159,12 @@ const ApprovalsTab = ({ onChanged, tick }) => {
         }
         if (changed) override_params = { tool: proposed.tool, params: merged };
       }
-      await api.post(`/agent/approvals/${id}/decide`, { approve, override_params });
+      await api.post(`/agent/approvals/${id}/decide`, { approve, override_params, execute });
       await load(); onChanged?.();
     } catch (e) { alert(errMsg(e)); } finally { setBusy(null); }
   };
+
+  const execute = async (id, proposed) => decide(id, true, proposed, true);
 
   const retry = async (id) => {
     setBusy(id);
@@ -228,6 +231,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                       a={a}
                       hideDetails={isRelease}
                       onDecide={decide}
+                      onExecute={execute}
                       onRetry={retry}
                       onDismiss={dismiss}
                       busy={busy}
