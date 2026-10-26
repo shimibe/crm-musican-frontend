@@ -54,17 +54,21 @@ const AgentYoav = () => {
   const counts = { decisions: overview?.unreviewed_decisions, approvals: overview?.pending_approvals };
 
   const [runBusy, setRunBusy] = useState(null);
+  const [releaseIdInput, setReleaseIdInput] = useState('');
   const runTask = useCallback(async (key) => {
     setRunBusy(key);
     try {
-      await api.post(`/agent/tasks/${key}/run`, {});
+      const params = (key === 'release_review' && releaseIdInput.trim())
+        ? { release_id: releaseIdInput.trim() }
+        : {};
+      await api.post(`/agent/tasks/${key}/run`, { params });
       setTimeout(reload, 800);
     } catch (e) {
       alert(e?.response?.data?.error || e.message);
     } finally {
       setRunBusy(null);
     }
-  }, [reload]);
+  }, [reload, releaseIdInput]);
 
   return (
     <div className="space-y-6">
@@ -84,15 +88,26 @@ const AgentYoav = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            disabled={!!runBusy}
-            onClick={() => runTask('release_review')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50"
-            title="הרצת בדיקת ריליסים"
-          >
-            {runBusy === 'release_review' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            בדיקת ריליסים
-          </button>
+          <div className="flex items-center">
+            <input
+              type="text"
+              value={releaseIdInput}
+              onChange={(e) => setReleaseIdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !runBusy && runTask('release_review')}
+              placeholder="#ריליס"
+              className="w-20 px-2 py-1.5 text-sm border border-l-0 border-primary-200 dark:border-primary-700 rounded-r-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-400"
+              dir="ltr"
+            />
+            <button
+              disabled={!!runBusy}
+              onClick={() => runTask('release_review')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-l-md bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50"
+              title="הרצת בדיקת ריליסים"
+            >
+              {runBusy === 'release_review' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+              בדיקת ריליסים
+            </button>
+          </div>
           <button
             disabled={!!runBusy}
             onClick={() => runTask('crm_followup')}
