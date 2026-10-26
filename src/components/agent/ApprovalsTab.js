@@ -105,7 +105,7 @@ const ApprovalCard = ({ a, hideDetails, onDecide, onExecute, onRetry, onDismiss,
               </>
             ) : (
               <>
-                <button disabled={busy === a.id} onClick={() => onExecute(a.id, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-primary-500 text-primary-700 dark:text-primary-400 dark:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 disabled:opacity-50"><Play className="w-3.5 h-3.5" /> בצע פעולה</button>
+                {a.proposed?.tool && <button disabled={busy === a.id} onClick={() => onExecute(a.id, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-primary-500 text-primary-700 dark:text-primary-400 dark:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 disabled:opacity-50"><Play className="w-3.5 h-3.5" /> בצע פעולה</button>}
                 <button disabled={busy === a.id} onClick={() => onDecide(a.id, true, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> טופל</button>
                 <button disabled={busy === a.id} onClick={() => onDecide(a.id, false, a.proposed)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50">התעלם</button>
               </>
