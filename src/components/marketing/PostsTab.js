@@ -499,6 +499,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text_content || '');
+  const [editPlatforms, setEditPlatforms] = useState(post.platforms || []);
   const [preview, setPreview] = useState(false);
   const [revise, setRevise] = useState(false);
   const [generateImage, setGenerateImage] = useState(false);
@@ -524,9 +525,11 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
     act(() => api.delete(`/marketing/posts/${post.id}`));
   };
   const saveEdit = () => act(async () => {
-    await api.put(`/marketing/posts/${post.id}`, { text_content: editText });
+    await api.put(`/marketing/posts/${post.id}`, { text_content: editText, platforms: editPlatforms });
     setEditing(false);
   });
+  const toggleEditPlatform = (pl) =>
+    setEditPlatforms((prev) => prev.includes(pl) ? prev.filter((p) => p !== pl) : [...prev, pl]);
   const saveVideoUrl = () => act(async () => {
     if (!newVideoUrl.trim()) return;
     await api.post(`/marketing/posts/${post.id}/set-heygen-video`, { video_id: newVideoUrl.trim() });
@@ -599,9 +602,21 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {editing ? (
           <div className="space-y-2">
             <textarea rows={4} value={editText} onChange={(e) => setEditText(e.target.value)} className={input} />
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_PLATFORMS.map((pl) => (
+                <button key={pl} type="button" onClick={() => toggleEditPlatform(pl)}
+                  className={`px-2 py-1 text-xs rounded border transition-colors ${
+                    editPlatforms.includes(pl)
+                      ? 'bg-primary-600 border-primary-600 text-white'
+                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                  }`}>
+                  {PLATFORM_EMOJI[pl]} {PLATFORM_LABEL[pl]}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2">
-              <button onClick={saveEdit} disabled={busy} className={btnSuccess}>שמור</button>
-              <button onClick={() => { setEditing(false); setEditText(post.text_content || ''); }} className={btnGhost}>ביטול</button>
+              <button onClick={saveEdit} disabled={busy || !editPlatforms.length} className={btnSuccess}>שמור</button>
+              <button onClick={() => { setEditing(false); setEditText(post.text_content || ''); setEditPlatforms(post.platforms || []); }} className={btnGhost}>ביטול</button>
             </div>
           </div>
         ) : (
