@@ -610,6 +610,22 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
           </p>
         )}
 
+        {/* First comment */}
+        {post.first_comment && (
+          <div className="mt-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">💬 תגובה ראשונה</span>
+              <button
+                onClick={() => navigator.clipboard.writeText(post.first_comment)}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                title="העתק">
+                העתק
+              </button>
+            </div>
+            <p className="text-xs text-blue-800 dark:text-blue-200 break-all">{post.first_comment}</p>
+          </div>
+        )}
+
         {/* Platform results */}
         {post.platform_results?.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">

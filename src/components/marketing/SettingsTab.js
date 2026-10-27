@@ -43,11 +43,26 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         tiktok_access_token: '',
         heygen_api_key: '',
         did_api_key: '',
+        // CTA per platform
+        platform_cta: initSettings.platform_cta ?? {
+          instagram: { cta_text: 'כל הפרטים בביו 🔗', include_link: false },
+          facebook:  { cta_text: '🎵 האזנה:', include_link: true },
+          tiktok:    { cta_text: 'קישור בביו 👆', include_link: false },
+          youtube:   { cta_text: '', include_link: true },
+        },
       });
     }
   }, [initSettings]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setCta = (platform, field, value) =>
+    setForm((f) => ({
+      ...f,
+      platform_cta: {
+        ...f.platform_cta,
+        [platform]: { ...(f.platform_cta?.[platform] || {}), [field]: value },
+      },
+    }));
 
   const save = async () => {
     setSaving(true); setErr(null); setSaved(false);
@@ -235,6 +250,42 @@ export default function SettingsTab({ settings: initSettings, reload }) {
             <input type="email" value={form.manager_email}
               onChange={(e) => set('manager_email', e.target.value)} className={input} />
           </Field>
+        </div>
+      </Section>
+
+      {/* ── Section 7: CTA per platform ── */}
+      <Section title="קריאה לפעולה לפי פלטפורמה">
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            ניתאי יוסיף את הטקסט לסוף כל פוסט בפלטפורמה המתאימה. אם "כולל קישור" מסומן, הקישור יצורף לטקסט.
+          </p>
+          {PLATFORMS.map((pl) => {
+            const cfg = form.platform_cta?.[pl] || {};
+            return (
+              <div key={pl} className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 w-24 flex-shrink-0">
+                  <span className="text-base">{PLATFORM_EMOJI[pl]}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{PLATFORM_LABEL[pl]}</span>
+                </div>
+                <input
+                  type="text"
+                  value={cfg.cta_text || ''}
+                  onChange={(e) => setCta(pl, 'cta_text', e.target.value)}
+                  placeholder="טקסט CTA (ריק = ללא)"
+                  className={`${input} flex-1 min-w-0 text-sm`}
+                />
+                <label className="flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!cfg.include_link}
+                    onChange={(e) => setCta(pl, 'include_link', e.target.checked)}
+                    className="rounded border-gray-300 dark:border-gray-600"
+                  />
+                  <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">כולל קישור</span>
+                </label>
+              </div>
+            );
+          })}
         </div>
       </Section>
 
