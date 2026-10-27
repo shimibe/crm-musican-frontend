@@ -533,6 +533,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
     setReplaceUrl(false);
     setNewVideoUrl('');
   });
+  const retryPublish = () => act(() => api.post(`/marketing/posts/${post.id}/retry`));
 
   return (
     <div className={`${card} overflow-hidden`}>
@@ -610,6 +611,17 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
           </p>
         )}
 
+        {/* Publish errors (failed posts) */}
+        {post.status === 'failed' && post.platform_results?.some((r) => r.status === 'failed') && (
+          <div className="mt-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 space-y-1">
+            {post.platform_results.filter((r) => r.status === 'failed').map((r) => (
+              <p key={r.platform} className="text-xs text-red-700 dark:text-red-300">
+                <span className="font-medium">{PLATFORM_EMOJI[r.platform]} {PLATFORM_LABEL[r.platform]}:</span> {r.error_message || 'שגיאה לא ידועה'}
+              </p>
+            ))}
+          </div>
+        )}
+
         {/* First comment */}
         {post.first_comment && (
           <div className="mt-2 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
@@ -665,13 +677,17 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {post.status === 'rejected' && (
           <button onClick={() => setRevise(true)} disabled={busy} className={btnGhost}><RotateCcw className="w-3.5 h-3.5" />שלח תיקון</button>
         )}
+        {post.status === 'failed' && <>
+          {!editing && <button onClick={() => setEditing(true)} className={btnGhost}>✏️ ערוך</button>}
+          <button onClick={retryPublish} disabled={busy} className={btnSuccess}><RotateCcw className="w-3.5 h-3.5" />נסה שוב</button>
+        </>}
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
         )}
         {post.status !== 'published' && (
           <button onClick={deletePost} disabled={busy} className={btnDanger} title="מחק פוסט"><Trash2 className="w-3.5 h-3.5" /></button>
         )}
-        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && post.content_type !== 'release_announcement' && (
+        {['draft', 'pending_review', 'approved', 'rejected', 'scheduled', 'failed'].includes(post.status) && post.content_type !== 'release_announcement' && (
           <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost}
             title={VIDEO_TYPES.includes(post.content_type) ? 'יצירת מדיה' : (post.image_url ? 'החלף תמונה' : 'צור תמונה')}>
             {VIDEO_TYPES.includes(post.content_type) ? '🎬' : (post.image_url ? '🔄' : '🖼️')}
