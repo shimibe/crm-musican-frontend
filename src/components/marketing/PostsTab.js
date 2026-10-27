@@ -519,6 +519,10 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
     if (!window.confirm('מחיקת פוסט מהפלטפורמות — פעולה בלתי הפיכה. להמשיך?')) return;
     act(() => api.delete(`/marketing/posts/${post.id}/unpublish`));
   };
+  const deletePost = () => {
+    if (!window.confirm('מחיקת הפוסט — פעולה בלתי הפיכה. להמשיך?')) return;
+    act(() => api.delete(`/marketing/posts/${post.id}`));
+  };
   const saveEdit = () => act(async () => {
     await api.put(`/marketing/posts/${post.id}`, { text_content: editText });
     setEditing(false);
@@ -647,6 +651,9 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         )}
         {post.status === 'published' && (
           <button onClick={unpublish} disabled={busy} className={btnDanger}><Trash2 className="w-3.5 h-3.5" />מחק מפלטפורמות</button>
+        )}
+        {post.status !== 'published' && (
+          <button onClick={deletePost} disabled={busy} className={btnDanger} title="מחק פוסט"><Trash2 className="w-3.5 h-3.5" /></button>
         )}
         {['draft', 'pending_review', 'approved', 'rejected', 'scheduled'].includes(post.status) && post.content_type !== 'release_announcement' && (
           <button onClick={() => setGenerateImage(true)} disabled={busy} className={btnGhost}
