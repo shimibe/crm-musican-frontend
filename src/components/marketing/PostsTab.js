@@ -147,7 +147,7 @@ function ReviseModal({ postId, onClose, onDone }) {
 
 // ── Create post modal ─────────────────────────────────────────────────────
 function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
-  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '', release_id: '' });
+  const [form, setForm] = useState({ text_content: '', image_url: '', platforms: [], scheduled_at: '', content_type: 'image_post', character_id: '', script_text: '', release_id: '', first_comment: '' });
   const [characters, setCharacters] = useState([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -174,6 +174,7 @@ function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
         character_id: form.character_id ? Number(form.character_id) : undefined,
         script_text: form.script_text || undefined,
         release_id: form.release_id || undefined,
+        first_comment: form.first_comment || undefined,
       });
       const typeLabel = form.content_type === 'ugc_video' ? 'סרטון UGC' : form.content_type === 'chen_video' ? 'סרטון חן' : 'תמונה';
       if (isVideo && form.script_text?.trim() && addVideoJob && saved?.id) {
@@ -259,6 +260,11 @@ function CreatePostModal({ onClose, onDone, onCreated, addVideoJob }) {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">תגובה ראשונה / CTA (אופציונלי)</label>
+            <input type="text" value={form.first_comment} onChange={(e) => setForm((f) => ({ ...f, first_comment: e.target.value }))}
+              placeholder="למשל: 🎵 האזנה: https://... · ריק = ללא תגובה" className={input} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">תאריך + שעת פרסום (אופציונלי)</label>
