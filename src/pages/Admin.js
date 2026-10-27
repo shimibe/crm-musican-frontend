@@ -29,11 +29,11 @@ const Admin = () => {
   const [editingCreditType, setEditingCreditType] = useState(null);
   const [creditTypeForm, setCreditTypeForm] = useState({ name: '', description: '' });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('adminActiveTab') || 'users');
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Tools tab state
-  const [retryInvoiceId, setRetryInvoiceId] = useState('');
+  const [retryInvoiceId, setRetryInvoiceId] = useState(() => localStorage.getItem('retryInvoiceId') || '');
   const [retryInvoiceLoading, setRetryInvoiceLoading] = useState(false);
   const [retryInvoiceResult, setRetryInvoiceResult] = useState(null); // { success, message }
 
@@ -120,6 +120,7 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem('adminActiveTab', activeTab);
     if (activeTab === 'settings') {
       loadSettings();
     }
@@ -792,6 +793,7 @@ const Admin = () => {
       await api.post('/tools/retry-invoice', { paymentId: retryInvoiceId.trim() });
       setRetryInvoiceResult({ success: true, message: 'החשבונית הופקה בהצלחה!' });
       setRetryInvoiceId('');
+      localStorage.removeItem('retryInvoiceId');
     } catch (err) {
       const msg = err.response?.data?.error || 'שגיאה בהפקת החשבונית';
       setRetryInvoiceResult({ success: false, message: msg });
@@ -2433,7 +2435,7 @@ const Admin = () => {
                   <input
                     type="text"
                     value={retryInvoiceId}
-                    onChange={(e) => { setRetryInvoiceId(e.target.value); setRetryInvoiceResult(null); }}
+                    onChange={(e) => { setRetryInvoiceId(e.target.value); localStorage.setItem('retryInvoiceId', e.target.value); setRetryInvoiceResult(null); }}
                     placeholder="הדבק את ה-ID מתיאור המשימה"
                     dir="ltr"
                     className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-orange-400"
