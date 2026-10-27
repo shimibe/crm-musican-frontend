@@ -499,6 +499,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text_content || '');
+  const [editFirstComment, setEditFirstComment] = useState(post.first_comment || '');
   const [editPlatforms, setEditPlatforms] = useState(post.platforms || []);
   const [preview, setPreview] = useState(false);
   const [revise, setRevise] = useState(false);
@@ -525,7 +526,11 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
     act(() => api.delete(`/marketing/posts/${post.id}`));
   };
   const saveEdit = () => act(async () => {
-    await api.put(`/marketing/posts/${post.id}`, { text_content: editText, platforms: editPlatforms });
+    await api.put(`/marketing/posts/${post.id}`, {
+      text_content: editText,
+      platforms: editPlatforms,
+      first_comment: editFirstComment || null,
+    });
     setEditing(false);
   });
   const toggleEditPlatform = (pl) =>
@@ -602,6 +607,13 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
         {editing ? (
           <div className="space-y-2">
             <textarea rows={4} value={editText} onChange={(e) => setEditText(e.target.value)} className={input} />
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">💬 תגובה ראשונה (CTA)</label>
+              <input type="text" value={editFirstComment}
+                onChange={(e) => setEditFirstComment(e.target.value)}
+                placeholder="למשל: 🎵 האזנה: https://... · ריק = ללא תגובה"
+                className={`${input} text-sm`} />
+            </div>
             <div className="flex flex-wrap gap-1.5">
               {ALL_PLATFORMS.map((pl) => (
                 <button key={pl} type="button" onClick={() => toggleEditPlatform(pl)}
@@ -616,7 +628,7 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
             </div>
             <div className="flex gap-2">
               <button onClick={saveEdit} disabled={busy || !editPlatforms.length} className={btnSuccess}>שמור</button>
-              <button onClick={() => { setEditing(false); setEditText(post.text_content || ''); setEditPlatforms(post.platforms || []); }} className={btnGhost}>ביטול</button>
+              <button onClick={() => { setEditing(false); setEditText(post.text_content || ''); setEditFirstComment(post.first_comment || ''); setEditPlatforms(post.platforms || []); }} className={btnGhost}>ביטול</button>
             </div>
           </div>
         ) : (
