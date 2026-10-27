@@ -568,7 +568,19 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
               <span key={pl} className="text-xs text-gray-500 dark:text-gray-400">{PLATFORM_EMOJI[pl]} {PLATFORM_LABEL[pl]}</span>
             ))}
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {post.conversion_score != null && (
+              <span title={post.conversion_reasoning || ''}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium cursor-default ${
+                  post.conversion_score >= 0.7
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    : post.conversion_score >= 0.4
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                }`}>
+                ● {Math.round(post.conversion_score * 100)}%
+              </span>
+            )}
             <button onClick={() => setPreview(true)} title="תצוגה מקדימה" className="p-1.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
               <Eye className="w-4 h-4" />
             </button>

@@ -43,6 +43,10 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         tiktok_access_token: '',
         heygen_api_key: '',
         did_api_key: '',
+        // Brand guidelines
+        brand_guidelines: initSettings.brand_guidelines ?? {
+          logo_url: '', primary_color: '', tone_voice: '', brand_tagline: '', target_audience: '',
+        },
         // CTA per platform
         platform_cta: initSettings.platform_cta ?? {
           instagram: { cta_text: 'כל הפרטים בביו 🔗', include_link: false },
@@ -253,7 +257,27 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         </div>
       </Section>
 
-      {/* ── Section 7: CTA per platform ── */}
+      {/* ── Section 7: Brand guidelines ── */}
+      <Section title="🎨 זהות מותג">
+        <div className="space-y-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">ניתאי ישתמש בפרטים אלה בכל פוסט שייצור — לשמירת עקביות מותגית.</p>
+          {[
+            { key: 'logo_url',        label: 'URL לוגו',       placeholder: 'https://...' },
+            { key: 'brand_tagline',   label: 'סלוגן',          placeholder: 'מפיצים את המוזיקה שלך' },
+            { key: 'tone_voice',      label: 'טון דיבור',      placeholder: 'מקצועי, חם, מעודד — כמו חבר שמבין מוזיקה' },
+            { key: 'target_audience', label: 'קהל יעד',        placeholder: 'אמנים ישראלים 18-45, עצמאים' },
+            { key: 'primary_color',   label: 'צבע מותג ראשי', placeholder: '#1a1a2e' },
+          ].map(({ key, label, placeholder }) => (
+            <Field key={key} label={label}>
+              <input type="text" value={form.brand_guidelines?.[key] ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, brand_guidelines: { ...f.brand_guidelines, [key]: e.target.value } }))}
+                placeholder={placeholder} className={input} />
+            </Field>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── Section 8: CTA per platform ── */}
       <Section title="קריאה לפעולה לפי פלטפורמה">
         <div className="space-y-3">
           <p className="text-xs text-gray-500 dark:text-gray-400">

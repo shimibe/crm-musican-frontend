@@ -9,6 +9,7 @@ import TasksTab      from '../components/marketing/TasksTab';
 import SettingsTab    from '../components/marketing/SettingsTab';
 import LogTab         from '../components/marketing/LogTab';
 import PlaceholderTab  from '../components/marketing/PlaceholderTab';
+import CampaignsTab   from '../components/marketing/CampaignsTab';
 import CharactersTab   from '../components/marketing/CharactersTab';
 import VideoQueue      from '../components/marketing/VideoQueue';
 
@@ -182,9 +183,7 @@ const AgentNitai = () => {
       {tab === 'log'       && <LogTab tick={tick} />}
 
       {/* Placeholder tabs — future phases */}
-      {tab === 'campaigns' && (
-        <PlaceholderTab title="ניהול קמפיינים" phase="Phase 1 — זמין" description="יצירת קמפיינים, שיוך פוסטים, מעקב תוצאות. ניתן לנהל דרך API. ממשק גרפי — בקרוב." />
-      )}
+      {tab === 'campaigns' && <CampaignsTab />}
       {tab === 'analytics' && (
         <PlaceholderTab title="אנליטיקס" phase="Phase 2" description="גרפים: reach, engagement, השוואת פלטפורמות, top posts. יהיה זמין לאחר חיבור Meta Graph API." />
       )}
