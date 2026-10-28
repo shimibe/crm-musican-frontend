@@ -15,6 +15,7 @@ const STATUSES = [
   ['published', 'פורסמו'],
   ['rejected', 'נדחו'],
 ];
+// 'failed' is added dynamically when failedCount > 0
 
 const ALL_PLATFORMS = ['instagram', 'facebook', 'tiktok', 'youtube'];
 
@@ -755,12 +756,17 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
   const [err, setErr] = useState(null);
   const [creating, setCreating] = useState(false);
   const [manualRelease, setManualRelease] = useState(false);
+  const [failedCount, setFailedCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await api.get('/marketing/posts', { params: { status: statusFilter || undefined, limit: 50 } });
+      const [r, fc] = await Promise.all([
+        api.get('/marketing/posts', { params: { status: statusFilter || undefined, limit: 50 } }),
+        api.get('/marketing/posts', { params: { status: 'failed', limit: 50 } }),
+      ]);
       setPosts(r.data);
+      setFailedCount(fc.data.length);
       setErr(null);
     } catch (e) {
       setErr(errMsg(e));
@@ -784,6 +790,16 @@ export default function PostsTab({ addVideoJob, addImageJob, onPostCreated, tick
                   : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
               }`}>{label}</button>
           ))}
+          {failedCount > 0 && (
+            <button onClick={() => setStatusFilter('failed')}
+              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                statusFilter === 'failed'
+                  ? 'bg-red-600 border-red-600 text-white'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40'
+              }`}>
+              נכשלו ({failedCount})
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           <button onClick={() => setManualRelease(true)} className={btnGhost}>🎵 הפצה ידנית</button>
