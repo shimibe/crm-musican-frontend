@@ -193,7 +193,7 @@ export default function SettingsTab({ settings: initSettings, reload }) {
                 onChange={(e) => set('release_prerelease_days', Number(e.target.value))} className={input} />
             </Field>
           </div>
-          <Field label="הוראות לניתאי — בחירת ריליס לפוסט יומי" hint="ריק = ניתאי בוחר לבד">
+          <Field label="הוראות לניתאי — בחירת ריליס לפוסט יומי" hint="ניתאי רואה: ריליסים מ-21 הימים האחרונים + עתידיים עד X ימים, עם דף לינקים/presave בלבד. ריק = ניתאי בוחר לבד">
             <textarea rows={3} value={form.release_daily_prompt}
               onChange={(e) => set('release_daily_prompt', e.target.value)}
               placeholder="למשל: העדף שירים בעברית, שים דגש על ריליסים של אמנים חדשים..."
