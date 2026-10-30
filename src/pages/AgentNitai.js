@@ -39,6 +39,7 @@ const AgentNitai = () => {
   const [videoJobs, setVideoJobs] = useState([]);
   const [runToasts, setRunToasts] = useState([]);
   const toastTimers = useRef({});
+  const [quickRun, setQuickRun] = useState(null); // 'release' | 'tip' | null
 
   const reload = useCallback(async () => {
     setTick((t) => t + 1);
@@ -107,6 +108,16 @@ const AgentNitai = () => {
     return () => es.close();
   }, [addRunToast]);
 
+  const runContent = useCallback(async (type) => {
+    setQuickRun(type);
+    try {
+      await api.post('/marketing/tasks/content_creation/run', {
+        params: type === 'tip' ? { post_type: 'generic' } : {},
+      });
+    } catch { /* toast will show error via SSE or ignore */ }
+    setTimeout(() => setQuickRun(null), 4000);
+  }, []);
+
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => { try { localStorage.setItem('agentNitaiTab', tab); } catch { /* ignore */ } }, [tab]);
 
@@ -137,6 +148,26 @@ const AgentNitai = () => {
         </div>
         <button onClick={reload} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" title="רענון">
           <RefreshCw className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Quick run */}
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => runContent('release')} disabled={!!quickRun}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+            quickRun === 'release'
+              ? 'bg-pink-100 border-pink-300 text-pink-600 dark:bg-pink-900/30 dark:border-pink-700 dark:text-pink-300'
+              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }`}>
+          {quickRun === 'release' ? '⏳' : '🎵'} פוסט ריליס
+        </button>
+        <button onClick={() => runContent('tip')} disabled={!!quickRun}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+            quickRun === 'tip'
+              ? 'bg-blue-100 border-blue-300 text-blue-600 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-300'
+              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }`}>
+          {quickRun === 'tip' ? '⏳' : '💡'} פוסט טיפ
         </button>
       </div>
 

@@ -5,6 +5,13 @@ import { card, btnPrimary, btnGhost, Empty, RUN_STATUS, fmtDate, fmtUsd, errMsg 
 
 const AUTONOMY_LABEL = { shadow: 'צל', approve: 'באישור', auto: 'אוטומטי' };
 
+const CRON_PRESETS = [
+  ['כל יום',   '0 7 * * *'],
+  ['2×שבוע',  '0 7 * * 1,4'],
+  ['3×שבוע',  '0 7 * * 1,3,5'],
+  ['5×שבוע',  '0 7 * * 1,2,3,4,5'],
+];
+
 function TaskRow({ task, onChanged }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ enabled: task.enabled, autonomy: task.autonomy, cron: task.cron || '' });
@@ -99,6 +106,17 @@ function TaskRow({ task, onChanged }) {
             <input type="text" value={form.cron} onChange={(e) => setForm((f) => ({ ...f, cron: e.target.value }))}
               placeholder="0 7 * * 1,3,5"
               className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+            <div className="flex gap-1 mt-1.5 flex-wrap">
+              {CRON_PRESETS.map(([label, expr]) => (
+                <button key={expr} type="button"
+                  onClick={() => setForm((f) => ({ ...f, cron: expr }))}
+                  className={`px-2 py-0.5 text-xs rounded border transition-colors ${
+                    form.cron === expr
+                      ? 'bg-primary-600 border-primary-600 text-white'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-primary-400 hover:text-primary-600'
+                  }`}>{label}</button>
+              ))}
+            </div>
           </div>
           <div className="col-span-2 flex gap-2">
             <button onClick={save} className={btnPrimary}>שמור</button>

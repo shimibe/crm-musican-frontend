@@ -24,11 +24,6 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         manager_email: initSettings.manager_email ?? '',
         telegram_chat_id: initSettings.telegram_chat_id ?? '',
         timezone: initSettings.timezone ?? 'Asia/Jerusalem',
-        content_creation_days_per_week: initSettings.content_creation_days_per_week ?? 3,
-        content_creation_time: initSettings.content_creation_time ?? '07:00',
-        daily_summary_time: initSettings.daily_summary_time ?? '09:00',
-        weekly_review_day: initSettings.weekly_review_day ?? 0,
-        metrics_interval_minutes: initSettings.metrics_interval_minutes ?? 240,
         instagram_page_id: initSettings.instagram_page_id ?? '',
         facebook_page_id: initSettings.facebook_page_id ?? '',
         youtube_channel_id: initSettings.youtube_channel_id ?? '',
@@ -87,8 +82,6 @@ export default function SettingsTab({ settings: initSettings, reload }) {
   };
 
   if (!s) return null;
-
-  const DAY_NAMES = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
 
   return (
     <div className="space-y-6">
@@ -208,34 +201,7 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         </div>
       </Section>
 
-      {/* ── Section 5: Frequency ── */}
-      <Section title="תדירות פעילות">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="פוסטים בשבוע">
-            <input type="number" min={1} max={7} value={form.content_creation_days_per_week}
-              onChange={(e) => set('content_creation_days_per_week', Number(e.target.value))} className={input} />
-          </Field>
-          <Field label="שעת יצירת פוסט">
-            <input type="time" value={form.content_creation_time}
-              onChange={(e) => set('content_creation_time', e.target.value)} className={input} />
-          </Field>
-          <Field label="שעת סיכום יומי">
-            <input type="time" value={form.daily_summary_time}
-              onChange={(e) => set('daily_summary_time', e.target.value)} className={input} />
-          </Field>
-          <Field label="יום סיכום שבועי">
-            <select value={form.weekly_review_day} onChange={(e) => set('weekly_review_day', Number(e.target.value))} className={input}>
-              {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
-            </select>
-          </Field>
-          <Field label="מרווח בין מדידות (דקות)">
-            <input type="number" min={30} max={1440} step={30} value={form.metrics_interval_minutes}
-              onChange={(e) => set('metrics_interval_minutes', Number(e.target.value))} className={input} />
-          </Field>
-        </div>
-      </Section>
-
-      {/* ── Section 6: Budget + contact ── */}
+      {/* ── Section 5: Budget + contact ── */}
       <Section title="תקציב ואיש קשר">
         <div className="grid grid-cols-2 gap-4">
           <Field label="תקציב יומי (USD)" hint={`כיום: ${fmtUsd(s.daily_budget_usd)}`}>
