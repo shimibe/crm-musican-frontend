@@ -32,6 +32,10 @@ export default function SettingsTab({ settings: initSettings, reload }) {
         release_weekly_max_items: initSettings.release_weekly_max_items ?? 4,
         release_daily_prompt: initSettings.release_daily_prompt ?? '',
         release_weekly_prompt: initSettings.release_weekly_prompt ?? '',
+        // Branded image (compose covers)
+        compose_covers_weekly: initSettings.compose_covers_weekly ?? true,
+        compose_covers_daily:  initSettings.compose_covers_daily  ?? false,
+        compose_style_prompt:  initSettings.compose_style_prompt  ?? '',
         // Token/key fields — shown as blank if masked "***set***"
         instagram_access_token: '',
         facebook_access_token: '',
@@ -186,6 +190,34 @@ export default function SettingsTab({ settings: initSettings, reload }) {
                 onChange={(e) => set('release_prerelease_days', Number(e.target.value))} className={input} />
             </Field>
           </div>
+          {/* ── Branded image (compose covers) ── */}
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-3">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">🖼 תמונה ממותגת (sharp + fal.ai)</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">ניתאי יסדר את עטיפות הריליסים בגריד + לוגו מוזיקן, ויעבד דרך fal.ai לסגנון מחובר.</p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <button type="button" onClick={() => set('compose_covers_weekly', !form.compose_covers_weekly)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${form.compose_covers_weekly ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_weekly ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+                פוסט שבועי
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                <button type="button" onClick={() => set('compose_covers_daily', !form.compose_covers_daily)}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${form.compose_covers_daily ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_daily ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+                פוסט יומי
+              </label>
+            </div>
+            <Field label="פרומפט סגנוני לtfal.ai" hint="שלוט על המראה הסופי של התמונה — צבעים, אווירה, סגנון">
+              <textarea rows={2} value={form.compose_style_prompt}
+                onChange={(e) => set('compose_style_prompt', e.target.value)}
+                placeholder="Musican music brand poster, dark elegant aesthetic, deep blue tones, cinematic lighting..."
+                className={input} />
+            </Field>
+          </div>
+
           <Field label="הוראות לניתאי — בחירת ריליס לפוסט יומי" hint="ניתאי רואה: ריליסים מ-21 הימים האחרונים + עתידיים עד X ימים, עם דף לינקים/presave בלבד. ריק = ניתאי בוחר לבד">
             <textarea rows={3} value={form.release_daily_prompt}
               onChange={(e) => set('release_daily_prompt', e.target.value)}
