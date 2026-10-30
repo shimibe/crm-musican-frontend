@@ -98,9 +98,9 @@ export default function SettingsTab({ settings: initSettings, reload }) {
               <button
                 type="button"
                 onClick={() => set('enabled', !form.enabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${form.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                className={`inline-flex items-center w-12 h-6 rounded-full transition-colors ${form.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.enabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transition-transform ${form.enabled ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
               <span className="text-sm text-gray-700 dark:text-gray-300">{form.enabled ? 'ניתאי פעיל' : 'ניתאי כבוי'}</span>
             </div>
@@ -197,15 +197,15 @@ export default function SettingsTab({ settings: initSettings, reload }) {
             <div className="flex items-center gap-4 flex-wrap">
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                 <button type="button" onClick={() => set('compose_covers_weekly', !form.compose_covers_weekly)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${form.compose_covers_weekly ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_weekly ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  className={`inline-flex items-center w-10 h-5 rounded-full transition-colors ${form.compose_covers_weekly ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_weekly ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
                 פוסט שבועי
               </label>
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
                 <button type="button" onClick={() => set('compose_covers_daily', !form.compose_covers_daily)}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${form.compose_covers_daily ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_daily ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  className={`inline-flex items-center w-10 h-5 rounded-full transition-colors ${form.compose_covers_daily ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                  <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transition-transform ${form.compose_covers_daily ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
                 פוסט יומי
               </label>

@@ -53,7 +53,7 @@ function TaskRow({ task, onChanged }) {
   return (
     <div className={`${card} p-4`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-gray-900 dark:text-white text-sm">{task.name}</span>
             <span className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono">{task.key}</span>

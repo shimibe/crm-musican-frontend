@@ -35,9 +35,9 @@ export default function OverviewTab({ overview, tasks, reload, goTo }) {
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-600 dark:text-gray-300">{s.enabled ? 'פעיל' : 'כבוי'}</span>
-          <div className={`w-10 h-5 rounded-full ${s.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} relative cursor-not-allowed`}
+          <div className={`inline-flex items-center w-10 h-5 rounded-full ${s.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} cursor-not-allowed`}
                title="שנה ב-הגדרות">
-            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${s.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            <span className={`inline-block w-4 h-4 bg-white rounded-full shadow transition-transform ${s.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
           </div>
         </div>
       </div>
