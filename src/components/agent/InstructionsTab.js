@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { History, Save, RotateCcw } from 'lucide-react';
+import { History, Save, RotateCcw, Plus } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, Field, Badge, input, btnPrimary, btnGhost, fmtDate, errMsg } from './ui';
 
@@ -164,6 +164,108 @@ const Rules = ({ taskKey }) => {
   return <div className="grid gap-4 md:grid-cols-2">{rules.map((r) => <RuleInput key={r.rule_key} rule={r} onSave={save} />)}</div>;
 };
 
+// ── Shared knowledge blocks ──────────────────────────────────────────────────
+const KnowledgeSection = ({ tasks }) => {
+  const [entries, setEntries] = useState([]);
+  const [editing, setEditing] = useState({}); // key → { label, content }
+  const [adding, setAdding] = useState(false);
+  const [newEntry, setNewEntry] = useState({ key: '', label: '', content: '' });
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setEntries((await api.get('/agent/knowledge')).data);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const taskRefs = (key) => tasks.filter((t) => (t.knowledge_keys || []).includes(key)).map((t) => t.name);
+
+  const save = async (key) => {
+    setBusy(true);
+    try {
+      await api.put(`/agent/knowledge/${key}`, editing[key]);
+      setEditing((e) => { const n = { ...e }; delete n[key]; return n; });
+      load();
+    } catch (e) { alert(errMsg(e)); }
+    finally { setBusy(false); }
+  };
+
+  const create = async () => {
+    setBusy(true);
+    try {
+      await api.post('/agent/knowledge', newEntry);
+      setAdding(false);
+      setNewEntry({ key: '', label: '', content: '' });
+      load();
+    } catch (e) { alert(errMsg(e)); }
+    finally { setBusy(false); }
+  };
+
+  const toggle = async (entry) => {
+    await api.put(`/agent/knowledge/${entry.key}`, { is_active: !entry.is_active });
+    load();
+  };
+
+  return (
+    <div className="space-y-4">
+      {entries.length === 0 && !adding && <Empty>אין עדיין בלוקי ידע משותפים.</Empty>}
+      {entries.map((e) => {
+        const isEditing = !!editing[e.key];
+        const cur = isEditing ? editing[e.key] : e;
+        const refs = taskRefs(e.key);
+        return (
+          <div key={e.key} className={`border rounded-lg p-4 space-y-2 ${e.is_active ? 'border-gray-200 dark:border-gray-700' : 'border-gray-200 dark:border-gray-700 opacity-50'}`}>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium text-sm text-gray-900 dark:text-white font-mono">{e.key}</span>
+                {refs.map((r) => <Badge key={r} className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">{r}</Badge>)}
+                {!e.is_active && <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">מושבת</Badge>}
+              </div>
+              <div className="flex gap-2 text-xs">
+                <button className="text-primary-600 dark:text-primary-400 hover:underline" onClick={() => toggle(e)}>{e.is_active ? 'השבת' : 'הפעל'}</button>
+              </div>
+            </div>
+            {isEditing ? (
+              <>
+                <input className={`${input} text-sm`} value={cur.label} onChange={(ev) => setEditing((d) => ({ ...d, [e.key]: { ...d[e.key], label: ev.target.value } }))} placeholder="כותרת" />
+                <textarea className={`${input} text-sm leading-relaxed`} rows={10} dir="rtl"
+                  value={cur.content} onChange={(ev) => setEditing((d) => ({ ...d, [e.key]: { ...d[e.key], content: ev.target.value } }))} />
+                <div className="flex gap-2">
+                  <button className={btnPrimary} disabled={busy} onClick={() => save(e.key)}>שמור</button>
+                  <button className={btnGhost} onClick={() => setEditing((d) => { const n = { ...d }; delete n[e.key]; return n; })}>ביטול</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm text-gray-600 dark:text-gray-400">{e.label}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 font-mono">{e.content.slice(0, 120)}…</div>
+                <button className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                  onClick={() => setEditing((d) => ({ ...d, [e.key]: { label: e.label, content: e.content } }))}>ערוך</button>
+              </>
+            )}
+          </div>
+        );
+      })}
+
+      {adding ? (
+        <div className="border rounded-lg p-4 space-y-2 border-primary-300 dark:border-primary-700">
+          <input className={`${input} text-sm font-mono`} placeholder="מפתח (אותיות קטנות, מקף תחתון)" dir="ltr"
+            value={newEntry.key} onChange={(e) => setNewEntry((n) => ({ ...n, key: e.target.value }))} />
+          <input className={`${input} text-sm`} placeholder="כותרת (מה הבלוק הזה מייצג)" dir="rtl"
+            value={newEntry.label} onChange={(e) => setNewEntry((n) => ({ ...n, label: e.target.value }))} />
+          <textarea className={`${input} text-sm leading-relaxed`} rows={8} dir="rtl" placeholder="תוכן..."
+            value={newEntry.content} onChange={(e) => setNewEntry((n) => ({ ...n, content: e.target.value }))} />
+          <div className="flex gap-2">
+            <button className={btnPrimary} disabled={busy || !newEntry.key || !newEntry.label || !newEntry.content} onClick={create}>צור</button>
+            <button className={btnGhost} onClick={() => { setAdding(false); setNewEntry({ key: '', label: '', content: '' }); }}>ביטול</button>
+          </div>
+        </div>
+      ) : (
+        <button className={btnGhost} onClick={() => setAdding(true)}><Plus className="w-4 h-4" /> הוסף בלוק ידע</button>
+      )}
+    </div>
+  );
+};
+
 // ── Learned examples ────────────────────────────────────────────────────────
 const Examples = ({ taskKey }) => {
   const [rows, setRows] = useState([]);
@@ -209,12 +311,18 @@ const InstructionsTab = ({ tasks }) => {
         <PromptEditor taskKey={scope} />
       </Section>
 
+      {!scope && (
+        <Section title="בלוקי ידע משותפים" actions={<span className="text-xs text-gray-500 dark:text-gray-400">נטענים לפני הוראות המשימה</span>}>
+          <KnowledgeSection tasks={tasks} />
+        </Section>
+      )}
+
       {scope && (
         <>
           <Section title="כללים וספים">
             <Rules taskKey={scope} />
           </Section>
-          <Section title="דוגמאות שיואב לומד מהן">
+          <Section title="דוגמאות (staging — לא נטענות לקלוד כרגע)">
             <Examples taskKey={scope} />
           </Section>
         </>
