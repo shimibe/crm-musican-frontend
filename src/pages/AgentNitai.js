@@ -39,7 +39,8 @@ const AgentNitai = () => {
   const [videoJobs, setVideoJobs] = useState([]);
   const [runToasts, setRunToasts] = useState([]);
   const toastTimers = useRef({});
-  const [quickRun, setQuickRun] = useState(null); // 'release' | 'tip' | null
+  const [quickRun, setQuickRun] = useState(null); // 'release' | 'weekly' | 'tip' | null
+  const [releaseIdInput, setReleaseIdInput] = useState('');
 
   const reload = useCallback(async () => {
     setTick((t) => t + 1);
@@ -110,13 +111,18 @@ const AgentNitai = () => {
 
   const runContent = useCallback(async (type) => {
     setQuickRun(type);
+    const ids = releaseIdInput.trim()
+      ? releaseIdInput.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    let params = {};
+    if (type === 'tip')         params = { post_type: 'generic' };
+    else if (type === 'weekly') params = ids.length ? { post_type: 'weekly', release_ids: ids } : { post_type: 'weekly' };
+    else if (ids.length)        params = { release_ids: ids };
     try {
-      await api.post('/marketing/tasks/content_creation/run', {
-        params: type === 'tip' ? { post_type: 'generic' } : {},
-      });
+      await api.post('/marketing/tasks/content_creation/run', { params });
     } catch { /* toast will show error via SSE or ignore */ }
     setTimeout(() => setQuickRun(null), 4000);
-  }, []);
+  }, [releaseIdInput]);
 
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => { try { localStorage.setItem('agentNitaiTab', tab); } catch { /* ignore */ } }, [tab]);
@@ -152,14 +158,30 @@ const AgentNitai = () => {
       </div>
 
       {/* Quick run */}
-      <div className="flex gap-2 flex-wrap">
-        <button onClick={() => runContent('release')} disabled={!!quickRun}
+      <div className="flex gap-2 flex-wrap items-center">
+        <button onClick={() => runContent('release', releaseIdInput)} disabled={!!quickRun}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
             quickRun === 'release'
               ? 'bg-pink-100 border-pink-300 text-pink-600 dark:bg-pink-900/30 dark:border-pink-700 dark:text-pink-300'
               : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
           }`}>
           {quickRun === 'release' ? '⏳' : '🎵'} פוסט ריליס
+        </button>
+        <input
+          type="text"
+          value={releaseIdInput}
+          onChange={e => setReleaseIdInput(e.target.value)}
+          placeholder="מזהה/ים (מופרד בפסיק, אופציונלי)"
+          className="px-2 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-44 focus:outline-none focus:ring-1 focus:ring-pink-400"
+          disabled={!!quickRun}
+        />
+        <button onClick={() => runContent('weekly')} disabled={!!quickRun}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+            quickRun === 'weekly'
+              ? 'bg-purple-100 border-purple-300 text-purple-600 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300'
+              : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+          }`}>
+          {quickRun === 'weekly' ? '⏳' : '📅'} פוסט שבועי
         </button>
         <button onClick={() => runContent('tip')} disabled={!!quickRun}
           className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
