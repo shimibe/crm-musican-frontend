@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 import CustomerSearchInput from '../components/customers/CustomerSearchInput';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const Sales = () => {
   const { user } = useAuth();
@@ -474,16 +475,19 @@ const Sales = () => {
                   return (
                     <tr key={sale.id} className={rowClass}>
                       <td className="px-3 py-4 whitespace-nowrap text-sm">
-                        {sale.customer_id ? (
-                          <button
-                            onClick={() => handleCustomerClick(sale.customer_id, sale.customer_name)}
-                            className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
-                          >
-                            {sale.customer_name}
-                          </button>
-                        ) : (
-                          <span className="text-gray-900 dark:text-white">{sale.customer_name || '-'}</span>
-                        )}
+                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                          {sale.customer_id ? (
+                            <button
+                              onClick={() => handleCustomerClick(sale.customer_id, sale.customer_name)}
+                              className="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+                            >
+                              {sale.customer_name}
+                            </button>
+                          ) : (
+                            <span className="text-gray-900 dark:text-white">{sale.customer_name || '-'}</span>
+                          )}
+                          {sale.customer_id && <ServiceLevelBadge level={sale.customer_service_level} />}
+                        </span>
                       </td>
                       <td className="px-3 py-4 text-sm">
                         <button

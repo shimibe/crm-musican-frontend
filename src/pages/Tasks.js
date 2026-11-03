@@ -7,6 +7,7 @@ import CustomerSearchInput from '../components/customers/CustomerSearchInput';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import ProgressModal from '../components/tasks/ProgressModal';
+import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const Tasks = () => {
   const { user, updatePreferences } = useAuth();
@@ -683,8 +684,11 @@ const Tasks = () => {
                         }}
                       >
                         {task.customer_name ? (
-                          <span className={task.customer_id ? "text-primary-600 dark:text-primary-400 hover:underline cursor-pointer" : ""}>
-                            {task.customer_name}
+                          <span className="inline-flex items-center gap-1.5 flex-wrap">
+                            <span className={task.customer_id ? "text-primary-600 dark:text-primary-400 hover:underline cursor-pointer" : ""}>
+                              {task.customer_name}
+                            </span>
+                            <ServiceLevelBadge level={task.customer_service_level} />
                           </span>
                         ) : (
                           '-'

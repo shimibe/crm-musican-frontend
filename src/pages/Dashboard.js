@@ -6,6 +6,7 @@ import {
 	Users, CheckSquare, Activity, TrendingUp, Wrench, Clock,
 	DollarSign, ArrowUp, ArrowDown, EyeOff, Eye, FolderOpen,
 } from "lucide-react";
+import ServiceLevelBadge from "../components/shared/ServiceLevelBadge";
 
 // ─── Section definitions ──────────────────────────────────────────────────────
 const SECTION_DEFS = [
@@ -518,7 +519,10 @@ const Dashboard = () => {
 										<div className="flex-1 min-w-0">
 											<h3 className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{task.title}</h3>
 											{task.customer_name && (
-												<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">לקוח: {task.customer_name}</p>
+												<p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 inline-flex items-center gap-1.5">
+													<span>לקוח: {task.customer_name}</span>
+													<ServiceLevelBadge level={task.customer_service_level} />
+												</p>
 											)}
 										</div>
 										<div className="flex items-center gap-2 shrink-0">
@@ -558,7 +562,12 @@ const Dashboard = () => {
 											</p>
 											<div className="flex items-center gap-3 mt-0.5 flex-wrap">
 												{repair.type_name && <span className="text-xs text-slate-400 dark:text-slate-500">{repair.type_name}</span>}
-												{repair.customer_name && <span className="text-xs text-slate-400 dark:text-slate-500">לקוח: {repair.customer_name}</span>}
+												{repair.customer_name && (
+												<span className="inline-flex items-center gap-1.5">
+													<span className="text-xs text-slate-400 dark:text-slate-500">לקוח: {repair.customer_name}</span>
+													<ServiceLevelBadge level={repair.customer_service_level} />
+												</span>
+											)}
 											</div>
 										</div>
 										<div className="flex items-center gap-2 shrink-0">

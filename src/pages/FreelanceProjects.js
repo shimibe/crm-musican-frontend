@@ -3,6 +3,7 @@ import { Plus, Archive, ArchiveRestore, Trash2, Edit, X, AlertTriangle, Phone, M
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const EXCEED_ACTION_LABELS = { warn: 'אזהרה', block: 'חסימה' };
 
@@ -720,7 +721,10 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
           )}
           {project.customer_name && (
             <div className="mt-1 space-y-0.5">
-              <p className="text-xs text-blue-600 dark:text-blue-400">{project.customer_name}</p>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="text-xs text-blue-600 dark:text-blue-400">{project.customer_name}</span>
+                <ServiceLevelBadge level={project.customer_service_level} />
+              </span>
               {project.customer_phone && (
                 <a href={`tel:${project.customer_phone}`} className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
                   <Phone className="w-3 h-3" />{project.customer_phone}

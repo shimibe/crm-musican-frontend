@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
 import CustomerSearchInput from '../components/customers/CustomerSearchInput';
+import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const COLOR_MAP = {
   red: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -457,8 +458,11 @@ const Repairs = () => {
           }}
         >
           {repair.customer_name ? (
-            <span className={repair.customer_id ? 'text-primary-600 dark:text-primary-400 hover:underline cursor-pointer' : 'text-gray-700 dark:text-gray-300'}>
-              {repair.customer_name}
+            <span className="inline-flex items-center gap-1.5 flex-wrap">
+              <span className={repair.customer_id ? 'text-primary-600 dark:text-primary-400 hover:underline cursor-pointer' : 'text-gray-700 dark:text-gray-300'}>
+                {repair.customer_name}
+              </span>
+              <ServiceLevelBadge level={repair.customer_service_level} />
             </span>
           ) : <span className="text-gray-400">—</span>}
         </td>
