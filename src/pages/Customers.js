@@ -7,6 +7,7 @@ import CustomerMergeModal from '../components/customers/CustomerMergeModal';
 import ColumnToggle from '../components/common/ColumnToggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 import CustomerProfileModal from '../components/customers/CustomerProfileModal';
+import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const Customers = () => {
   const { user, updatePreferences } = useAuth();
@@ -904,7 +905,10 @@ const Customers = () => {
                         className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-600 dark:text-primary-400 cursor-pointer hover:underline"
                         onClick={() => openProfile(customer, 'summary')}
                       >
-                        {customer.name}
+                        <span className="inline-flex items-center gap-1.5">
+                          {customer.name}
+                          <ServiceLevelBadge level={customer.service_level} />
+                        </span>
                       </td>
                     )}
                     {visibleColumns.phone && (
