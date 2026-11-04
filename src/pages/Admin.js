@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X, Zap, Wrench, ReceiptText, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, Key, Copy, Check, FileText, Edit2, Mail, MessageSquare, X, Zap, Wrench, ReceiptText, Loader2, Link2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from '../components/common/ConfirmDialog';
 
@@ -34,6 +34,10 @@ const Admin = () => {
 
   // Tools tab state
   const [retryInvoiceId, setRetryInvoiceId] = useState(() => localStorage.getItem('retryInvoiceId') || '');
+
+  // Wix link converter state
+  const [wixLinkInput, setWixLinkInput] = useState('');
+  const [wixLinkCopied, setWixLinkCopied] = useState(false);
   const [retryInvoiceLoading, setRetryInvoiceLoading] = useState(false);
   const [retryInvoiceResult, setRetryInvoiceResult] = useState(null); // { success, message }
 
@@ -800,6 +804,37 @@ const Admin = () => {
     } finally {
       setRetryInvoiceLoading(false);
     }
+  };
+
+  const fixWixLink = (u) => {
+    if (!u) return '';
+    if (u.includes('image:')) {
+      const fileId = u.split('/')[3];
+      return fileId ? `https://static.wixstatic.com/media/${fileId}` : u;
+    }
+    if (u.startsWith('wix:document:')) {
+      const DEFAULT_OWNER = '9efa13d7-ffcb-4a7d-abb6-e09e268e524c';
+      let wixDocURL = `https://${DEFAULT_OWNER}.usrfiles.com/`;
+      let wixLocalURL = u.replace('wix:document://v1/', '');
+      if (!wixLocalURL.includes('ugd/') && !wixDocURL.includes('ugd/')) wixDocURL += 'ugd/';
+      wixLocalURL = wixLocalURL.substring(0, wixLocalURL.lastIndexOf('/'));
+      return wixDocURL + wixLocalURL;
+    }
+    if (u.startsWith('wix:audio:')) {
+      const fileId = u.split('/')[3];
+      return fileId ? `https://static.wixstatic.com/mp3/${fileId}` : u;
+    }
+    return u;
+  };
+
+  const wixLinkResult = fixWixLink(wixLinkInput.trim());
+  const wixLinkChanged = wixLinkResult !== wixLinkInput.trim() && wixLinkInput.trim() !== '';
+
+  const copyWixLink = async () => {
+    if (!wixLinkResult) return;
+    await navigator.clipboard.writeText(wixLinkResult);
+    setWixLinkCopied(true);
+    setTimeout(() => setWixLinkCopied(false), 2000);
   };
 
   if (loading) {
@@ -2467,7 +2502,61 @@ const Admin = () => {
               </form>
             </div>
 
-            {/* Future tool cards will be added here */}
+            {/* Tool Card: Wix Link Converter */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-700 flex items-start gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Link2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">המרת קישור וויקס</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    הופך wix:image / wix:document / wix:audio לקישור רגיל
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    קישור וויקס
+                  </label>
+                  <input
+                    type="text"
+                    value={wixLinkInput}
+                    onChange={(e) => { setWixLinkInput(e.target.value); setWixLinkCopied(false); }}
+                    placeholder="wix:image://v1/... או wix:document://v1/..."
+                    dir="ltr"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                </div>
+
+                {wixLinkInput.trim() && (
+                  <div className={`p-3 rounded-lg text-xs font-mono break-all ${
+                    wixLinkChanged
+                      ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300'
+                      : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  }`}>
+                    {wixLinkResult}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={copyWixLink}
+                  disabled={!wixLinkResult}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:cursor-not-allowed ${
+                    wixLinkCopied
+                      ? 'bg-green-500 text-white'
+                      : 'bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white'
+                  }`}
+                >
+                  {wixLinkCopied
+                    ? <><Check className="w-4 h-4" /> הועתק</>
+                    : <><Copy className="w-4 h-4" /> העתק קישור</>}
+                </button>
+              </div>
+            </div>
 
           </div>
         </div>
