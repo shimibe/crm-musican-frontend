@@ -691,6 +691,7 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
   const days = getDaysOpen(project);
 
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -824,7 +825,19 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
       </div>
 
       {project.description && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{project.description}</p>
+        <div>
+          <p className={`text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap${descExpanded ? '' : ' line-clamp-2'}`}>
+            {project.description}
+          </p>
+          {project.description.length > 100 && (
+            <button
+              onClick={() => setDescExpanded(v => !v)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-0.5"
+            >
+              {descExpanded ? 'הצג פחות' : 'הצג הכל'}
+            </button>
+          )}
+        </div>
       )}
 
       {project.files_url && (
