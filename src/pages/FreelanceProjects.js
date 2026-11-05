@@ -7,6 +7,14 @@ import ServiceLevelBadge from '../components/shared/ServiceLevelBadge';
 
 const EXCEED_ACTION_LABELS = { warn: 'אזהרה', block: 'חסימה' };
 
+const URGENCY_OPTIONS = ['לא דחוף', 'רגיל', 'דחוף', 'דחוף מאוד'];
+const URGENCY_CONFIG = {
+  'לא דחוף':   { badge: 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',       card: '' },
+  'רגיל':      { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',    card: '' },
+  'דחוף':      { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', card: 'ring-2 ring-orange-400 dark:ring-orange-500' },
+  'דחוף מאוד': { badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',        card: 'ring-2 ring-red-500 bg-red-50 dark:bg-red-950/40' },
+};
+
 const STATUS_OPTIONS = ['פתוח', 'בעבודה', 'ממתין לאישור', 'הסתיים'];
 const STATUS_CONFIG = {
   'פתוח':         { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', dot: 'bg-green-500' },
@@ -171,6 +179,7 @@ const defaultForm = {
   description: '',
   files_url: '',
   status_label: 'פתוח',
+  urgency: 'רגיל',
   freelancer_id: '',
   budget_type: '',
   budget_limit: '',
@@ -266,6 +275,7 @@ const FreelanceProjects = () => {
       description: project.description || '',
       files_url: project.files_url || '',
       status_label: project.status_label || 'פתוח',
+      urgency: project.urgency || 'רגיל',
       freelancer_id: project.freelancer_id || '',
       budget_type: project.budget_type || '',
       budget_limit: project.budget_limit || '',
@@ -529,6 +539,31 @@ const FreelanceProjects = () => {
                 </div>
               </div>
 
+              {/* Urgency — editable by both */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">דחיפות</label>
+                <div className="flex flex-wrap gap-2">
+                  {URGENCY_OPTIONS.map(u => {
+                    const cfg = URGENCY_CONFIG[u];
+                    const selected = form.urgency === u;
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, urgency: u }))}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                          selected
+                            ? `${cfg.badge} border-current ring-2 ring-offset-1 ring-current`
+                            : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400'
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Admin-only fields */}
               {isAdmin && (
                 <>
@@ -705,8 +740,10 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
     return () => document.removeEventListener('mousedown', handler);
   }, [showStatusDropdown]);
 
+  const urgencyCfg = URGENCY_CONFIG[project.urgency] || URGENCY_CONFIG['רגיל'];
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col gap-2">
+    <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col gap-2 ${urgencyCfg.card}`}>
       {/* Project code */}
       {project.project_code && (
         <div className="text-2xl font-bold text-gray-200 dark:text-gray-600 leading-none select-none">
