@@ -33,6 +33,9 @@ const Attendance = () => {
 
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
+  const targetIsFreelancer = isFreelancer ||
+    ((isAdmin || isManager) && selectedUserId &&
+      users.find(u => u.id === selectedUserId)?.role === 'freelancer');
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Initialize filters from localStorage or use current month as default
@@ -53,7 +56,9 @@ const Attendance = () => {
     start_time: '09:00',
     end_time: '17:00',
     work_from_home: false,
+    project_id: '',
   });
+  const [shiftProjects, setShiftProjects] = useState([]);
 
   const [editingCell, setEditingCell] = useState(null);
   const [editingValue, setEditingValue] = useState('');
@@ -75,6 +80,7 @@ const Attendance = () => {
     if (isFreelancer) {
       loadFreelanceProjects();
     }
+    loadShiftProjects();
   }, [selectedMonth, selectedYear, selectedUserId]);
 
   const loadFreelanceProjects = async () => {
@@ -83,6 +89,19 @@ const Attendance = () => {
       setFreelanceProjects(res.data || []);
     } catch (err) {
       console.error('Error loading freelance projects:', err);
+    }
+  };
+
+  const loadShiftProjects = async () => {
+    try {
+      const params = new URLSearchParams();
+      if ((isAdmin || isManager) && selectedUserId) {
+        params.append('user_id', selectedUserId);
+      }
+      const res = await api.get(`/attendance/projects?${params.toString()}`);
+      setShiftProjects(res.data || []);
+    } catch (err) {
+      console.error('Error loading shift projects:', err);
     }
   };
 
@@ -194,6 +213,7 @@ const Attendance = () => {
       start_time: '09:00',
       end_time: '17:00',
       work_from_home: false,
+      project_id: '',
     });
     setShowManualModal(true);
   };
@@ -207,6 +227,7 @@ const Attendance = () => {
       start_time: startDate.toTimeString().slice(0, 5),
       end_time: endDate.toTimeString().slice(0, 5),
       work_from_home: shift.work_from_home,
+      project_id: shift.project_id || '',
     });
     setShowManualModal(true);
   };
@@ -217,10 +238,21 @@ const Attendance = () => {
       const startDateTime = new Date(`${manualForm.date}T${manualForm.start_time}`);
       const endDateTime = new Date(`${manualForm.date}T${manualForm.end_time}`);
 
+      // Determine if the target user is a freelancer (for validation)
+      const targetUserId = (isAdmin || isManager) && selectedUserId ? selectedUserId : null;
+      const targetUser = targetUserId ? users.find(u => u.id === targetUserId) : null;
+      const targetIsFreelancer = isFreelancer || targetUser?.role === 'freelancer';
+
+      if (targetIsFreelancer && !manualForm.project_id) {
+        alert('יש לבחור פרויקט עבור פרילנסר');
+        return;
+      }
+
       const data = {
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         work_from_home: manualForm.work_from_home,
+        project_id: manualForm.project_id || null,
       };
 
       if ((isAdmin || isManager) && selectedUserId) {
@@ -306,6 +338,16 @@ const Attendance = () => {
   const handleInlineCancel = () => {
     setEditingCell(null);
     setEditingValue('');
+  };
+
+  const handleInlineProjectChange = async (shiftId, projectId) => {
+    try {
+      await api.patch(`/attendance/shifts/${shiftId}`, { project_id: projectId || null });
+      await loadShifts();
+    } catch (error) {
+      console.error('Error updating shift project:', error);
+      alert('שגיאה בעדכון פרויקט');
+    }
   };
 
   const exportToExcel = () => {
@@ -757,7 +799,22 @@ const Attendance = () => {
                     </td>
                     {(isFreelancer || ((isAdmin || isManager) && selectedUserId)) && (
                       <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {(/** @type {any} */(shift)).project_name || '—'}
+                        {(isAdmin || isManager) && canEdit && shiftProjects.length > 0 ? (
+                          <select
+                            value={(/** @type {any} */(shift)).project_id || ''}
+                            onChange={(e) => handleInlineProjectChange(shift.id, e.target.value)}
+                            className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                          >
+                            <option value="">— ללא —</option>
+                            {shiftProjects.map(p => (
+                              <option key={p.id} value={p.id}>
+                                {p.project_code ? `#${p.project_code} ` : ''}{p.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          (/** @type {any} */(shift)).project_name || '—'
+                        )}
                       </td>
                     )}
                     <td className="px-3 py-4 whitespace-nowrap text-center text-sm">
@@ -890,6 +947,27 @@ const Attendance = () => {
                   עבודה מהבית
                 </label>
               </div>
+
+              {shiftProjects.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    פרויקט {targetIsFreelancer ? '*' : '(אופציונלי)'}
+                  </label>
+                  <select
+                    required={!!targetIsFreelancer}
+                    value={manualForm.project_id}
+                    onChange={(e) => setManualForm({ ...manualForm, project_id: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">— ללא פרויקט —</option>
+                    {shiftProjects.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.project_code ? `#${p.project_code} ` : ''}{p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-4">
                 <button
