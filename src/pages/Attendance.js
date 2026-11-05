@@ -33,9 +33,6 @@ const Attendance = () => {
 
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager';
-  const targetIsFreelancer = isFreelancer ||
-    ((isAdmin || isManager) && selectedUserId &&
-      users.find(u => u.id === selectedUserId)?.role === 'freelancer');
   const [confirmDialog, setConfirmDialog] = useState(null);
 
   // Initialize filters from localStorage or use current month as default
@@ -50,6 +47,10 @@ const Attendance = () => {
   const [selectedUserId, setSelectedUserId] = useState(() => {
     return localStorage.getItem('attendanceFilterUserId') || '';
   });
+
+  const targetIsFreelancer = isFreelancer ||
+    ((isAdmin || isManager) && selectedUserId &&
+      users.find(u => u.id === selectedUserId)?.role === 'freelancer');
 
   const [manualForm, setManualForm] = useState({
     date: new Date().toISOString().split('T')[0],
