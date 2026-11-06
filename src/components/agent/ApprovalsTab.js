@@ -182,7 +182,8 @@ const ApprovalsTab = ({ onChanged, tick }) => {
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of rows) {
-      const key = a.proposed?.params?.release_id || a.subject_id || '__other';
+      const raw = a.proposed?.params?.release_id ?? a.subject_id;
+      const key = raw != null ? String(raw) : '__other';
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(a);
     }
