@@ -297,6 +297,7 @@ const FreelanceProjects = () => {
         description: form.description.trim() || null,
         files_url: form.files_url.trim() || null,
         status_label: form.status_label,
+        urgency: form.urgency,
         budget_type: form.budget_type || null,
         budget_limit: form.budget_limit ? parseFloat(form.budget_limit) : null,
         budget_exceed_action: form.budget_exceed_action,
