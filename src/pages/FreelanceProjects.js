@@ -742,16 +742,22 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
   }, [showStatusDropdown]);
 
   const urgencyStyle = (() => {
-    if (project.urgency === 'דחוף מאוד') return { outline: '2px solid #ef4444', outlineOffset: '0px', backgroundColor: 'rgba(254,226,226,0.35)' };
+    if (project.urgency === 'דחוף מאוד') return { outline: '4px solid #ef4444', outlineOffset: '0px' };
     if (project.urgency === 'דחוף')      return { outline: '2px solid #f97316', outlineOffset: '0px' };
     return {};
   })();
+  const urgencyColor = project.urgency === 'דחוף מאוד' ? '#ef4444' : project.urgency === 'דחוף' ? '#f97316' : null;
 
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex flex-col gap-2"
       style={urgencyStyle}
     >
+      {urgencyColor && (
+        <div className="text-xs font-semibold leading-none" style={{ color: urgencyColor }}>
+          {project.urgency}
+        </div>
+      )}
       {/* Project code */}
       {project.project_code && (
         <div className="text-2xl font-bold text-gray-200 dark:text-gray-600 leading-none select-none">
