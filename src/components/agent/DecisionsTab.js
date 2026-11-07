@@ -229,9 +229,15 @@ const DecisionCard = ({ d, onDone }) => {
               ))}
             </div>
           )}
+          {r.auto_fix_summary && (
+            <div className="mt-3 p-3 rounded bg-green-50 dark:bg-green-900/20 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+              <div className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">תוקן אוטומטית על ידי יואב</div>
+              {r.auto_fix_summary}
+            </div>
+          )}
           {d.proposed_note && (
             <div className="mt-3 p-3 rounded bg-amber-50 dark:bg-amber-900/20 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-              <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">הערה שיואב ניסח לאמן</div>
+              <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">הודעה לאמן — נדרשת פעולה מצדו</div>
               {d.proposed_note}
             </div>
           )}
