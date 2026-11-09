@@ -742,11 +742,12 @@ const ProjectCard = ({ project, isAdmin, isFreelancer, showArchived, onEdit, onA
   }, [showStatusDropdown]);
 
   const urgencyStyle = (() => {
+    if (statusLabel === 'הסתיים') return {};
     if (project.urgency === 'דחוף מאוד') return { outline: '4px solid #ef4444', outlineOffset: '0px' };
     if (project.urgency === 'דחוף')      return { outline: '2px solid #f97316', outlineOffset: '0px' };
     return {};
   })();
-  const urgencyColor = project.urgency === 'דחוף מאוד' ? '#ef4444' : project.urgency === 'דחוף' ? '#f97316' : null;
+  const urgencyColor = statusLabel !== 'הסתיים' && (project.urgency === 'דחוף מאוד' ? '#ef4444' : project.urgency === 'דחוף' ? '#f97316' : null);
 
   return (
     <div
