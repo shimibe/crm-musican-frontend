@@ -11,11 +11,13 @@ import LogTab from '../components/agent/LogTab';
 import SettingsTab from '../components/agent/SettingsTab';
 import ServerTab from '../components/agent/ServerTab';
 import WhatsAppTab from '../components/agent/WhatsAppTab';
+import RequestsTab from '../components/agent/RequestsTab';
 
 const TABS = [
   ['overview', 'סקירה'],
   ['decisions', 'החלטות לבדיקה'],
   ['approvals', 'אישורים'],
+  ['requests', 'בקשות'],
   ['tasks', 'משימות'],
   ['instructions', 'הוראות'],
   ['log', 'יומן'],
@@ -51,7 +53,7 @@ const AgentYoav = () => {
   useEffect(() => { try { localStorage.setItem('agentYoavTab', tab); } catch { /* ignore */ } }, [tab]);
 
   const s = overview?.settings;
-  const counts = { decisions: overview?.unreviewed_decisions, approvals: overview?.pending_approvals };
+  const counts = { decisions: overview?.unreviewed_decisions, approvals: overview?.pending_approvals, requests: overview?.pending_release_requests };
 
   const [runBusy, setRunBusy] = useState(null);
   const [releaseIdInput, setReleaseIdInput] = useState('');
@@ -154,6 +156,7 @@ const AgentYoav = () => {
       {tab === 'overview' && <OverviewTab overview={overview} tasks={tasks} reload={reload} goTo={setTab} />}
       {tab === 'decisions' && <DecisionsTab onChanged={reload} tick={tick} />}
       {tab === 'approvals' && <ApprovalsTab onChanged={reload} tick={tick} />}
+      {tab === 'requests' && <RequestsTab onChanged={reload} tick={tick} />}
       {tab === 'tasks' && <TasksTab tasks={tasks} meta={meta} reload={reload} />}
       {tab === 'instructions' && <InstructionsTab tasks={tasks} />}
       {tab === 'log' && <LogTab tasks={tasks} tick={tick} />}

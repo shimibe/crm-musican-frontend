@@ -124,6 +124,104 @@ const ApprovalCard = ({ a, hideDetails, onDecide, onExecute, onRetry, onDismiss,
   );
 };
 
+// ── Fix-bundle card ──────────────────────────────────────────────────────────
+const FixBundleCard = ({ a, onDecide, onRetry, onDismiss, busy }) => {
+  const [open, setOpen]           = useState(false);
+  const p                          = a.proposed || {};
+  const isPending                  = a.status === 'pending';
+  const isFailed                   = a.status === 'failed';
+  const [label, cls]               = STATUS[a.status] || [a.status, ''];
+  const [pilBody, setPilBody]      = useState(p.pil?.body_draft || '');
+  const [custDraft, setCustDraft]  = useState(p.customer_notify?.draft || '');
+
+  const handleDecide = (approve) => {
+    let override = null;
+    if (approve) {
+      const bodyChanged  = pilBody   !== (p.pil?.body_draft           || '');
+      const custChanged  = custDraft !== (p.customer_notify?.draft     || '');
+      if (bodyChanged || custChanged) {
+        override = { ...p, pil: { ...p.pil, body_draft: pilBody }, customer_notify: { ...p.customer_notify, draft: custDraft || null } };
+      }
+    }
+    onDecide(a.id, approve, null, false, override);
+  };
+
+  return (
+    <div className={`rounded-lg border ${isFailed ? 'border-red-400 dark:border-red-600 bg-red-50 dark:bg-red-900/10' : 'border-indigo-200 dark:border-indigo-700 bg-indigo-50/30 dark:bg-indigo-900/10'}`}>
+      <button
+        className="w-full p-3 flex items-center gap-2 text-right hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-lg"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronLeft className="w-4 h-4 text-gray-400 shrink-0" />}
+        <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 shrink-0">FIX BUNDLE</Badge>
+        <span className="font-medium text-gray-900 dark:text-white flex-1 text-right">{a.title}</span>
+        {p.needs_contract_reset && <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0">חוזה מתאפס</Badge>}
+        <Badge className={cls}>{label}</Badge>
+        <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmtDate(a.created_at)}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 pb-3 pt-1 border-t border-indigo-100 dark:border-indigo-800/40 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">מייל PIL — נושא</label>
+            <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">{p.pil?.subject}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">מייל PIL — גוף (עריכה מותרת)</label>
+            <textarea
+              rows={6}
+              className={`${input} resize-y`}
+              value={pilBody}
+              onChange={(e) => setPilBody(e.target.value)}
+              dir="rtl"
+            />
+          </div>
+          {p.needs_contract_reset && p.contract_reset_message && (
+            <div className="p-2 rounded bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">הודעה לאומן (חתימה מחדש):</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">{p.contract_reset_message}</p>
+            </div>
+          )}
+          {p.customer_notify?.enabled && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">הודעה ללקוח</label>
+              <textarea
+                rows={2}
+                className={`${input} resize-y`}
+                value={custDraft}
+                onChange={(e) => setCustDraft(e.target.value)}
+                dir="rtl"
+              />
+            </div>
+          )}
+          <div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              סוג תיקון: <span className="font-mono">{p.correction_type_key}</span>
+              {p.request_ids?.length > 0 && ` · בקשות: ${p.request_ids.join(', ')}`}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="px-4 pb-3">
+        {isPending ? (
+          <div className="flex gap-2">
+            <button disabled={busy === a.id} onClick={() => handleDecide(true)}  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-green-500 text-green-700 dark:text-green-400 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 disabled:opacity-50"><Check className="w-3.5 h-3.5" /> אשר ובצע</button>
+            <button disabled={busy === a.id} onClick={() => handleDecide(false)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"><X className="w-3.5 h-3.5" /> דחה</button>
+          </div>
+        ) : isFailed ? (
+          <div className="flex gap-2">
+            <button disabled={busy === a.id} onClick={() => onRetry(a.id)}   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"><RefreshCw className="w-3.5 h-3.5" /> נסה שוב</button>
+            <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"><X className="w-3.5 h-3.5" /> בטל</button>
+          </div>
+        ) : (
+          a.decided_by && <p className="text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // ── Main tab ────────────────────────────────────────────────────────────────
 const ApprovalsTab = ({ onChanged, tick }) => {
   const [rows, setRows]     = useState([]);
@@ -140,24 +238,26 @@ const ApprovalsTab = ({ onChanged, tick }) => {
   const setEdit = (id, key, value) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
 
-  const decide = async (id, approve, proposed, execute = false) => {
+  const decide = async (id, approve, proposed, execute = false, directOverride = null) => {
     setBusy(id);
     try {
-      const editedFields = edits[id];
-      let override_params;
-      if (approve && editedFields && proposed?.params) {
-        const toolFields = EDITABLE_TOOLS[proposed.tool] || [];
-        const merged = { ...proposed.params };
-        let changed = false;
-        for (const field of toolFields) {
-          const { key, type } = field;
-          const rawEdit = editedFields[key];
-          if (rawEdit === undefined) continue;
-          const parsed = type === 'json' ? JSON.parse(rawEdit) : rawEdit;
-          if (JSON.stringify(parsed) !== JSON.stringify(proposed.params[key])) changed = true;
-          merged[key] = parsed;
+      let override_params = directOverride;
+      if (!directOverride) {
+        const editedFields = edits[id];
+        if (approve && editedFields && proposed?.params) {
+          const toolFields = EDITABLE_TOOLS[proposed.tool] || [];
+          const merged = { ...proposed.params };
+          let changed = false;
+          for (const field of toolFields) {
+            const { key, type } = field;
+            const rawEdit = editedFields[key];
+            if (rawEdit === undefined) continue;
+            const parsed = type === 'json' ? JSON.parse(rawEdit) : rawEdit;
+            if (JSON.stringify(parsed) !== JSON.stringify(proposed.params[key])) changed = true;
+            merged[key] = parsed;
+          }
+          if (changed) override_params = { tool: proposed.tool, params: merged };
         }
-        if (changed) override_params = { tool: proposed.tool, params: merged };
       }
       await api.post(`/agent/approvals/${id}/decide`, { approve, override_params, execute });
       await load(); onChanged?.();
@@ -182,7 +282,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
   const groups = useMemo(() => {
     const map = new Map();
     for (const a of rows) {
-      const raw = a.proposed?.params?.release_id ?? a.subject_id;
+      const raw = a.proposed?.params?.release_id ?? a.proposed?.release_id ?? a.subject_id;
       const key = raw != null ? String(raw) : '__other';
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(a);
@@ -226,7 +326,16 @@ const ApprovalsTab = ({ onChanged, tick }) => {
                   </div>
                 )}
                 <div className="space-y-2">
-                  {items.map((a) => (
+                  {items.map((a) => a.kind === 'fix_bundle' ? (
+                    <FixBundleCard
+                      key={a.id}
+                      a={a}
+                      onDecide={decide}
+                      onRetry={retry}
+                      onDismiss={dismiss}
+                      busy={busy}
+                    />
+                  ) : (
                     <ApprovalCard
                       key={a.id}
                       a={a}
