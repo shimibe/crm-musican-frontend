@@ -15,6 +15,18 @@ const STATUS_CLS   = {
 
 const Row = ({ r }) => {
   const [open, setOpen] = useState(false);
+  const [answer, setAnswer] = useState(null);
+
+  useEffect(() => {
+    if (!open || r.request_type !== 'info_request' || r.status !== 'done') return;
+    api.get(`/agent/release-history/${r.release_id}`)
+      .then(({ data }) => {
+        const entry = data.find((h) => h.request_id === r.id && h.summary === 'answer_info_request');
+        if (entry?.details?.answer) setAnswer(entry.details.answer);
+      })
+      .catch(() => {});
+  }, [open, r.id, r.release_id, r.request_type, r.status]);
+
   return (
     <>
       <tr
@@ -45,13 +57,19 @@ const Row = ({ r }) => {
       </tr>
       {open && (
         <tr className="bg-gray-50 dark:bg-gray-800/60">
-          <td colSpan={6} className="px-4 py-3">
+          <td colSpan={6} className="px-4 py-3 space-y-2">
+            {answer && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700">
+                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">תשובת יואב:</p>
+                <p className="text-sm text-blue-900 dark:text-blue-100 whitespace-pre-wrap">{answer}</p>
+              </div>
+            )}
             <pre className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700">
               {r.raw_text}
             </pre>
-            {r.error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">שגיאה: {r.error}</p>}
+            {r.error && <p className="text-xs text-red-600 dark:text-red-400">שגיאה: {r.error}</p>}
             {r.parsed_params && (
-              <pre className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <pre className="text-xs text-gray-500 dark:text-gray-400">
                 params: {JSON.stringify(r.parsed_params, null, 2)}
               </pre>
             )}
