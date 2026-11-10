@@ -55,7 +55,7 @@ const SettingsTab = ({ settings, reload }) => {
         <Field label="Telegram chat ID" hint="בקשות אישור והתערבות, עם כפתורים">
           <input className={input} dir="ltr" value={f.telegram_chat_id ?? ''} onChange={set('telegram_chat_id')} />
         </Field>
-        <Field label="מייל פי\"ל — ברירת מחדל" hint="נמען גיבוי כשאין נמענים מוגדרים לסוג התיקון">
+        <Field label='מייל פי"ל — ברירת מחדל' hint="נמען גיבוי כשאין נמענים מוגדרים לסוג התיקון">
           <input type="email" className={input} dir="ltr" value={f.pil_default_email ?? ''} onChange={set('pil_default_email')} placeholder="pil@example.com" />
         </Field>
       </div>
