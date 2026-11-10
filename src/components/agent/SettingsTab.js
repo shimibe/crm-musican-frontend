@@ -121,7 +121,7 @@ const AdvancedSection = () => {
 };
 
 // ── Correction types table ──────────────────────────────────────────────────
-const EMPTY_CT = { key: '', label: '', regenerate_docs: [], requires_file: false, file_type: '', fields_allowed: '', pil_subject_tmpl: '', pil_body_tmpl: '', notes: '' };
+const EMPTY_CT = { key: '', label: '', entity_type: 'release', send_pil: true, regenerate_docs: [], requires_file: false, file_type: '', fields_allowed: '', input_fields: '', pil_subject_tmpl: '', pil_body_tmpl: '', notes: '' };
 
 const CorrectionTypesTable = ({ rows, onChanged }) => {
   const [editing, setEditing] = useState(null); // null | 'new' | { key }
@@ -129,16 +129,24 @@ const CorrectionTypesTable = ({ rows, onChanged }) => {
   const [busy, setBusy]       = useState(false);
 
   const startNew  = () => { setF(EMPTY_CT); setEditing('new'); };
-  const startEdit = (r) => { setF({ ...r, fields_allowed: (r.fields_allowed || []).join(', '), regenerate_docs: r.regenerate_docs || [], file_type: r.file_type || '' }); setEditing(r.key); };
+  const startEdit = (r) => { setF({ ...r, fields_allowed: (r.fields_allowed || []).join(', '), regenerate_docs: r.regenerate_docs || [], file_type: r.file_type || '', input_fields: r.input_fields ? JSON.stringify(r.input_fields, null, 2) : '', entity_type: r.entity_type || 'release', send_pil: r.send_pil !== false }); setEditing(r.key); };
   const cancel    = () => setEditing(null);
 
   const save = async () => {
     setBusy(true);
     try {
+      let parsedInputFields = null;
+      if (f.input_fields?.trim()) {
+        try { parsedInputFields = JSON.parse(f.input_fields); }
+        catch { alert('input_fields — JSON לא תקין'); setBusy(false); return; }
+      }
       const payload = {
         ...f,
         fields_allowed: f.fields_allowed ? f.fields_allowed.split(',').map((s) => s.trim()).filter(Boolean) : null,
         file_type: f.file_type || null,
+        input_fields: parsedInputFields,
+        entity_type: f.entity_type || 'release',
+        send_pil: f.send_pil !== false,
       };
       if (editing === 'new') await api.post('/agent/fix-correction-types', payload);
       else await api.put(`/agent/fix-correction-types/${editing}`, payload);
@@ -192,6 +200,21 @@ const CorrTypeForm = ({ f, set, setF, busy, onSave, onCancel, isNew }) => (
       {isNew && <div><label className="block text-xs text-gray-500 mb-0.5">key</label><input className={input} dir="ltr" value={f.key} onChange={set('key')} placeholder="writer_credit" /></div>}
       <div className={isNew ? '' : 'col-span-2'}><label className="block text-xs text-gray-500 mb-0.5">תווית (עברית)</label><input className={input} value={f.label} onChange={set('label')} /></div>
     </div>
+    <div className="grid grid-cols-2 gap-2">
+      <div>
+        <label className="block text-xs text-gray-500 mb-0.5">entity_type</label>
+        <select className={input} value={f.entity_type || 'release'} onChange={set('entity_type')}>
+          <option value="release">release</option>
+          <option value="artist">artist</option>
+          <option value="channel">channel</option>
+          <option value="general">general</option>
+        </select>
+      </div>
+      <div className="flex items-center gap-2 pt-4">
+        <input type="checkbox" id="send_pil_chk" checked={f.send_pil !== false} onChange={(e) => setF({ ...f, send_pil: e.target.checked })} />
+        <label htmlFor="send_pil_chk" className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">שלח מייל לפי"ל</label>
+      </div>
+    </div>
     <div>
       <label className="block text-xs text-gray-500 mb-0.5">regenerate_docs (מופרד בפסיקים)</label>
       <input className={input} dir="ltr" value={(f.regenerate_docs || []).join(', ')} onChange={(e) => setF({ ...f, regenerate_docs: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })} placeholder="contractSigned, pilOwnershipDoc" />
@@ -204,6 +227,11 @@ const CorrTypeForm = ({ f, set, setF, busy, onSave, onCancel, isNew }) => (
           <option value="">—</option><option value="audio">audio</option><option value="cover">cover</option>
         </select>
       </div>
+    </div>
+    <div>
+      <label className="block text-xs text-gray-500 mb-0.5">input_fields (JSON — לסוגי תיקון כלליים)</label>
+      <textarea rows={3} className={input} dir="ltr" value={f.input_fields || ''} onChange={set('input_fields')}
+        placeholder={'[{"key":"url","type":"url","label":"קישור","required":true}]'} />
     </div>
     <div><label className="block text-xs text-gray-500 mb-0.5">PIL subject template</label><input className={input} value={f.pil_subject_tmpl || ''} onChange={set('pil_subject_tmpl')} /></div>
     <div><label className="block text-xs text-gray-500 mb-0.5">PIL body template</label><textarea rows={3} className={input} value={f.pil_body_tmpl || ''} onChange={set('pil_body_tmpl')} /></div>
