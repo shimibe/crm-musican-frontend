@@ -519,7 +519,8 @@ function PostCard({ post, onChanged, addVideoJob, addImageJob }) {
   const act = async (fn) => {
     setBusy(true); setErr(null);
     try { await fn(); onChanged(); }
-    catch (e) { setErr(errMsg(e)); setBusy(false); }
+    catch (e) { setErr(errMsg(e)); }
+    finally { setBusy(false); }
   };
 
   const approve  = () => act(() => api.post(`/marketing/posts/${post.id}/approve`));
