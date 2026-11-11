@@ -287,7 +287,11 @@ const ApprovalsTab = ({ onChanged, tick }) => {
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(a);
     }
-    return [...map.entries()];
+    return [...map.entries()].sort(([a], [b]) => {
+      if (a === '__other') return 1;
+      if (b === '__other') return -1;
+      return Number(a) - Number(b);
+    });
   }, [rows]);
 
   return (
