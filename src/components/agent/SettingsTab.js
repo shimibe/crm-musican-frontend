@@ -63,8 +63,54 @@ const SettingsTab = ({ settings, reload }) => {
         <button className={btnPrimary} disabled={busy} onClick={save}>שמור</button>
       </div>
 
+      <ReleaseEditRuleToggle />
       <AdvancedSection />
     </Section>
+  );
+};
+
+// ── Post-submission edit toggle ────────────────────────────────────────────────
+const ReleaseEditRuleToggle = () => {
+  const [value, setValue] = useState(false);
+  const [busy, setBusy]   = useState(false);
+
+  useEffect(() => {
+    api.get('/agent/rules?task_key=release_request_handler')
+      .then((r) => {
+        const rule = (r.data || []).find((x) => x.rule_key === 'allow_post_submission_edit');
+        if (rule) setValue(rule.value === 'true');
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggle = async (checked) => {
+    setBusy(true);
+    try {
+      await api.put('/agent/rules/release_request_handler/allow_post_submission_edit', { value: checked, value_type: 'boolean' });
+      setValue(checked);
+    } catch (e) {
+      alert(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-5">
+      <label className="flex items-center gap-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-indigo-600"
+          checked={value}
+          disabled={busy}
+          onChange={(e) => toggle(e.target.checked)}
+        />
+        <div>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">אפשר עריכת ריליס לאחר שליחה</span>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">כשמופעל, יואב יוכל לעדכן ריליסים שנשלחו או שפורסמו (force_update)</p>
+        </div>
+      </label>
+    </div>
   );
 };
 
