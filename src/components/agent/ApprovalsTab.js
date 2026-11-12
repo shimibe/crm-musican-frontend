@@ -91,9 +91,14 @@ const ApprovalCard = ({ a, hideDetails, onDecide, onExecute, onRetry, onDismiss,
       {/* ── Action buttons — always visible ── */}
       <div className="px-4 pb-3">
         {isFailed && (
-          <div className="flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400 mb-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>הפעולה נכשלה — ייתכן שהתיקון ב-Wix טרם פורסם</span>
+          <div className="mb-2 space-y-1">
+            <div className="flex items-center gap-1.5 text-sm text-red-700 dark:text-red-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>הפעולה נכשלה</span>
+            </div>
+            {a.fail_reason && (
+              <p className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-1.5 rounded break-all" dir="ltr">{a.fail_reason}</p>
+            )}
           </div>
         )}
         {isPending ? (
@@ -210,9 +215,14 @@ const FixBundleCard = ({ a, onDecide, onRetry, onDismiss, busy }) => {
             <button disabled={busy === a.id} onClick={() => handleDecide(false)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"><X className="w-3.5 h-3.5" /> דחה</button>
           </div>
         ) : isFailed ? (
-          <div className="flex gap-2">
-            <button disabled={busy === a.id} onClick={() => onRetry(a.id)}   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"><RefreshCw className="w-3.5 h-3.5" /> נסה שוב</button>
-            <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"><X className="w-3.5 h-3.5" /> בטל</button>
+          <div className="space-y-2">
+            {a.fail_reason && (
+              <p className="text-xs text-red-600 dark:text-red-400 font-mono bg-red-50 dark:bg-red-900/20 p-1.5 rounded break-all" dir="ltr">{a.fail_reason}</p>
+            )}
+            <div className="flex gap-2">
+              <button disabled={busy === a.id} onClick={() => onRetry(a.id)}   className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"><RefreshCw className="w-3.5 h-3.5" /> נסה שוב</button>
+              <button disabled={busy === a.id} onClick={() => onDismiss(a.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"><X className="w-3.5 h-3.5" /> בטל</button>
+            </div>
           </div>
         ) : (
           a.decided_by && <p className="text-xs text-gray-500 dark:text-gray-400">{a.decided_by} · {fmtDate(a.decided_at)}</p>
