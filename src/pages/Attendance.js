@@ -807,7 +807,7 @@ const Attendance = () => {
                             className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                           >
                             <option value="">— ללא —</option>
-                            {shiftProjects.filter(p => p.status !== 'archived').map(p => (
+                            {shiftProjects.filter(p => p.status === 'active').map(p => (
                               <option key={p.id} value={p.id}>
                                 {p.project_code ? `#${p.project_code} ` : ''}{p.name}
                               </option>
@@ -970,7 +970,7 @@ const Attendance = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="">— ללא פרויקט —</option>
-                    {shiftProjects.filter(p => p.status !== 'archived').map(p => (
+                    {shiftProjects.filter(p => p.status === 'active').map(p => (
                       <option key={p.id} value={p.id}>
                         {p.project_code ? `#${p.project_code} ` : ''}{p.name}
                       </option>
