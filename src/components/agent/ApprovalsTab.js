@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Check, X, RefreshCw, AlertCircle, ChevronDown, ChevronLeft, Play } from 'lucide-react';
 import api from '../../utils/api';
 import { Section, Empty, Badge, btnSuccess, btnDanger, btnGhost, btnPrimary, fmtDate, errMsg, input } from './ui';
@@ -224,16 +224,49 @@ const FixBundleCard = ({ a, onDecide, onRetry, onDismiss, busy }) => {
 
 // ── Main tab ────────────────────────────────────────────────────────────────
 const ApprovalsTab = ({ onChanged, tick }) => {
-  const [rows, setRows]     = useState([]);
-  const [status, setStatus] = useState('active');
-  const [busy, setBusy]     = useState(null);
-  const [edits, setEdits]   = useState({});
+  const [rows, setRows]         = useState([]);
+  const [extraRows, setExtraRows] = useState({}); // id → row kept visible 3s after execution
+  const [status, setStatus]     = useState('active');
+  const [busy, setBusy]         = useState(null);
+  const [edits, setEdits]       = useState({});
+  const prevRowsRef             = useRef([]);
 
   const load = useCallback(async () => {
     const { data } = await api.get('/agent/approvals', { params: { status } });
+
+    // Detect approved → executed: rows that were approved but are now gone from the list
+    const prevApproved = prevRowsRef.current.filter(r => r.status === 'approved');
+    if (prevApproved.length) {
+      const newIds = new Set(data.map(r => r.id));
+      const justDone = prevApproved.filter(r => !newIds.has(r.id));
+      if (justDone.length) {
+        setExtraRows(prev => {
+          const next = { ...prev };
+          for (const r of justDone) next[r.id] = { ...r, status: 'executed' };
+          return next;
+        });
+        setTimeout(() => {
+          setExtraRows(prev => {
+            const next = { ...prev };
+            for (const r of justDone) delete next[r.id];
+            return next;
+          });
+        }, 3000);
+      }
+    }
+
+    prevRowsRef.current = data;
     setRows(data);
   }, [status, tick]);
   useEffect(() => { load(); }, [load]);
+
+  // Poll every 3s while there are approved rows awaiting execution
+  const hasApproved = rows.some(r => r.status === 'approved');
+  useEffect(() => {
+    if (!hasApproved) return;
+    const t = setInterval(() => load(), 3000);
+    return () => clearInterval(t);
+  }, [hasApproved, load]);
 
   const setEdit = (id, key, value) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [key]: value } }));
@@ -260,6 +293,10 @@ const ApprovalsTab = ({ onChanged, tick }) => {
         }
       }
       await api.post(`/agent/approvals/${id}/decide`, { approve, override_params, execute });
+      // Optimistically mark as approved in prevRowsRef so transition detection works on next load
+      if (approve) {
+        prevRowsRef.current = prevRowsRef.current.map(r => r.id === id ? { ...r, status: 'approved' } : r);
+      }
       await load(); onChanged?.();
     } catch (e) { alert(errMsg(e)); } finally { setBusy(null); }
   };
@@ -280,8 +317,9 @@ const ApprovalsTab = ({ onChanged, tick }) => {
 
   // Group by release_id; __other for approvals without one
   const groups = useMemo(() => {
+    const allRows = [...rows, ...Object.values(extraRows)];
     const map = new Map();
-    for (const a of rows) {
+    for (const a of allRows) {
       const raw = a.proposed?.params?.release_id ?? a.proposed?.release_id ?? a.subject_id;
       const key = raw != null ? String(raw) : '__other';
       if (!map.has(key)) map.set(key, []);
@@ -292,7 +330,7 @@ const ApprovalsTab = ({ onChanged, tick }) => {
       if (b === '__other') return -1;
       return Number(a) - Number(b);
     });
-  }, [rows]);
+  }, [rows, extraRows]);
 
   return (
     <Section
