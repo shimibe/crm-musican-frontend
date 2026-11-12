@@ -71,23 +71,27 @@ const SettingsTab = ({ settings, reload }) => {
 
 // ── Post-submission edit toggle ────────────────────────────────────────────────
 const ReleaseEditRuleToggle = () => {
-  const [value, setValue] = useState(false);
+  const [value, setValue] = useState(null); // null = טוען
   const [busy, setBusy]   = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     api.get('/agent/rules?task_key=release_request_handler')
       .then((r) => {
         const rule = (r.data || []).find((x) => x.rule_key === 'allow_post_submission_edit');
-        if (rule) setValue(rule.value === 'true');
+        setValue(rule ? (rule.value === 'true' || rule.value === true) : false);
       })
-      .catch(() => {});
+      .catch(() => setValue(false));
   }, []);
 
   const toggle = async (checked) => {
     setBusy(true);
+    setSaved(false);
     try {
       await api.put('/agent/rules/release_request_handler/allow_post_submission_edit', { value: checked, value_type: 'boolean' });
       setValue(checked);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       alert(errMsg(e));
     } finally {
@@ -95,8 +99,11 @@ const ReleaseEditRuleToggle = () => {
     }
   };
 
+  if (value === null) return null; // טוען
+
   return (
-    <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-5">
+    <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">הרשאות</h3>
       <label className="flex items-center gap-3 cursor-pointer select-none">
         <input
           type="checkbox"
@@ -107,8 +114,9 @@ const ReleaseEditRuleToggle = () => {
         />
         <div>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">אפשר עריכת ריליס לאחר שליחה</span>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">כשמופעל, יואב יוכל לעדכן ריליסים שנשלחו או שפורסמו (force_update)</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">כשמופעל, יואב יוכל לעדכן ריליסים שנשלחו לחנויות או שפורסמו</p>
         </div>
+        {saved && <span className="text-xs text-green-600 dark:text-green-400 mr-2">✓ נשמר</span>}
       </label>
     </div>
   );
