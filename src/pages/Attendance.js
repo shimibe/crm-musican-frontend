@@ -807,11 +807,20 @@ const Attendance = () => {
                             className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                           >
                             <option value="">— ללא —</option>
-                            {shiftProjects.map(p => (
+                            {shiftProjects.filter(p => p.status === 'active').map(p => (
                               <option key={p.id} value={p.id}>
                                 {p.project_code ? `#${p.project_code} ` : ''}{p.name}
                               </option>
                             ))}
+                            {shiftProjects.some(p => p.status === 'archived') && (
+                              <optgroup label="ארכיון">
+                                {shiftProjects.filter(p => p.status === 'archived').map(p => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.project_code ? `#${p.project_code} ` : ''}{p.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
                           </select>
                         ) : (
                           (/** @type {any} */(shift)).project_name || '—'
@@ -961,11 +970,20 @@ const Attendance = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="">— ללא פרויקט —</option>
-                    {shiftProjects.map(p => (
+                    {shiftProjects.filter(p => p.status === 'active').map(p => (
                       <option key={p.id} value={p.id}>
                         {p.project_code ? `#${p.project_code} ` : ''}{p.name}
                       </option>
                     ))}
+                    {shiftProjects.some(p => p.status === 'archived') && (
+                      <optgroup label="ארכיון">
+                        {shiftProjects.filter(p => p.status === 'archived').map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.project_code ? `#${p.project_code} ` : ''}{p.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
               )}
